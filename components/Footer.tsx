@@ -105,7 +105,7 @@ export default function Footer() {
           
           <div className="flex items-center space-x-4">
             <Image
-            src="/images/payment-methods.png" alt="Formas de pagamento" className="h-8" width={100} height={24}
+            src="/images/payment-methods.png" alt="Formas de pagamento" className="w-21" width={131} height={53} loading="lazy"
             />
             
           </div>
