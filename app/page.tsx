@@ -3,15 +3,16 @@ import ProductGrid from '@/components/ProductGrid';
 import CategoryFilter from '@/components/CategoryFilter';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import FeaturedSection from '@/components/FeaturedSection';
+
 
 interface Props {
-  searchParams: Promise<{ categoria?: string }>;
+  searchParams: Promise<{ categoria?: string; busca?: string }>;
 }
 
 export default async function Home({ searchParams }: Props) {
   const params = await searchParams;
   const selectedCategory = typeof params.categoria === 'string' ? params.categoria : 'Todos';
+  const searchQuery = typeof params.busca === 'string' ? params.busca : '';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -30,30 +31,32 @@ export default async function Home({ searchParams }: Props) {
         </div>
       </div>
       
-      {/* Featured Section */}
-      <FeaturedSection />
-      
       {/* Main Content */}
       <div className="bg-gray-50 py-16 flex-1">
         <div className="container mx-auto px-4">
           {/* Section Header */}
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Camisas Oficiais
+              {searchQuery ? `Resultados para "${searchQuery}"` : 'Camisas Oficiais'}
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Descubra nossa coleção completa de camisas oficiais dos maiores clubes do mundo
+              {searchQuery 
+                ? `Encontre as melhores camisas para sua busca`
+                : 'Descubra nossa coleção completa de camisas oficiais dos maiores clubes do mundo'
+              }
             </p>
           </div>
           
-          {/* Category Filter */}
-          <div className="mb-12">
-            <CategoryFilter selectedCategory={selectedCategory} />
-          </div>
+          {/* Category Filter - Hide when searching */}
+          {!searchQuery && (
+            <div className="mb-12">
+              <CategoryFilter selectedCategory={selectedCategory} />
+            </div>
+          )}
           
           {/* Products Grid */}
           <Suspense fallback={<ProductGridSkeleton />}>
-            <ProductGrid category={selectedCategory} />
+            <ProductGrid category={selectedCategory} searchQuery={searchQuery} />
           </Suspense>
         </div>
       </div>
