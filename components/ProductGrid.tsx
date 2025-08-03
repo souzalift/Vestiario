@@ -11,13 +11,24 @@ interface Product {
   image: string;
   league?: string;
   team?: string;
+  categories?: string[];
 }
 
 interface ProductGridProps {
   category: string;
+  searchQuery?: string;
 }
 
-export default function ProductGrid({ category }: ProductGridProps) {
+// Lista de ligas conhecidas
+const LEAGUES = [
+  'Premier League',
+  'La Liga', 
+  'Serie A',
+  'Bundesliga',
+  'Brasileirão'
+];
+
+export default function ProductGrid({ category, searchQuery = '' }: ProductGridProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,39 +37,58 @@ export default function ProductGrid({ category }: ProductGridProps) {
       try {
         setLoading(true);
         
-        // Use 'league' instead of 'categoria' for the API call
-        const url = category === 'Todos' 
-          ? '/api/products' 
-          : `/api/products?league=${encodeURIComponent(category)}`;
+        let url = '/api/products';
+        const params = new URLSearchParams();
         
+        if (searchQuery) {
+          params.set('search', searchQuery);
+        } else if (category && category !== 'Todos') {
+          // Verifica se é uma liga ou um time
+          const isLeague = LEAGUES.includes(category);
+          
+          if (isLeague) {
+            params.set('league', category);
+          } else {
+            // É um time, busca por team
+            params.set('team', category);
+          }
+        }
+
+        if (params.toString()) {
+          url += `?${params.toString()}`;
+        }
+
+        console.log('Fetching from:', url);
+
         const response = await fetch(url);
         const data = await response.json();
-        
+
         if (data.success) {
           setProducts(data.data);
         } else {
-          console.error('Error fetching products:', data.error);
-          setProducts([]);
+          console.error('Failed to fetch products:', data.error);
         }
       } catch (error) {
         console.error('Error fetching products:', error);
-        setProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [category]);
+  }, [category, searchQuery]);
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow-md p-4 animate-pulse">
-            <div className="bg-gray-300 h-48 rounded mb-4"></div>
-            <div className="bg-gray-300 h-4 rounded mb-2"></div>
-            <div className="bg-gray-300 h-4 rounded w-2/3"></div>
+          <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+            <div className="bg-gray-200 h-64 rounded-lg mb-4"></div>
+            <div className="space-y-3">
+              <div className="bg-gray-200 h-4 rounded w-3/4"></div>
+              <div className="bg-gray-200 h-4 rounded w-1/2"></div>
+              <div className="bg-gray-200 h-6 rounded w-1/3"></div>
+            </div>
           </div>
         ))}
       </div>
@@ -67,13 +97,14 @@ export default function ProductGrid({ category }: ProductGridProps) {
 
   if (products.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-xl font-semibold text-gray-600 mb-2">
+      <div className="text-center py-16">
+        <div className="text-6xl mb-4">⚽</div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">
           Nenhum produto encontrado
         </h3>
-        <p className="text-gray-500">
+        <p className="text-gray-600">
           {category === 'Todos' 
-            ? 'Não há produtos disponíveis no momento.' 
+            ? 'Não há produtos disponíveis no momento.'
             : `Não há produtos disponíveis para ${category}.`
           }
         </p>
@@ -82,7 +113,7 @@ export default function ProductGrid({ category }: ProductGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
       {products.map((product) => (
         <ProductCard key={product._id} product={product} />
       ))}

@@ -1,10 +1,54 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Search, ShoppingBag, Menu, X } from 'lucide-react';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [cartItemsCount, setCartItemsCount] = useState(0);
+  const router = useRouter();
+
+  // Atualizar contador do carrinho
+  useEffect(() => {
+    const updateCartCount = () => {
+      if (typeof window !== 'undefined') {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const totalItems = cart.reduce((sum: number, item: any) => sum + item.quantity, 0);
+        setCartItemsCount(totalItems);
+      }
+    };
+
+    // Atualizar na montagem
+    updateCartCount();
+
+    // Escutar mudanças no localStorage
+    window.addEventListener('storage', updateCartCount);
+    
+    // Escutar evento customizado para atualizações do carrinho
+    window.addEventListener('cartUpdated', updateCartCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/?busca=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+    }
+  };
+
+  const handleCartClick = () => {
+    router.push('/carrinho');
+  };
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -23,7 +67,7 @@ export default function Header() {
             <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors">
               Início
             </Link>
-            <Link href="/produtos" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <Link href="/#produtos" className="text-gray-600 hover:text-blue-600 transition-colors">
               Produtos
             </Link>
             <Link href="/sobre" className="text-gray-600 hover:text-blue-600 transition-colors">
@@ -35,22 +79,56 @@ export default function Header() {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center space-x-4">
-            {/* Search */}
-            <button className="p-2 text-gray-600 hover:text-blue-600 transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+          <div className="flex items-center space-x-2">
+            {/* Search Desktop */}
+            <div className="hidden md:block relative">
+              {isSearchOpen ? (
+                <form onSubmit={handleSearch} className="flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Buscar produtos..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsSearchOpen(false)}
+                    className="ml-2 p-2 text-gray-600 hover:text-blue-600 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </form>
+              ) : (
+                <button 
+                  onClick={() => setIsSearchOpen(true)}
+                  className="p-2 text-gray-600 hover:text-blue-600 transition-colors"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Search Mobile */}
+            <button 
+              className="md:hidden p-2 text-gray-600 hover:text-blue-600 transition-colors"
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+            >
+              <Search className="w-5 h-5" />
             </button>
 
             {/* Cart */}
-            <button className="p-2 text-gray-600 hover:text-blue-600 transition-colors relative">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5L17 18" />
-              </svg>
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                0
-              </span>
+            <button 
+              onClick={handleCartClick}
+              className="p-2 text-gray-600 hover:text-blue-600 transition-colors relative"
+            >
+              <ShoppingBag className="w-5 h-5" />
+              {cartItemsCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                  {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                </span>
+              )}
             </button>
 
             {/* Mobile menu button */}
@@ -58,27 +136,62 @@ export default function Header() {
               className="md:hidden p-2 text-gray-600 hover:text-blue-600 transition-colors"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
+
+        {/* Mobile Search */}
+        {isSearchOpen && (
+          <div className="md:hidden py-4 border-t border-gray-200">
+            <form onSubmit={handleSearch} className="flex items-center space-x-2">
+              <input
+                type="text"
+                placeholder="Buscar produtos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Buscar
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <nav className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4">
-              <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors">
+              <Link 
+                href="/" 
+                className="text-gray-600 hover:text-blue-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Início
               </Link>
-              <Link href="/produtos" className="text-gray-600 hover:text-blue-600 transition-colors">
+              <Link 
+                href="/#produtos" 
+                className="text-gray-600 hover:text-blue-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Produtos
               </Link>
-              <Link href="/sobre" className="text-gray-600 hover:text-blue-600 transition-colors">
+              <Link 
+                href="/sobre" 
+                className="text-gray-600 hover:text-blue-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Sobre
               </Link>
-              <Link href="/contato" className="text-gray-600 hover:text-blue-600 transition-colors">
+              <Link 
+                href="/contato" 
+                className="text-gray-600 hover:text-blue-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Contato
               </Link>
             </div>
