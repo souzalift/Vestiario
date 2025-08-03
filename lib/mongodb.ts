@@ -5,5 +5,7 @@ export const connectToDatabase = async () => {
 
   await mongoose.connect(process.env.MONGODB_URI!, {
     dbName: 'ovestiario',
+    connectTimeoutMS: 30000,
+    serverSelectionTimeoutMS: 30000,
   });
 };
