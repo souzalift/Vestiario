@@ -100,7 +100,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="text-gray-400 text-sm mb-4 md:mb-0">
-            © 2024 O Vestiário. Todos os direitos reservados.
+            © 2025 O Vestiário. Todos os direitos reservados.
           </div>
           
           <div className="flex items-center space-x-4">
