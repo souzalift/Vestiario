@@ -1,17 +1,33 @@
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { CartProvider } from '@/contexts/CartContext';
-import { Toaster } from '@/components/ui/sonner';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'O Vestiário - Camisas de Time Originais',
-  description: 'As melhores camisas de time com personalização. Qualidade garantida e entrega rápida.',
-  keywords: 'camisas de time, futebol, personalização, vestiário',
+  title: 'O Vestiário',
+  description: 'Camisas oficiais dos maiores clubes do mundo com qualidade autêntica',
+  keywords: ['camisas de futebol', 'camisas oficiais', 'clubes', 'futebol', 'esportes'],
   authors: [{ name: 'O Vestiário' }],
-  viewport: 'width=device-width, initial-scale=1',
+  creator: 'O Vestiário',
+  publisher: 'O Vestiário',
+  openGraph: {
+    title: 'O Vestiário - Camisas Oficiais',
+    description: 'Camisas oficiais dos maiores clubes do mundo',
+    url: 'https://ovestiario.com.br',
+    siteName: 'O Vestiário',
+    locale: 'pt_BR',
+    type: 'website',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#2563eb',
 };
 
 export default function RootLayout({
@@ -21,14 +37,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-      </head>
-      <body className={inter.className}>
-        <CartProvider>
-          {children}
-          <Toaster />
-        </CartProvider>
+      <body className="antialiased">
+        {children}
       </body>
     </html>
   );
