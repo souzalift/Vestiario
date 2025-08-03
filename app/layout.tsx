@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Poppins } from 'next/font/google';
 import './globals.css';
+import { CartProvider } from '@/contexts/CartContext';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -46,7 +47,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${poppins.variable} antialiased`}>
+        <CartProvider>
         {children}
+        </CartProvider>
       </body>
     </html>
   );
