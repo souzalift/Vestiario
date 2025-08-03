@@ -1,51 +1,139 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { useCart } from '@/contexts/CartContext';
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface CartItem {
+  id: string;
+  title: string;
+  price: number;
+  image: string;
+  size: string;
+  quantity: number;
+  customization?: {
+    name?: string;
+    number?: string;
+  };
+}
+
 export default function CartPage() {
-  const { state, removeItem, updateQuantity } = useCart();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  const handleQuantityChange = (id: string, newQuantity: number) => {
-    if (newQuantity < 1) {
-      removeItem(id);
-      toast.success('Item removido do carrinho');
-    } else {
-      updateQuantity(id, newQuantity);
-    }
+  // Carregar itens do carrinho
+  useEffect(() => {
+    const loadCart = () => {
+      try {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        setCartItems(cart);
+      } catch (error) {
+        console.error('Erro ao carregar carrinho:', error);
+        setCartItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCart();
+  }, []);
+
+  // Salvar carrinho no localStorage
+  const saveCart = (items: CartItem[]) => {
+    localStorage.setItem('cart', JSON.stringify(items));
+    setCartItems(items);
+    // Disparar evento para atualizar contador
+    window.dispatchEvent(new Event('cartUpdated'));
   };
 
-  const handleRemoveItem = (id: string) => {
-    removeItem(id);
-    toast.success('Item removido do carrinho');
+  // Atualizar quantidade
+  const updateQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    
+    const updatedItems = cartItems.map(item =>
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    );
+    saveCart(updatedItems);
+    toast.success('Quantidade atualizada!');
   };
 
-  if (state.items.length === 0) {
+  // Remover item
+  const removeItem = (itemId: string) => {
+    const updatedItems = cartItems.filter(item => item.id !== itemId);
+    saveCart(updatedItems);
+    toast.success('Item removido do carrinho!');
+  };
+
+  // Limpar carrinho
+  const clearCart = () => {
+    saveCart([]);
+    toast.success('Carrinho limpo!');
+  };
+
+  // Calcular total
+  const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <main className="pt-20 pb-12">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center py-16">
-              <ShoppingBag className="h-24 w-24 mx-auto text-gray-400 mb-6" />
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">Seu carrinho está vazio</h1>
-              <p className="text-gray-600 mb-8">Adicione alguns produtos incríveis ao seu carrinho!</p>
+        <div className="pt-20 pb-12">
+          <div className="max-w-4xl mx-auto px-4">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-lg p-6">
+                    <div className="flex gap-4">
+                      <div className="w-20 h-20 bg-gray-200 rounded"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="pt-20 pb-12">
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <div className="bg-white rounded-xl shadow-sm p-12">
+              <ShoppingBag className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Seu carrinho está vazio
+              </h2>
+              <p className="text-gray-600 mb-8">
+                Adicione alguns produtos incríveis ao seu carrinho para continuar
+              </p>
               <Link href="/">
                 <Button className="bg-blue-600 hover:bg-blue-700">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
                   Continuar Comprando
                 </Button>
               </Link>
             </div>
           </div>
-        </main>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -54,17 +142,32 @@ export default function CartPage() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="pt-20 pb-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Seu Carrinho</h1>
+      <div className="pt-20 pb-12">
+        <div className="max-w-4xl mx-auto px-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Carrinho de Compras</h1>
+              <p className="text-gray-600 mt-1">
+                {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} no seu carrinho
+              </p>
+            </div>
+            <Link href="/">
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Continuar Comprando
+              </Button>
+            </Link>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
+            {/* Items */}
             <div className="lg:col-span-2 space-y-4">
-              {state.items.map((item) => (
-                <Card key={item.id}>
+              {cartItems.map((item) => (
+                <Card key={item.id} className="overflow-hidden">
                   <CardContent className="p-6">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex gap-4">
+                      {/* Image */}
                       <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
                         <Image
                           src={item.image}
@@ -75,97 +178,117 @@ export default function CartPage() {
                         />
                       </div>
 
+                      {/* Details */}
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{item.title}</h3>
-                        <p className="text-gray-600">Tamanho: {item.size}</p>
-                        {(item.customization.name || item.customization.number) && (
-                          <p className="text-gray-600">
-                            {item.customization.name && `Nome: ${item.customization.name}`}
-                            {item.customization.name && item.customization.number && ' • '}
-                            {item.customization.number && `Nº ${item.customization.number}`}
-                          </p>
-                        )}
-                        <p className="text-blue-600 font-bold text-lg">
-                          R$ {item.price.toFixed(2).replace('.', ',')}
-                        </p>
-                      </div>
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold text-gray-900 text-lg">
+                            {item.title}
+                          </h3>
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
 
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value) || 1)}
-                          className="w-16 text-center"
-                          min="1"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
+                        <div className="text-sm text-gray-600 space-y-1 mb-3">
+                          <p>Tamanho: <span className="font-medium">{item.size}</span></p>
+                          {item.customization?.name && (
+                            <p>Nome: <span className="font-medium">{item.customization.name}</span></p>
+                          )}
+                          {item.customization?.number && (
+                            <p>Número: <span className="font-medium">{item.customization.number}</span></p>
+                          )}
+                        </div>
 
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoveItem(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <div className="flex items-center justify-between">
+                          {/* Quantity */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                              className="p-1 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <span className="w-8 text-center font-medium">{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="p-1 rounded-md border border-gray-300 hover:bg-gray-50"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {/* Price */}
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-gray-900">
+                              R$ {(item.price * item.quantity).toFixed(2)}
+                            </p>
+                            {item.quantity > 1 && (
+                              <p className="text-sm text-gray-600">
+                                R$ {item.price.toFixed(2)} cada
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
+
+              {/* Clear Cart */}
+              <div className="text-center pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={clearCart}
+                  className="text-red-600 border-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Limpar Carrinho
+                </Button>
+              </div>
             </div>
 
-            {/* Order Summary */}
+            {/* Summary */}
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4">Resumo do Pedido</h2>
+                  <h3 className="text-lg font-semibold mb-4">Resumo do Pedido</h3>
                   
-                  <div className="space-y-3 mb-6">
-                    <div className="flex justify-between">
-                      <span>Subtotal ({state.itemCount} {state.itemCount === 1 ? 'item' : 'itens'})</span>
-                      <span>R$ {state.total.toFixed(2).replace('.', ',')}</span>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex justify-between text-sm">
+                      <span>Subtotal</span>
+                      <span>R$ {total.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-sm">
                       <span>Frete</span>
                       <span className="text-green-600">Grátis</span>
                     </div>
                     <hr />
-                    <div className="flex justify-between text-xl font-bold">
+                    <div className="flex justify-between font-semibold text-lg">
                       <span>Total</span>
-                      <span className="text-blue-600">R$ {state.total.toFixed(2).replace('.', ',')}</span>
+                      <span>R$ {total.toFixed(2)}</span>
                     </div>
                   </div>
 
-                  <Link href="/pagamento">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
-                      Finalizar Compra
-                    </Button>
-                  </Link>
-
-                  <Link href="/">
-                    <Button variant="outline" className="w-full mt-3">
-                      Continuar Comprando
-                    </Button>
-                  </Link>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 mb-3">
+                    Finalizar Compra
+                  </Button>
+                  
+                  <p className="text-xs text-gray-500 text-center">
+                    Compra 100% segura e protegida
+                  </p>
                 </CardContent>
               </Card>
             </div>
           </div>
         </div>
-      </main>
+      </div>
+
+      <Footer />
     </div>
   );
 }

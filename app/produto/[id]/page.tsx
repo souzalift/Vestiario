@@ -67,6 +67,9 @@ export default function ProductPage() {
     try {
       setAddingToCart(true);
 
+      // Buscar carrinho existente
+      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      
       const cartItem = {
         id: `${product._id}-${selectedSize}-${customization.name}-${customization.number}`,
         title: product.title,
@@ -74,16 +77,28 @@ export default function ProductPage() {
         image: product.image,
         size: selectedSize,
         customization,
+        quantity: 1, // Importante: adicionar quantity
       };
 
-      addItem(cartItem);
+      // Verificar se item já existe
+      const existingItemIndex = existingCart.findIndex((item: any) => item.id === cartItem.id);
       
-      // Disparar evento para atualizar contador do carrinho
+      if (existingItemIndex > -1) {
+        // Item já existe, incrementar quantity
+        existingCart[existingItemIndex].quantity += 1;
+      } else {
+        // Novo item
+        existingCart.push(cartItem);
+      }
+
+      // Salvar no localStorage
+      localStorage.setItem('cart', JSON.stringify(existingCart));
+      
+      // Disparar evento para atualizar contador
       window.dispatchEvent(new Event('cartUpdated'));
       
       toast.success('Produto adicionado ao carrinho!');
       
-      // Redirecionar para o carrinho após um pequeno delay
       setTimeout(() => {
         router.push('/carrinho');
       }, 1000);

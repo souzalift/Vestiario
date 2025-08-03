@@ -16,24 +16,49 @@ export default function Header() {
   useEffect(() => {
     const updateCartCount = () => {
       if (typeof window !== 'undefined') {
-        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        const totalItems = cart.reduce((sum: number, item: any) => sum + item.quantity, 0);
-        setCartItemsCount(totalItems);
+        try {
+          const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+          
+          // Se o cart é um array simples de itens
+          if (Array.isArray(cart)) {
+            // Verifica se os itens têm propriedade quantity
+            const totalItems = cart.reduce((sum: number, item: any) => {
+              const quantity = item.quantity || 1; // Default para 1 se não tiver quantity
+              return sum + quantity;
+            }, 0);
+            setCartItemsCount(totalItems);
+          } else {
+            // Se não é array, assume 0
+            setCartItemsCount(0);
+          }
+        } catch (error) {
+          console.error('Erro ao ler carrinho:', error);
+          setCartItemsCount(0);
+        }
       }
     };
 
     // Atualizar na montagem
     updateCartCount();
 
-    // Escutar mudanças no localStorage
-    window.addEventListener('storage', updateCartCount);
-    
+    // Escutar mudanças no localStorage (entre abas)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'cart') {
+        updateCartCount();
+      }
+    };
+
     // Escutar evento customizado para atualizações do carrinho
-    window.addEventListener('cartUpdated', updateCartCount);
+    const handleCartUpdate = () => {
+      updateCartCount();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('cartUpdated', handleCartUpdate);
 
     return () => {
-      window.removeEventListener('storage', updateCartCount);
-      window.removeEventListener('cartUpdated', updateCartCount);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('cartUpdated', handleCartUpdate);
     };
   }, []);
 
