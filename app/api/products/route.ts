@@ -8,15 +8,24 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const league = searchParams.get('league');
+    const team = searchParams.get('team');
 
-    let query = {};
-    if (league && league !== 'Todos') {
-      query = { league: league };
+    let filter = {};
+
+    if (league) {
+      filter = { league: league };
+    } else if (team) {
+      filter = { team: team };
     }
 
-    const products = await Product.find(query).sort({ createdAt: -1 });
+    console.log('Filter:', filter);
 
-    return NextResponse.json({ success: true, data: products });
+    const products = await Product.find(filter).lean();
+
+    return NextResponse.json({
+      success: true,
+      data: products,
+    });
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json(
