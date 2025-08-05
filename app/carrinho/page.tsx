@@ -8,7 +8,14 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
+import {
+  Minus,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  ShoppingBag,
+  Truck,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CartItem {
@@ -69,7 +76,7 @@ export default function CartPage() {
   const removeItem = (itemId: string) => {
     const updatedItems = cartItems.filter((item) => item.id !== itemId);
     saveCart(updatedItems);
-    toast.success('Item removido do carrinho!');
+    toast.success('Camisa removida do carrinho!');
   };
 
   // Limpar carrinho
@@ -78,11 +85,35 @@ export default function CartPage() {
     toast.success('Carrinho limpo!');
   };
 
-  // Calcular total
-  const total = cartItems.reduce(
+  // Calcular total de itens (quantidade total)
+  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Calcular frete baseado na quantidade total de itens
+  const calculateShipping = (itemCount: number) => {
+    if (itemCount === 0) return 0;
+    if (itemCount === 1) return 25;
+    if (itemCount === 2) return 20;
+    if (itemCount === 3) return 15;
+    return 0; // 4+ itens = frete grátis
+  };
+
+  // Calcular totais
+  const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
+  const shipping = calculateShipping(totalItems);
+  const total = subtotal + shipping;
+
+  // Função para determinar a cor e texto do frete
+  const getShippingInfo = () => {
+    if (totalItems === 0) return { color: 'text-gray-600', text: 'Calcular' };
+    if (totalItems >= 4) return { color: 'text-green-600', text: 'Grátis' };
+    return { color: 'text-gray-900', text: `R$ ${shipping.toFixed(2)}` };
+  };
+
+  // Calcular quantos itens faltam para frete grátis
+  const itemsToFreeShipping = Math.max(0, 4 - totalItems);
 
   if (loading) {
     return (
@@ -125,7 +156,7 @@ export default function CartPage() {
                 Seu carrinho está vazio
               </h2>
               <p className="text-gray-600 mb-8">
-                Adicione alguns produtos incríveis ao seu carrinho para
+                Adicione algumas camisas incríveis ao seu carrinho para
                 continuar
               </p>
               <Link href="/">
@@ -142,6 +173,8 @@ export default function CartPage() {
     );
   }
 
+  const shippingInfo = getShippingInfo();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -155,8 +188,8 @@ export default function CartPage() {
                 Carrinho de Compras
               </h1>
               <p className="text-gray-600 mt-1">
-                {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'}{' '}
-                no seu carrinho
+                {totalItems} {totalItems === 1 ? 'camisa' : 'camisas'} no seu
+                carrinho
               </p>
             </div>
             <Link href="/">
@@ -166,6 +199,30 @@ export default function CartPage() {
               </Button>
             </Link>
           </div>
+
+          {/* Aviso de frete grátis */}
+          {totalItems > 0 && totalItems < 4 && (
+            <div className="mb-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-blue-800 font-medium">
+                      Falta{totalItems < 3 ? 'm' : ''} apenas{' '}
+                      {itemsToFreeShipping}{' '}
+                      {itemsToFreeShipping === 1 ? 'camisa' : 'camisas'} para
+                      ganhar <span className="font-bold">frete grátis!</span>
+                    </p>
+                    <p className="text-blue-600 text-sm">
+                      Economize R$ {shipping.toFixed(2)} adicionando mais{' '}
+                      {itemsToFreeShipping}{' '}
+                      {itemsToFreeShipping === 1 ? 'camisa' : 'camisas'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Items */}
@@ -288,14 +345,39 @@ export default function CartPage() {
 
                   <div className="space-y-3 mb-4">
                     <div className="flex justify-between text-sm">
-                      <span>Subtotal</span>
-                      <span>R$ {total.toFixed(2)}</span>
+                      <span>
+                        Subtotal ({totalItems}{' '}
+                        {totalItems === 1 ? 'camisa' : 'camisas'})
+                      </span>
+                      <span>R$ {subtotal.toFixed(2)}</span>
                     </div>
+
                     <div className="flex justify-between text-sm">
-                      <span>Frete</span>
-                      <span className="text-green-600">Grátis</span>
+                      <span className="flex items-center gap-1">
+                        <Truck className="h-3 w-3" />
+                        Frete
+                      </span>
+                      <span className={shippingInfo.color}>
+                        {shippingInfo.text}
+                      </span>
                     </div>
+
+                    {/* Info sobre frete */}
+                    <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                      <p className="font-medium mb-1">Tabela de Frete:</p>
+                      <p>• 1 camisa: R$ 25,00</p>
+                      <p>• 2 camisas: R$ 20,00</p>
+                      <p>• 3 camisas: R$ 15,00</p>
+                      <p>
+                        • 4+ camisas:{' '}
+                        <span className="text-green-600 font-medium">
+                          Grátis!
+                        </span>
+                      </p>
+                    </div>
+
                     <hr />
+
                     <div className="flex justify-between font-semibold text-lg">
                       <span>Total</span>
                       <span>R$ {total.toFixed(2)}</span>
