@@ -81,7 +81,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">OV</span>
             </div>
             <span className="text-xl font-bold text-gray-900">O Vestiário</span>
@@ -92,13 +92,13 @@ export default function Header() {
             <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors">
               Início
             </Link>
-            <Link href="/#produtos" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <Link href="/#produtos" className="text-gray-600 hover:text-secondary transition-colors">
               Produtos
             </Link>
-            <Link href="/sobre" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <Link href="/sobre" className="text-gray-600 hover:text-secondary transition-colors">
               Sobre
             </Link>
-            <Link href="/contato" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <Link href="/contato" className="text-gray-600 hover:text-secondary transition-colors">
               Contato
             </Link>
           </nav>
@@ -128,7 +128,7 @@ export default function Header() {
               ) : (
                 <button 
                   onClick={() => setIsSearchOpen(true)}
-                  className="p-2 text-gray-600 hover:text-blue-600 transition-colors"
+                  className="p-2 text-gray-600 hover:text-secondary transition-colors"
                 >
                   <Search className="w-5 h-5" />
                 </button>
@@ -137,7 +137,7 @@ export default function Header() {
 
             {/* Search Mobile */}
             <button 
-              className="md:hidden p-2 text-gray-600 hover:text-blue-600 transition-colors"
+              className="md:hidden p-2 text-gray-600 hover:text-secondary transition-colors"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
               <Search className="w-5 h-5" />
@@ -146,11 +146,11 @@ export default function Header() {
             {/* Cart */}
             <button 
               onClick={handleCartClick}
-              className="p-2 text-gray-600 hover:text-blue-600 transition-colors relative"
+              className="p-2 text-gray-600 hover:text-secondary transition-colors relative"
             >
               <ShoppingBag className="w-5 h-5" />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                <span className="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                   {cartItemsCount > 99 ? '99+' : cartItemsCount}
                 </span>
               )}
@@ -158,7 +158,7 @@ export default function Header() {
 
             {/* Mobile menu button */}
             <button
-              className="md:hidden p-2 text-gray-600 hover:text-blue-600 transition-colors"
+              className="md:hidden p-2 text-gray-600 hover:text-secondary transition-colors"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -179,7 +179,7 @@ export default function Header() {
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
               >
                 Buscar
               </button>
@@ -193,28 +193,28 @@ export default function Header() {
             <div className="flex flex-col space-y-4">
               <Link 
                 href="/" 
-                className="text-gray-600 hover:text-blue-600 transition-colors"
+                className="text-gray-600 hover:text-secondary transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Início
               </Link>
               <Link 
                 href="/#produtos" 
-                className="text-gray-600 hover:text-blue-600 transition-colors"
+                className="text-gray-600 hover:text-secondary transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Produtos
               </Link>
               <Link 
                 href="/sobre" 
-                className="text-gray-600 hover:text-blue-600 transition-colors"
+                className="text-gray-600 hover:text-secondary transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Sobre
               </Link>
               <Link 
                 href="/contato" 
-                className="text-gray-600 hover:text-blue-600 transition-colors"
+                className="text-gray-600 hover:text-secondary transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Contato

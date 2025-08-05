@@ -30,7 +30,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       {/* Badges */}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
         {product.league && (
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm">
+          <div className="bg-gradient-to-r from-primary to-primary-dark text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm">
             {product.league}
           </div>
         )}
@@ -64,15 +64,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Team */}
           {product.team && (
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm font-medium text-blue-600 uppercase tracking-wide">
+              <div className="w-2 h-2 bg-secondary rounded-full"></div>
+              <span className="text-sm font-medium text-secondary uppercase tracking-wide">
                 {product.team}
               </span>
             </div>
           )}
 
           {/* Title */}
-          <h3 className="font-bold text-xl mb-3 text-gray-900 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors duration-300">
+          <h3 className="font-bold text-xl mb-3 text-gray-900 line-clamp-2 leading-tight group-hover:text-secondary transition-colors duration-300">
             {product.title}
           </h3>
 
@@ -97,7 +97,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* Action Button */}
-          <button className="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3.5 px-6 rounded-xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]">
+          <button className="w-full mt-6 bg-gradient-to-r from-primary to-primary-dark text-white py-3.5 px-6 rounded-xl font-bold hover:from-primary-dark hover:to-primary transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]">
             Ver Detalhes
           </button>
         </div>

@@ -123,7 +123,7 @@ export default function CategoryFilter({ selectedCategory }: CategoryFilterProps
               }}
               className={`group flex items-center gap-3 px-6 py-3 rounded-full font-medium transition-all duration-300 transform hover:scale-105 ${
                 selectedCategory === category.name
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  ? 'bg-primary text-white shadow-lg shadow-primary/30'
                   : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg border border-gray-200'
               }`}
             >
@@ -190,7 +190,7 @@ export default function CategoryFilter({ selectedCategory }: CategoryFilterProps
                     key={team}
                     onClick={() => handleTeamChange(team)}
                     className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                      selectedCategory === team ? 'text-blue-600 bg-blue-50 font-medium' : 'text-gray-700'
+                      selectedCategory === team ? 'text-secondary bg-red-50 font-medium' : 'text-gray-700'
                     }`}
                   >
                     {team}

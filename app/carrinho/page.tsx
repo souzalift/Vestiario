@@ -160,7 +160,7 @@ export default function CartPage() {
                 continuar
               </p>
               <Link href="/">
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button className="bg-primary hover:bg-primary-dark">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Continuar Comprando
                 </Button>

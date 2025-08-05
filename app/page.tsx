@@ -20,12 +20,12 @@ export default async function Home({ searchParams }: Props) {
       <Header />
       
       {/* Hero Section - Compact */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 py-20">
+      <div className="bg-gradient-to-r from-primary to-primary-dark py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             O Vestiário
           </h1>
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-200 max-w-2xl mx-auto">
             Camisas oficiais dos maiores clubes do mundo com qualidade autêntica
           </p>
         </div>
@@ -91,12 +91,12 @@ function ProductGridSkeleton() {
 // Newsletter section component
 function NewsletterSection() {
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-purple-600 py-16">
+    <div className="bg-gradient-to-r from-primary to-primary-dark py-16">
       <div className="container mx-auto px-4 text-center">
         <h3 className="text-3xl font-bold text-white mb-4">
           Fique por dentro das novidades
         </h3>
-        <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+        <p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
           Receba em primeira mão os lançamentos e ofertas exclusivas
         </p>
         <div className="max-w-md mx-auto flex gap-4">
@@ -105,7 +105,7 @@ function NewsletterSection() {
             placeholder="Seu e-mail"
             className="flex-1 px-4 py-3 rounded-lg border-0 focus:ring-2 focus:ring-white focus:outline-none"
           />
-          <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+          <button className="bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
             Inscrever
           </button>
         </div>
