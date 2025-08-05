@@ -12,8 +12,15 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: 'O Vestiário',
-  description: 'Camisas oficiais dos maiores clubes do mundo com qualidade autêntica',
-  keywords: ['camisas de futebol', 'camisas oficiais', 'clubes', 'futebol', 'esportes'],
+  description:
+    'Camisas oficiais dos maiores clubes do mundo com qualidade autêntica',
+  keywords: [
+    'camisas de futebol',
+    'camisas oficiais',
+    'clubes',
+    'futebol',
+    'esportes',
+  ],
   authors: [{ name: 'O Vestiário' }],
   creator: 'O Vestiário',
   publisher: 'O Vestiário',
@@ -47,9 +54,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${poppins.variable} antialiased`}>
-        <CartProvider>
-        {children}
-        </CartProvider>
+        <CartProvider>{children}</CartProvider>
       </body>
     </html>
   );
