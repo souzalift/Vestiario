@@ -1,228 +1,203 @@
 'use client';
 
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Search, ShoppingBag, Menu, X } from 'lucide-react';
+import Link from 'next/link';
+import { ShoppingCart, Menu, X, Search, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [cartItemsCount, setCartItemsCount] = useState(0);
-  const router = useRouter();
+  const [cartCount, setCartCount] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  // Atualizar contador do carrinho
-  useEffect(() => {
-    const updateCartCount = () => {
-      if (typeof window !== 'undefined') {
-        try {
-          const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-          
-          // Se o cart é um array simples de itens
-          if (Array.isArray(cart)) {
-            // Verifica se os itens têm propriedade quantity
-            const totalItems = cart.reduce((sum: number, item: any) => {
-              const quantity = item.quantity || 1; // Default para 1 se não tiver quantity
-              return sum + quantity;
-            }, 0);
-            setCartItemsCount(totalItems);
-          } else {
-            // Se não é array, assume 0
-            setCartItemsCount(0);
-          }
-        } catch (error) {
-          console.error('Erro ao ler carrinho:', error);
-          setCartItemsCount(0);
-        }
-      }
-    };
-
-    // Atualizar na montagem
-    updateCartCount();
-
-    // Escutar mudanças no localStorage (entre abas)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'cart') {
-        updateCartCount();
-      }
-    };
-
-    // Escutar evento customizado para atualizações do carrinho
-    const handleCartUpdate = () => {
-      updateCartCount();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('cartUpdated', handleCartUpdate);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('cartUpdated', handleCartUpdate);
-    };
-  }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/?busca=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchOpen(false);
-      setSearchQuery('');
-    }
-  };
-
-  const handleCartClick = () => {
-    router.push('/carrinho');
-  };
+  // ...existing code...
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50">
-      <div className="container mx-auto px-4">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled
+          ? 'bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-200'
+          : 'bg-primary-800 text-white'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">OV</span>
+          <Link href="/" className="flex items-center space-x-3">
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
+                isScrolled
+                  ? 'bg-primary-800 text-white'
+                  : 'bg-white text-primary-800'
+              }`}
+            >
+              ⚽
             </div>
-            <span className="text-xl font-bold text-gray-900">O Vestiário</span>
+            <span
+              className={`text-xl font-black tracking-tight ${
+                isScrolled ? 'text-primary-800' : 'text-white'
+              }`}
+            >
+              O Vestiário
+            </span>
           </Link>
 
-          {/* Navigation - Desktop */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <Link
+              href="/"
+              className={`font-medium transition-colors hover:${
+                isScrolled ? 'text-primary-600' : 'text-accent-400'
+              } ${isScrolled ? 'text-gray-700' : 'text-white'}`}
+            >
               Início
             </Link>
-            <Link href="/#produtos" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <Link
+              href="/produtos"
+              className={`font-medium transition-colors hover:${
+                isScrolled ? 'text-primary-600' : 'text-accent-400'
+              } ${isScrolled ? 'text-gray-700' : 'text-white'}`}
+            >
               Produtos
             </Link>
-            <Link href="/sobre" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <Link
+              href="/sobre"
+              className={`font-medium transition-colors hover:${
+                isScrolled ? 'text-primary-600' : 'text-accent-400'
+              } ${isScrolled ? 'text-gray-700' : 'text-white'}`}
+            >
               Sobre
             </Link>
-            <Link href="/contato" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <Link
+              href="/contato"
+              className={`font-medium transition-colors hover:${
+                isScrolled ? 'text-primary-600' : 'text-accent-400'
+              } ${isScrolled ? 'text-gray-700' : 'text-white'}`}
+            >
               Contato
             </Link>
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center space-x-2">
-            {/* Search Desktop */}
-            <div className="hidden md:block relative">
-              {isSearchOpen ? (
-                <form onSubmit={handleSearch} className="flex items-center">
-                  <input
-                    type="text"
-                    placeholder="Buscar produtos..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsSearchOpen(false)}
-                    className="ml-2 p-2 text-gray-600 hover:text-blue-600 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </form>
-              ) : (
-                <button 
-                  onClick={() => setIsSearchOpen(true)}
-                  className="p-2 text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
-              )}
+          <div className="flex items-center space-x-4">
+            {/* Search */}
+            <div className="hidden lg:flex relative">
+              <Search
+                className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+                  isScrolled ? 'text-gray-400' : 'text-gray-300'
+                }`}
+              />
+              <Input
+                placeholder="Buscar camisas..."
+                className={`pl-10 w-64 h-9 ${
+                  isScrolled
+                    ? 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500'
+                    : 'bg-white/10 border-white/20 text-white placeholder-gray-300'
+                }`}
+              />
             </div>
 
-            {/* Search Mobile */}
-            <button 
-              className="md:hidden p-2 text-gray-600 hover:text-blue-600 transition-colors"
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
+            {/* User */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`${
+                isScrolled
+                  ? 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
+                  : 'text-white hover:text-accent-400 hover:bg-white/10'
+              }`}
             >
-              <Search className="w-5 h-5" />
-            </button>
+              <User className="h-5 w-5" />
+            </Button>
 
             {/* Cart */}
-            <button 
-              onClick={handleCartClick}
-              className="p-2 text-gray-600 hover:text-blue-600 transition-colors relative"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                  {cartItemsCount > 99 ? '99+' : cartItemsCount}
-                </span>
-              )}
-            </button>
+            <Link href="/carrinho">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`relative ${
+                  isScrolled
+                    ? 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
+                    : 'text-white hover:text-accent-400 hover:bg-white/10'
+                }`}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-secondary-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
+                    {cartCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
 
-            {/* Mobile menu button */}
-            <button
-              className="md:hidden p-2 text-gray-600 hover:text-blue-600 transition-colors"
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`md:hidden ${
+                isScrolled
+                  ? 'text-gray-700 hover:text-primary-600'
+                  : 'text-white hover:text-accent-400'
+              }`}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+              {isMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </Button>
           </div>
         </div>
-
-        {/* Mobile Search */}
-        {isSearchOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200">
-            <form onSubmit={handleSearch} className="flex items-center space-x-2">
-              <input
-                type="text"
-                placeholder="Buscar produtos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Buscar
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-gray-200">
-            <div className="flex flex-col space-y-4">
-              <Link 
-                href="/" 
-                className="text-gray-600 hover:text-blue-600 transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Início
-              </Link>
-              <Link 
-                href="/#produtos" 
-                className="text-gray-600 hover:text-blue-600 transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Produtos
-              </Link>
-              <Link 
-                href="/sobre" 
-                className="text-gray-600 hover:text-blue-600 transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Sobre
-              </Link>
-              <Link 
-                href="/contato" 
-                className="text-gray-600 hover:text-blue-600 transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Contato
-              </Link>
-            </div>
-          </nav>
-        )}
       </div>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-white border-t border-gray-200 shadow-lg">
+          <div className="px-4 py-2 space-y-1">
+            <Link
+              href="/"
+              className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Início
+            </Link>
+            <Link
+              href="/produtos"
+              className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Produtos
+            </Link>
+            <Link
+              href="/sobre"
+              className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Sobre
+            </Link>
+            <Link
+              href="/contato"
+              className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Contato
+            </Link>
+
+            {/* Mobile Search */}
+            <div className="px-3 py-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar camisas..."
+                  className="pl-10 bg-gray-50 border-gray-200"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

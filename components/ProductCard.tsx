@@ -26,11 +26,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-2xl hover:border-blue-200 transition-all duration-500 transform hover:-translate-y-2">
+    <div className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-2xl hover:border-primary-300 transition-all duration-500 transform hover:-translate-y-2">
       {/* Badges */}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
         {product.league && (
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm">
+          <div className="bg-gradient-to-r from-primary-800 to-primary-700 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm">
             {product.league}
           </div>
         )}
@@ -52,7 +52,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Quick Action Button */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
-            <button className="bg-white text-gray-900 px-6 py-2.5 rounded-full font-semibold shadow-xl hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm">
+            <button className="bg-white text-primary-800 px-6 py-2.5 rounded-full font-semibold shadow-xl hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm">
               <ShoppingCart className="w-4 h-4" />
               Comprar Agora
             </button>
@@ -64,15 +64,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Team */}
           {product.team && (
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm font-medium text-blue-600 uppercase tracking-wide">
+              <div className="w-2 h-2 bg-secondary-500 rounded-full"></div>
+              <span className="text-sm font-medium text-secondary-600 uppercase tracking-wide">
                 {product.team}
               </span>
             </div>
           )}
 
           {/* Title */}
-          <h3 className="font-bold text-xl mb-3 text-gray-900 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors duration-300">
+          <h3 className="font-bold text-xl mb-3 text-primary-800 line-clamp-2 leading-tight group-hover:text-primary-600 transition-colors duration-300">
             {product.title}
           </h3>
 
@@ -84,7 +84,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Pricing */}
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <span className="text-3xl font-black text-green-600">
+              <span className="text-3xl font-black text-success-600">
                 {formatPrice(product.price)}
               </span>
             </div>
@@ -97,7 +97,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* Action Button */}
-          <button className="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3.5 px-6 rounded-xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]">
+          <button className="w-full mt-6 bg-gradient-to-r from-primary-800 to-primary-700 text-white py-3.5 px-6 rounded-xl font-bold hover:from-primary-700 hover:to-primary-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]">
             Ver Detalhes
           </button>
         </div>

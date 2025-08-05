@@ -9,10 +9,37 @@
   }
 }
 
+/* Cores principais */
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --primary: #1f2937;        /* Preto elegante */
+  --primary-dark: #111827;   /* Preto mais escuro */
+  --primary-light: #374151;  /* Cinza escuro */
+  
+  --secondary: #ef4444;      /* Vermelho energia */
+  --secondary-dark: #dc2626;
+  --secondary-light: #f87171;
+  
+  --accent: #f59e0b;         /* Dourado luxury */
+  --accent-dark: #d97706;
+  --accent-light: #fbbf24;
+  
+  --success: #10b981;        /* Verde para preços */
+  --warning: #f59e0b;
+  --error: #ef4444;
+  
+  --neutral-50: #f9fafb;
+  --neutral-100: #f3f4f6;
+  --neutral-200: #e5e7eb;
+  --neutral-300: #d1d5db;
+  --neutral-400: #9ca3af;
+  --neutral-500: #6b7280;
+  --neutral-600: #4b5563;
+  --neutral-700: #374151;
+  --neutral-800: #1f2937;
+  --neutral-900: #111827;
+  
+  --background: #ffffff;
+  --surface: #f9fafb;
 }
 
 @media (prefers-color-scheme: dark) {
