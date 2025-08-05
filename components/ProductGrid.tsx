@@ -9,6 +9,7 @@ interface Product {
   description: string;
   price: number;
   image: string;
+  slug: string;
   league?: string;
   team?: string;
   categories?: string[];
@@ -120,7 +121,7 @@ export default function ProductGrid({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
       {products.map((product) => (
-        <ProductCard key={product._id} product={product} />
+        <ProductCard key={product.slug} product={product} />
       ))}
     </div>
   );

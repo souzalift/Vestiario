@@ -8,6 +8,7 @@ interface Product {
   description: string;
   price: number;
   image: string;
+  slug: string;
   league?: string;
   team?: string;
 }
@@ -35,7 +36,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
       </div>
 
-      <Link href={`/produto/${product._id}`} className="block">
+      <Link href={`/produto/${product.slug}`} className="block">
         {/* Image Container */}
         <div className="relative w-full aspect-[3/4] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
           <Image

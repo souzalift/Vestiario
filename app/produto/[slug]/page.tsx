@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation'; // Adicionar useRouter
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCart } from '@/contexts/CartContext';
@@ -17,32 +16,32 @@ import Link from 'next/link';
 
 export default function ProductPage() {
   const params = useParams();
-  const router = useRouter(); // Adicionar router
+  const router = useRouter();
   const { addItem } = useCart();
   const [product, setProduct] = useState<IProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
-  const [addingToCart, setAddingToCart] = useState(false); // Estado para loading do botão
+  const [addingToCart, setAddingToCart] = useState(false);
   const [customization, setCustomization] = useState({
     name: '',
     number: '',
   });
 
   useEffect(() => {
-    if (params.id) {
-      fetchProduct(params.id as string);
+    if (params.slug) {
+      fetchProduct(params.slug as string);
     }
-  }, [params.id]);
+  }, [params.slug]);
 
-  const fetchProduct = async (id: string) => {
+  const fetchProduct = async (slug: string) => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`/api/products/${id}`);
+
+      const response = await fetch(`/api/products/${slug}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setProduct(data.data);
       } else {
@@ -58,7 +57,7 @@ export default function ProductPage() {
 
   const handleAddToCart = async () => {
     if (!product) return;
-    
+
     if (!selectedSize) {
       toast.error('Por favor, selecione um tamanho');
       return;
@@ -67,42 +66,38 @@ export default function ProductPage() {
     try {
       setAddingToCart(true);
 
-      // Buscar carrinho existente
       const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-      
+
       const cartItem = {
-        id: `${product._id}-${selectedSize}-${customization.name}-${customization.number}`,
+        id: `${product.slug || product._id}-${selectedSize}-${
+          customization.name
+        }-${customization.number}`,
         title: product.title,
         price: product.price,
         image: product.image,
         size: selectedSize,
         customization,
-        quantity: 1, // Importante: adicionar quantity
+        quantity: 1,
       };
 
-      // Verificar se item já existe
-      const existingItemIndex = existingCart.findIndex((item: any) => item.id === cartItem.id);
-      
+      const existingItemIndex = existingCart.findIndex(
+        (item: any) => item.id === cartItem.id,
+      );
+
       if (existingItemIndex > -1) {
-        // Item já existe, incrementar quantity
         existingCart[existingItemIndex].quantity += 1;
       } else {
-        // Novo item
         existingCart.push(cartItem);
       }
 
-      // Salvar no localStorage
       localStorage.setItem('cart', JSON.stringify(existingCart));
-      
-      // Disparar evento para atualizar contador
       window.dispatchEvent(new Event('cartUpdated'));
-      
+
       toast.success('Produto adicionado ao carrinho!');
-      
+
       setTimeout(() => {
         router.push('/carrinho');
       }, 1000);
-
     } catch (error) {
       console.error('Erro ao adicionar ao carrinho:', error);
       toast.error('Erro ao adicionar produto ao carrinho');
@@ -114,7 +109,7 @@ export default function ProductPage() {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'BRL',
     }).format(price);
   };
 
@@ -175,12 +170,15 @@ export default function ProductPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <main className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
           <div className="mb-8">
-            <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
+            <Link
+              href="/"
+              className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar para produtos
             </Link>
@@ -197,7 +195,7 @@ export default function ProductPage() {
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
               />
-              
+
               {/* League Badge */}
               {product.league && (
                 <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -216,73 +214,111 @@ export default function ProductPage() {
                       <Star key={i} className="h-5 w-5 fill-current" />
                     ))}
                   </div>
-                  <span className="text-gray-600 text-sm">(4.8/5 - 124 avaliações)</span>
+                  <span className="text-gray-600 text-sm">
+                    (4.8/5 - 124 avaliações)
+                  </span>
                 </div>
-                
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h1>
-                
+
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {product.title}
+                </h1>
+
                 {product.team && (
                   <p className="text-lg text-gray-600 mb-3">{product.team}</p>
                 )}
-                
+
                 <p className="text-4xl font-bold text-green-600">
                   {formatPrice(product.price)}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  ou 12x de {formatPrice(product.price / 12)} sem juros
+                  ou 3x de {formatPrice(product.price / 3)} sem juros
                 </p>
               </div>
 
-              <p className="text-gray-700 text-lg leading-relaxed">{product.description}</p>
+              <p className="text-gray-700 text-lg leading-relaxed">
+                {product.description}
+              </p>
 
               <Card className="border-0 shadow-lg">
                 <CardContent className="p-6 space-y-6">
-                  {/* Size Selection */}
+                  {/* Size Selection - Circular Buttons */}
                   <div>
-                    <Label htmlFor="size" className="text-base font-semibold">
+                    <Label className="text-base font-semibold mb-4 block">
                       Tamanho
                     </Label>
-                    <Select value={selectedSize} onValueChange={setSelectedSize}>
-                      <SelectTrigger className="mt-2 h-12">
-                        <SelectValue placeholder="Selecione o tamanho" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {product.sizes && product.sizes.map((size) => (
-                          <SelectItem key={size} value={size}>
+                    <div className="flex flex-wrap gap-3">
+                      {product.sizes &&
+                        product.sizes.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => setSelectedSize(size)}
+                            className={`
+                            w-16 h-16 rounded-full border-2 font-bold text-lg transition-all duration-200 hover:scale-110 active:scale-95
+                            ${
+                              selectedSize === size
+                                ? 'border-blue-600 bg-blue-600 text-white shadow-lg transform scale-105'
+                                : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                            }
+                          `}
+                          >
                             {size}
-                          </SelectItem>
+                          </button>
                         ))}
-                      </SelectContent>
-                    </Select>
+                    </div>
+                    {!selectedSize && (
+                      <p className="text-sm text-gray-500 mt-2">
+                        Selecione um tamanho para continuar
+                      </p>
+                    )}
                   </div>
 
                   {/* Customization */}
                   <div>
-                    <h3 className="text-base font-semibold mb-3">Personalização (Opcional)</h3>
+                    <h3 className="text-base font-semibold mb-3">
+                      Personalização (Opcional)
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                        <Label
+                          htmlFor="name"
+                          className="text-sm font-medium text-gray-700"
+                        >
                           Nome na camisa
                         </Label>
                         <Input
                           id="name"
                           placeholder="Ex: RONALDO"
                           value={customization.name}
-                          onChange={(e) => setCustomization({ ...customization, name: e.target.value.toUpperCase() })}
+                          onChange={(e) =>
+                            setCustomization({
+                              ...customization,
+                              name: e.target.value.toUpperCase(),
+                            })
+                          }
                           className="mt-1 h-11"
                           maxLength={15}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Máximo 15 caracteres</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Máximo 15 caracteres
+                        </p>
                       </div>
                       <div>
-                        <Label htmlFor="number" className="text-sm font-medium text-gray-700">
+                        <Label
+                          htmlFor="number"
+                          className="text-sm font-medium text-gray-700"
+                        >
                           Número da camisa
                         </Label>
                         <Input
                           id="number"
                           placeholder="Ex: 7"
                           value={customization.number}
-                          onChange={(e) => setCustomization({ ...customization, number: e.target.value })}
+                          onChange={(e) =>
+                            setCustomization({
+                              ...customization,
+                              number: e.target.value,
+                            })
+                          }
                           className="mt-1 h-11"
                           maxLength={2}
                           type="number"
@@ -294,10 +330,10 @@ export default function ProductPage() {
                     </div>
                   </div>
 
-                  <Button 
+                  <Button
                     onClick={handleAddToCart}
-                    disabled={addingToCart}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6 font-semibold transition-colors disabled:opacity-50"
+                    disabled={addingToCart || !selectedSize}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6 font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     size="lg"
                   >
                     {addingToCart ? (
@@ -318,7 +354,9 @@ export default function ProductPage() {
               {/* Product Info */}
               <Card className="border-0 bg-gray-100">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-lg mb-4 text-gray-900">Informações do Produto</h3>
+                  <h3 className="font-semibold text-lg mb-4 text-gray-900">
+                    Informações do Produto
+                  </h3>
                   <ul className="space-y-3 text-gray-700">
                     <li className="flex items-start">
                       <span className="text-green-600 mr-2">✓</span>
@@ -330,7 +368,8 @@ export default function ProductPage() {
                     </li>
                     <li className="flex items-start">
                       <span className="text-green-600 mr-2">✓</span>
-                      Tamanhos disponíveis: {product.sizes?.join(', ') || 'P, M, G, GG, XGG'}
+                      Tamanhos disponíveis:{' '}
+                      {product.sizes?.join(', ') || 'P, M, G, GG, XGG'}
                     </li>
                     <li className="flex items-start">
                       <span className="text-green-600 mr-2">✓</span>

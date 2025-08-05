@@ -4,26 +4,26 @@ import Product from '@/models/Product';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     await connectToDatabase();
 
-    const { id } = await params;
-    const product = await Product.findById(id);
+    const { slug } = await params;
+    const product = await Product.findOne({ slug: slug });
 
     if (!product) {
       return NextResponse.json(
-        { success: false, error: 'Product not found' },
+        { success: false, error: 'Produto não encontrado' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({ success: true, data: product });
   } catch (error) {
-    console.error('Error fetching product:', error);
+    console.error('Erro ao buscar produto:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch product' },
+      { success: false, error: 'Erro ao buscar produto' },
       { status: 500 }
     );
   }
