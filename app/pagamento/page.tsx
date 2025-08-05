@@ -190,7 +190,6 @@ export default function PagamentoPage() {
       'name',
       'email',
       'phone',
-      'document', // CPF agora é obrigatório
       'zipCode',
       'street',
       'number',
@@ -435,7 +434,7 @@ export default function PagamentoPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="document">CPF *</Label>
+                      <Label htmlFor="document">CPF</Label>
                       <div className="relative">
                         <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <Input
