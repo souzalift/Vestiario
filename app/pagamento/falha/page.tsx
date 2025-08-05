@@ -3,11 +3,12 @@
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { XCircle, ArrowLeft } from 'lucide-react';
+import { XCircle, ArrowLeft, CreditCard, Home } from 'lucide-react';
 
-export default function FailurePage() {
+export default function ErroPage() {
   const searchParams = useSearchParams();
   const paymentId = searchParams.get('payment_id');
   const status = searchParams.get('status');
@@ -15,61 +16,66 @@ export default function FailurePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      <main className="pt-20 pb-12">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="text-center">
-            <CardContent className="pt-12 pb-8">
-              <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-6">
-                <XCircle className="h-8 w-8 text-red-600" />
-              </div>
-              
+
+      <div className="pt-20 pb-12">
+        <div className="max-w-2xl mx-auto px-4 text-center">
+          <Card>
+            <CardContent className="p-12">
+              <XCircle className="h-16 w-16 text-red-500 mx-auto mb-6" />
+
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                Pagamento Não Autorizado
+                Pagamento Não Aprovado
               </h1>
-              
-              <p className="text-lg text-gray-600 mb-8">
-                Houve um problema com seu pagamento. Por favor, tente novamente ou use outro método de pagamento.
+
+              <p className="text-gray-600 mb-2">
+                Houve um problema com seu pagamento.
               </p>
 
-              {paymentId && (
-                <div className="bg-gray-100 rounded-lg p-4 mb-8">
-                  <p className="text-sm text-gray-600">
-                    <strong>ID do Pagamento:</strong> {paymentId}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>Status:</strong> {status}
-                  </p>
-                </div>
-              )}
+              <p className="text-sm text-gray-500 mb-8">
+                {status && `Status: ${status}`}
+                {paymentId && ` • ID: ${paymentId}`}
+              </p>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8">
-                <h3 className="font-semibold text-yellow-800 mb-2">Possíveis causas:</h3>
-                <ul className="text-sm text-yellow-700 text-left space-y-1">
-                  <li>• Dados do cartão incorretos</li>
-                  <li>• Limite insuficiente</li>
-                  <li>• Problemas na operadora</li>
-                  <li>• Transação rejeitada pelo banco</li>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+                <p className="text-sm text-red-800">
+                  <strong>Possíveis causas:</strong>
+                </p>
+                <ul className="text-sm text-red-700 mt-2 list-disc list-inside text-left">
+                  <li>Dados do cartão incorretos</li>
+                  <li>Limite insuficiente</li>
+                  <li>Problemas com a operadora</li>
+                  <li>Cancelamento pelo usuário</li>
                 </ul>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/pagamento">
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Tentar Novamente
+                  </Button>
+                </Link>
+
                 <Link href="/carrinho">
-                  <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                  <Button variant="outline">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Voltar ao Carrinho
                   </Button>
                 </Link>
+
                 <Link href="/">
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    Ir para Loja
+                  <Button variant="ghost">
+                    <Home className="h-4 w-4 mr-2" />
+                    Início
                   </Button>
                 </Link>
               </div>
             </CardContent>
           </Card>
         </div>
-      </main>
+      </div>
+
+      <Footer />
     </div>
   );
 }

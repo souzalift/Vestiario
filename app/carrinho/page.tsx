@@ -57,9 +57,9 @@ export default function CartPage() {
   // Atualizar quantidade
   const updateQuantity = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
-    
-    const updatedItems = cartItems.map(item =>
-      item.id === itemId ? { ...item, quantity: newQuantity } : item
+
+    const updatedItems = cartItems.map((item) =>
+      item.id === itemId ? { ...item, quantity: newQuantity } : item,
     );
     saveCart(updatedItems);
     toast.success('Quantidade atualizada!');
@@ -67,7 +67,7 @@ export default function CartPage() {
 
   // Remover item
   const removeItem = (itemId: string) => {
-    const updatedItems = cartItems.filter(item => item.id !== itemId);
+    const updatedItems = cartItems.filter((item) => item.id !== itemId);
     saveCart(updatedItems);
     toast.success('Item removido do carrinho!');
   };
@@ -79,7 +79,10 @@ export default function CartPage() {
   };
 
   // Calcular total
-  const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const total = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
 
   if (loading) {
     return (
@@ -122,7 +125,8 @@ export default function CartPage() {
                 Seu carrinho está vazio
               </h2>
               <p className="text-gray-600 mb-8">
-                Adicione alguns produtos incríveis ao seu carrinho para continuar
+                Adicione alguns produtos incríveis ao seu carrinho para
+                continuar
               </p>
               <Link href="/">
                 <Button className="bg-blue-600 hover:bg-blue-700">
@@ -141,15 +145,18 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="pt-20 pb-12">
         <div className="max-w-4xl mx-auto px-4">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Carrinho de Compras</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Carrinho de Compras
+              </h1>
               <p className="text-gray-600 mt-1">
-                {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} no seu carrinho
+                {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'}{' '}
+                no seu carrinho
               </p>
             </div>
             <Link href="/">
@@ -193,12 +200,25 @@ export default function CartPage() {
                         </div>
 
                         <div className="text-sm text-gray-600 space-y-1 mb-3">
-                          <p>Tamanho: <span className="font-medium">{item.size}</span></p>
+                          <p>
+                            Tamanho:{' '}
+                            <span className="font-medium">{item.size}</span>
+                          </p>
                           {item.customization?.name && (
-                            <p>Nome: <span className="font-medium">{item.customization.name}</span></p>
+                            <p>
+                              Nome:{' '}
+                              <span className="font-medium">
+                                {item.customization.name}
+                              </span>
+                            </p>
                           )}
                           {item.customization?.number && (
-                            <p>Número: <span className="font-medium">{item.customization.number}</span></p>
+                            <p>
+                              Número:{' '}
+                              <span className="font-medium">
+                                {item.customization.number}
+                              </span>
+                            </p>
                           )}
                         </div>
 
@@ -206,15 +226,21 @@ export default function CartPage() {
                           {/* Quantity */}
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              onClick={() =>
+                                updateQuantity(item.id, item.quantity - 1)
+                              }
                               disabled={item.quantity <= 1}
                               className="p-1 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <Minus className="h-4 w-4" />
                             </button>
-                            <span className="w-8 text-center font-medium">{item.quantity}</span>
+                            <span className="w-8 text-center font-medium">
+                              {item.quantity}
+                            </span>
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() =>
+                                updateQuantity(item.id, item.quantity + 1)
+                              }
                               className="p-1 rounded-md border border-gray-300 hover:bg-gray-50"
                             >
                               <Plus className="h-4 w-4" />
@@ -241,8 +267,8 @@ export default function CartPage() {
 
               {/* Clear Cart */}
               <div className="text-center pt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={clearCart}
                   className="text-red-600 border-red-600 hover:bg-red-50"
                 >
@@ -256,8 +282,10 @@ export default function CartPage() {
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Resumo do Pedido</h3>
-                  
+                  <h3 className="text-lg font-semibold mb-4">
+                    Resumo do Pedido
+                  </h3>
+
                   <div className="space-y-3 mb-4">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
@@ -274,10 +302,13 @@ export default function CartPage() {
                     </div>
                   </div>
 
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 mb-3">
+                  <Button
+                    className="w-full bg-blue-600 hover:bg-blue-700 mb-3"
+                    onClick={() => router.push('/pagamento')}
+                  >
                     Finalizar Compra
                   </Button>
-                  
+
                   <p className="text-xs text-gray-500 text-center">
                     Compra 100% segura e protegida
                   </p>
