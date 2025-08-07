@@ -161,12 +161,24 @@ export default function PagamentoPage() {
     loadCart();
   }, []);
 
-  // Calcular totais
+  // Calcular totais com a tabela de frete correta
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
-  const shipping = subtotal >= 200 ? 0 : 15; // Frete grátis acima de R$ 200
+
+  // Aplicar tabela de frete baseada na quantidade total de camisas
+  const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  const calculateShipping = (quantity: number) => {
+    if (quantity >= 4) return 0; // 4+ camisas: Grátis
+    if (quantity === 3) return 15; // 3 camisas: R$ 15,00
+    if (quantity === 2) return 20; // 2 camisas: R$ 20,00
+    if (quantity === 1) return 25; // 1 camisa: R$ 25,00
+    return 0; // Carrinho vazio
+  };
+
+  const shipping = calculateShipping(totalQuantity);
   const total = subtotal + shipping;
 
   const handleInputChange = (field: keyof FormData, value: string) => {
@@ -833,16 +845,18 @@ export default function PagamentoPage() {
                     ))}
                   </div>
 
-                  {/* Totais */}
+                  {/* Totais Atualizados */}
                   <div className="space-y-2 pt-4 border-t">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
                       <span>R$ {subtotal.toFixed(2).replace('.', ',')}</span>
                     </div>
+
                     <div className="flex justify-between text-sm">
                       <span className="flex items-center gap-1">
                         <Truck className="h-3 w-3" />
-                        Frete
+                        Frete ({totalQuantity}{' '}
+                        {totalQuantity === 1 ? 'item' : 'itens'})
                       </span>
                       <span
                         className={
@@ -850,15 +864,84 @@ export default function PagamentoPage() {
                         }
                       >
                         {shipping === 0
-                          ? 'Grátis'
+                          ? 'Grátis!'
                           : `R$ ${shipping.toFixed(2).replace('.', ',')}`}
                       </span>
                     </div>
-                    {subtotal < 200 && shipping > 0 && (
-                      <p className="text-xs text-gray-600">
-                        Frete grátis em compras acima de R$ 200,00
+
+                    {/* Tabela de frete informativa */}
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p className="text-xs font-medium text-gray-700 mb-2">
+                        Tabela de Frete:
                       </p>
-                    )}
+                      <div className="space-y-1 text-xs text-gray-600">
+                        <div
+                          className={`flex justify-between ${
+                            totalQuantity === 1
+                              ? 'font-semibold text-primary-600'
+                              : ''
+                          }`}
+                        >
+                          <span>1 camisa:</span>
+                          <span>R$ 25,00</span>
+                        </div>
+                        <div
+                          className={`flex justify-between ${
+                            totalQuantity === 2
+                              ? 'font-semibold text-primary-600'
+                              : ''
+                          }`}
+                        >
+                          <span>2 camisas:</span>
+                          <span>R$ 20,00</span>
+                        </div>
+                        <div
+                          className={`flex justify-between ${
+                            totalQuantity === 3
+                              ? 'font-semibold text-primary-600'
+                              : ''
+                          }`}
+                        >
+                          <span>3 camisas:</span>
+                          <span>R$ 15,00</span>
+                        </div>
+                        <div
+                          className={`flex justify-between ${
+                            totalQuantity >= 4
+                              ? 'font-semibold text-green-600'
+                              : ''
+                          }`}
+                        >
+                          <span>4+ camisas:</span>
+                          <span>Grátis!</span>
+                        </div>
+                      </div>
+
+                      {/* Incentivo para próximo desconto */}
+                      {totalQuantity < 4 && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                          <p className="text-xs text-blue-700">
+                            {totalQuantity === 3 ? (
+                              <span>
+                                <strong>Adicione +1 camisa</strong> e ganhe
+                                frete grátis!
+                              </span>
+                            ) : totalQuantity === 2 ? (
+                              <span>
+                                <strong>Adicione +2 camisas</strong> e ganhe
+                                frete grátis!
+                              </span>
+                            ) : (
+                              <span>
+                                <strong>Adicione +3 camisas</strong> e ganhe
+                                frete grátis!
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex justify-between font-bold text-lg pt-2 border-t">
                       <span>Total</span>
                       <span className="text-primary-600">

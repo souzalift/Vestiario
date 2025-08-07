@@ -17,6 +17,7 @@ import {
   Truck,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { calculateShipping, getNextShippingDiscount } from '@/lib/shipping';
 
 interface CartItem {
   id: string;
@@ -88,21 +89,17 @@ export default function CartPage() {
   // Calcular total de itens (quantidade total)
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Calcular frete baseado na quantidade total de itens
-  const calculateShipping = (itemCount: number) => {
-    if (itemCount === 0) return 0;
-    if (itemCount === 1) return 25;
-    if (itemCount === 2) return 20;
-    if (itemCount === 3) return 15;
-    return 0; // 4+ itens = frete grátis
-  };
+  // Usar a função utilitária
+  const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const shippingInfo = calculateShipping(totalQuantity);
+  const nextDiscount = getNextShippingDiscount(totalQuantity);
 
   // Calcular totais
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
-  const shipping = calculateShipping(totalItems);
+  const shipping = shippingInfo.price;
   const total = subtotal + shipping;
 
   // Função para determinar a cor e texto do frete
@@ -172,8 +169,6 @@ export default function CartPage() {
       </div>
     );
   }
-
-  const shippingInfo = getShippingInfo();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -357,8 +352,8 @@ export default function CartPage() {
                         <Truck className="h-3 w-3" />
                         Frete
                       </span>
-                      <span className={shippingInfo.color}>
-                        {shippingInfo.text}
+                      <span className={getShippingInfo().color}>
+                        {getShippingInfo().text}
                       </span>
                     </div>
 
