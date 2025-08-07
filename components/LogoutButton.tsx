@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { LogOut } from 'lucide-react';
-import { useLogout } from '@/hooks/useLogout';
+import { useLogout } from '../hooks/useLogout';
 import LogoutModal from './LogoutModal';
 
 interface LogoutButtonProps {
