@@ -20,7 +20,7 @@ export interface IOrder extends Document {
     name: string;
     email: string;
     phone: string;
-    document: string;
+    document: string; // Tornar obrigatório mas com default
   };
   shippingAddress: {
     street: string;
@@ -48,19 +48,19 @@ const OrderSchema: Schema = new Schema({
   orderNumber: {
     type: String,
     required: true,
-    unique: true, // Use apenas unique: true, não index: true
+    unique: true,
   },
   customerInfo: {
-    clerkId: { type: String, required: true }, // Remover index: true daqui
+    clerkId: { type: String, required: false, default: null },
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },
-    document: { type: String, required: true },
+    document: { type: String, required: true }, // Sem default, obrigatório
   },
   shippingAddress: {
     street: { type: String, required: true },
     number: { type: String, required: true },
-    complement: { type: String },
+    complement: { type: String, default: '' },
     neighborhood: { type: String, required: true },
     city: { type: String, required: true },
     state: { type: String, required: true },
@@ -74,8 +74,8 @@ const OrderSchema: Schema = new Schema({
     size: { type: String, required: true },
     image: { type: String, required: true },
     customization: {
-      name: { type: String },
-      number: { type: String },
+      name: { type: String, default: '' },
+      number: { type: String, default: '' },
     },
   }],
   subtotal: { type: Number, required: true },
@@ -98,9 +98,9 @@ const OrderSchema: Schema = new Schema({
   timestamps: true,
 });
 
-// Adicionar apenas os índices necessários (sem duplicatas)
+// Índices otimizados
 OrderSchema.index({ 'customerInfo.clerkId': 1, createdAt: -1 });
 OrderSchema.index({ 'customerInfo.clerkId': 1, orderStatus: 1 });
-OrderSchema.index({ orderStatus: 1, createdAt: -1 });
+OrderSchema.index({ orderStatus: 1 });
 
 export default mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);
