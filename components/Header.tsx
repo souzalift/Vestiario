@@ -137,34 +137,21 @@ export default function Header() {
                   <UserDropdown isScrolled={isScrolled} />
                 </div>
               ) : (
-                // User not logged in - Show login/register buttons
-                <div className="flex items-center space-x-2">
-                  <Link href="/login">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`${
-                        isScrolled
-                          ? 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
-                          : 'text-white hover:text-accent-400 hover:bg-white/10'
-                      }`}
-                    >
-                      Entrar
-                    </Button>
-                  </Link>
-                  <Link href="/cadastro">
-                    <Button
-                      size="sm"
-                      className={`${
-                        isScrolled
-                          ? 'bg-primary-800 hover:bg-primary-700 text-white'
-                          : 'bg-accent-500 hover:bg-accent-600 text-white'
-                      }`}
-                    >
-                      Cadastrar
-                    </Button>
-                  </Link>
-                </div>
+                // User not logged in - Show user icon that goes to login
+                <Link href="/admin/login">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`${
+                      isScrolled
+                        ? 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
+                        : 'text-white hover:text-accent-400 hover:bg-white/10'
+                    }`}
+                    title="Fazer login"
+                  >
+                    <User className="h-5 w-5" />
+                  </Button>
+                </Link>
               ))}
 
             {/* Cart */}
@@ -177,6 +164,7 @@ export default function Header() {
                     ? 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
                     : 'text-white hover:text-accent-400 hover:bg-white/10'
                 }`}
+                title="Carrinho de compras"
               >
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
@@ -254,7 +242,7 @@ export default function Header() {
                     Meu Perfil
                   </Link>
                   <Link
-                    href="/pedidos"
+                    href="/meus-pedidos"
                     className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -271,18 +259,12 @@ export default function Header() {
               ) : (
                 <div className="border-t border-gray-200 pt-2 mt-2">
                   <Link
-                    href="/login"
-                    className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+                    href="/admin/login"
+                    className="flex items-center px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Entrar
-                  </Link>
-                  <Link
-                    href="/cadastro"
-                    className="block px-3 py-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-md font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Cadastrar
+                    <User className="h-4 w-4 mr-2" />
+                    Fazer Login
                   </Link>
                 </div>
               ))}
