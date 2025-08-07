@@ -1,17 +1,48 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import { ShoppingCart, Menu, X, Search, User } from 'lucide-react';
+import { ShoppingCart, Menu, X, Search, User, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import UserDropdown from './UserDropdown';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { user, isLoaded } = useUser();
 
-  // ...existing code...
+  // Monitor scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Load cart count from localStorage
+  useEffect(() => {
+    const loadCartCount = () => {
+      try {
+        const cart = JSON.parse(localStorage.getItem('carrinho') || '[]');
+        const totalItems = cart.reduce(
+          (sum: number, item: any) => sum + (item.quantity || 1),
+          0,
+        );
+        setCartCount(totalItems);
+      } catch {
+        setCartCount(0);
+      }
+    };
+
+    loadCartCount();
+    window.addEventListener('storage', loadCartCount);
+    return () => window.removeEventListener('storage', loadCartCount);
+  }, []);
 
   return (
     <header
@@ -98,18 +129,43 @@ export default function Header() {
               />
             </div>
 
-            {/* User */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`${
-                isScrolled
-                  ? 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
-                  : 'text-white hover:text-accent-400 hover:bg-white/10'
-              }`}
-            >
-              <User className="h-5 w-5" />
-            </Button>
+            {/* User Authentication */}
+            {isLoaded &&
+              (user ? (
+                // User logged in - Show dropdown
+                <div className="relative">
+                  <UserDropdown isScrolled={isScrolled} />
+                </div>
+              ) : (
+                // User not logged in - Show login/register buttons
+                <div className="flex items-center space-x-2">
+                  <Link href="/login">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`${
+                        isScrolled
+                          ? 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
+                          : 'text-white hover:text-accent-400 hover:bg-white/10'
+                      }`}
+                    >
+                      Entrar
+                    </Button>
+                  </Link>
+                  <Link href="/cadastro">
+                    <Button
+                      size="sm"
+                      className={`${
+                        isScrolled
+                          ? 'bg-primary-800 hover:bg-primary-700 text-white'
+                          : 'bg-accent-500 hover:bg-accent-600 text-white'
+                      }`}
+                    >
+                      Cadastrar
+                    </Button>
+                  </Link>
+                </div>
+              ))}
 
             {/* Cart */}
             <Link href="/carrinho">
@@ -184,6 +240,52 @@ export default function Header() {
             >
               Contato
             </Link>
+
+            {/* Mobile User Menu */}
+            {isLoaded &&
+              (user ? (
+                <div className="border-t border-gray-200 pt-2 mt-2">
+                  <Link
+                    href="/perfil"
+                    className="flex items-center px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Meu Perfil
+                  </Link>
+                  <Link
+                    href="/pedidos"
+                    className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Meus Pedidos
+                  </Link>
+                  <Link
+                    href="/favoritos"
+                    className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Favoritos
+                  </Link>
+                </div>
+              ) : (
+                <div className="border-t border-gray-200 pt-2 mt-2">
+                  <Link
+                    href="/login"
+                    className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Entrar
+                  </Link>
+                  <Link
+                    href="/cadastro"
+                    className="block px-3 py-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-md font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Cadastrar
+                  </Link>
+                </div>
+              ))}
 
             {/* Mobile Search */}
             <div className="px-3 py-2">

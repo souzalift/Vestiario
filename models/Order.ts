@@ -16,6 +16,7 @@ export interface IOrderItem {
 export interface IOrder extends Document {
   orderNumber: string;
   customerInfo: {
+    clerkId: string;
     name: string;
     email: string;
     phone: string;
@@ -47,9 +48,10 @@ const OrderSchema: Schema = new Schema({
   orderNumber: {
     type: String,
     required: true,
-    unique: true,
+    unique: true, // Use apenas unique: true, não index: true
   },
   customerInfo: {
+    clerkId: { type: String, required: true }, // Remover index: true daqui
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },
@@ -95,5 +97,10 @@ const OrderSchema: Schema = new Schema({
 }, {
   timestamps: true,
 });
+
+// Adicionar apenas os índices necessários (sem duplicatas)
+OrderSchema.index({ 'customerInfo.clerkId': 1, createdAt: -1 });
+OrderSchema.index({ 'customerInfo.clerkId': 1, orderStatus: 1 });
+OrderSchema.index({ orderStatus: 1, createdAt: -1 });
 
 export default mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);
