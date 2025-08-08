@@ -85,7 +85,7 @@ export default function Header() {
               Início
             </Link>
             <Link
-              href="/produtos"
+              href="/#produtos"
               className={`font-medium transition-colors hover:${
                 isScrolled ? 'text-primary-600' : 'text-accent-400'
               } ${isScrolled ? 'text-gray-700' : 'text-white'}`}
