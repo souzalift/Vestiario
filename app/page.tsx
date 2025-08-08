@@ -3,21 +3,23 @@ import ProductGrid from '@/components/ProductGrid';
 import CategoryFilter from '@/components/CategoryFilter';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import Hero from '@/components/Hero';
+import HeroBannerGallery from '@/components/HeroBannerGallery';
+import FeaturedCategories from '@/components/FeaturedCategories'; // Import do novo componente
 import {
   Shield,
   Truck,
   Star,
   Users,
   Trophy,
-  Globe,
   ArrowRight,
   Check,
   Heart,
   TrendingUp,
+  Award,
+  Zap,
+  DollarSign,
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface Props {
   searchParams: Promise<{ categoria?: string; busca?: string }>;
@@ -34,33 +36,36 @@ export default async function Home({ searchParams }: Props) {
       {/* Header */}
       <Header />
 
-      {/* Hero Section */}
-      <Hero />
+      {/* Hero Banner Gallery */}
+      <HeroBannerGallery />
 
-      {/* Trust Indicators */}
+      {/* Trust Indicators - Atualizado para camisas tailandesas */}
       <TrustSection />
+
+      {/* Quality Features */}
+      <QualityFeaturesSection />
 
       {/* Featured Categories */}
       <FeaturedCategories />
 
       {/* Main Content */}
-      <div className="bg-gray-50 py-16 flex-1">
+      <div id="produtos" className="bg-gray-50 py-16 flex-1">
         <div className="container mx-auto px-4">
           {/* Section Header */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
               <Trophy className="w-4 h-4" />
-              Produtos Oficiais
+              Qualidade Tailandesa Premium
             </div>
             <h2 className="text-4xl font-bold text-primary-900 mb-4">
               {searchQuery
                 ? `Resultados para "${searchQuery}"`
-                : 'Camisas Oficiais Premium'}
+                : 'Camisas de Primeira Linha'}
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               {searchQuery
-                ? `Encontre as melhores camisas para sua busca`
-                : 'Descubra nossa coleção exclusiva de camisas oficiais dos maiores clubes do mundo'}
+                ? `Encontre as melhores camisas tailandesas para sua busca`
+                : 'A mesma qualidade dos originais com preços justos. Fabricação tailandesa de excelência.'}
             </p>
           </div>
 
@@ -81,8 +86,8 @@ export default async function Home({ searchParams }: Props) {
         </div>
       </div>
 
-      {/* Why Choose Us Section */}
-      <WhyChooseUsSection />
+      {/* Why Choose Thai Quality */}
+      <WhyChooseThaiQualitySection />
 
       {/* Popular Teams */}
       <PopularTeamsSection />
@@ -96,27 +101,27 @@ export default async function Home({ searchParams }: Props) {
   );
 }
 
-// Trust Section
+// Trust Section - Atualizado para camisas tailandesas
 function TrustSection() {
   const features = [
     {
-      icon: <Shield className="w-6 h-6" />,
-      title: 'Produto Autêntico',
-      description: '100% Original',
+      icon: <Award className="w-6 h-6" />,
+      title: 'Qualidade AAA+',
+      description: 'Primeira Linha',
+    },
+    {
+      icon: <DollarSign className="w-6 h-6" />,
+      title: 'Preço Justo',
+      description: 'Melhor Custo-Benefício',
     },
     {
       icon: <Truck className="w-6 h-6" />,
       title: 'Frete Grátis',
-      description: 'Todo o Brasil',
-    },
-    {
-      icon: <Star className="w-6 h-6" />,
-      title: 'Qualidade Premium',
-      description: 'Garantia Total',
+      description: 'A partir de 4 camisas',
     },
     {
       icon: <Users className="w-6 h-6" />,
-      title: '10k+ Clientes',
+      title: '15k+ Clientes',
       description: 'Satisfeitos',
     },
   ];
@@ -142,99 +147,88 @@ function TrustSection() {
   );
 }
 
-// Featured Categories
-function FeaturedCategories() {
-  const categories = [
-    {
-      name: 'Brasileirão',
-      image: '/images/brasileirao.jpg',
-      count: '20 Times',
-      color: 'from-green-600 to-yellow-500',
-    },
-    {
-      name: 'Premier League',
-      image: '/images/premier.jpg',
-      count: '18 Times',
-      color: 'from-purple-600 to-blue-600',
-    },
-    {
-      name: 'La Liga',
-      image: '/images/laliga.jpg',
-      count: '16 Times',
-      color: 'from-red-600 to-orange-500',
-    },
-    {
-      name: 'Champions League',
-      image: '/images/champions.jpg',
-      count: '32 Times',
-      color: 'from-blue-800 to-blue-600',
-    },
-  ];
-
+// Nova seção destacando qualidade tailandesa
+function QualityFeaturesSection() {
   return (
-    <div className="bg-gray-50 py-16">
+    <div className="bg-gradient-to-r from-primary-50 to-blue-50 py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-primary-900 mb-4">
-            Principais Competições
+            Por que Camisas Tailandesas?
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Encontre camisas dos maiores campeonatos do mundo
+          <p className="text-gray-600 max-w-3xl mx-auto text-lg">
+            A Tailândia é reconhecida mundialmente pela excelência em confecção
+            têxtil esportiva
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {categories.map((category, index) => (
-            <Link
-              key={index}
-              href={`/?categoria=${category.name}`}
-              className="group relative overflow-hidden rounded-2xl aspect-[4/5] hover:scale-105 transition-all duration-500"
-            >
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90`}
-              />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center mb-6">
+              <Zap className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Tecnologia Avançada
+            </h3>
+            <p className="text-gray-600">
+              Mesmo tecido e tecnologia Dri-FIT utilizada nas versões oficiais,
+              garantindo conforto e durabilidade.
+            </p>
+          </div>
 
-              <div className="relative z-10 p-6 h-full flex flex-col justify-end">
-                <h3 className="text-white font-bold text-xl mb-2">
-                  {category.name}
-                </h3>
-                <p className="text-white/90 text-sm mb-4">{category.count}</p>
-                <div className="flex items-center text-white group-hover:translate-x-1 transition-transform">
-                  <span className="text-sm font-medium">Explorar</span>
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </div>
-              </div>
-            </Link>
-          ))}
+          <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6">
+              <Shield className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Detalhes Perfeitos
+            </h3>
+            <p className="text-gray-600">
+              Bordados, patches e acabamentos idênticos aos originais. Qualidade
+              que você pode ver e sentir.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-6">
+              <Star className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Aprovação Garantida
+            </h3>
+            <p className="text-gray-600">
+              Milhares de clientes satisfeitos. Se não gostar, devolvemos seu
+              dinheiro em até 7 dias.
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Why Choose Us Section
-function WhyChooseUsSection() {
+// Why Choose Thai Quality - Nova seção
+function WhyChooseThaiQualitySection() {
   const benefits = [
     {
       icon: <Check className="w-8 h-8" />,
-      title: 'Autenticidade Garantida',
+      title: 'Qualidade Comprovada',
       description:
-        'Todas as nossas camisas são 100% originais e licenciadas oficialmente pelos clubes.',
+        'Camisas produzidas nas mesmas fábricas que confeccionam para grandes marcas. Qualidade AAA+ garantida.',
       color: 'bg-green-100 text-green-800',
     },
     {
       icon: <Heart className="w-8 h-8" />,
-      title: 'Paixão pelo Futebol',
+      title: 'Preço Acessível',
       description:
-        'Somos fanáticos por futebol e entendemos a importância de cada camisa para o torcedor.',
+        'A mesma qualidade premium por um preço justo. Sem taxa de marca, só qualidade pura.',
       color: 'bg-secondary-100 text-secondary-800',
     },
     {
       icon: <TrendingUp className="w-8 h-8" />,
       title: 'Sempre Atualizado',
       description:
-        'Lançamentos exclusivos e as últimas camisas dos seus times favoritos em primeira mão.',
+        'Lançamentos rápidos e estoque sempre renovado com as últimas temporadas dos seus times.',
       color: 'bg-accent-100 text-accent-800',
     },
   ];
@@ -247,7 +241,8 @@ function WhyChooseUsSection() {
             Por que escolher O Vestiário?
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Mais que uma loja, somos uma comunidade apaixonada por futebol
+            Especialistas em camisas tailandesas de primeira linha para
+            verdadeiros apaixonados por futebol
           </p>
         </div>
 
@@ -273,7 +268,7 @@ function WhyChooseUsSection() {
   );
 }
 
-// Popular Teams Section
+// Popular Teams - Mantido mas com ajustes no texto
 function PopularTeamsSection() {
   const teams = [
     { name: 'Flamengo', logo: '/logos/flamengo.png', sales: '2.5k' },
@@ -289,10 +284,10 @@ function PopularTeamsSection() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-white mb-4">
-            Times Mais Populares
+            Times Mais Vendidos
           </h2>
           <p className="text-primary-200 text-xl max-w-2xl mx-auto">
-            Os clubes mais amados pelos nossos clientes
+            Os clubes favoritos dos nossos clientes em camisas tailandesas
           </p>
         </div>
 
@@ -318,7 +313,7 @@ function PopularTeamsSection() {
   );
 }
 
-// Loading skeleton component
+// Resto dos componentes mantidos...
 function ProductGridSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -339,7 +334,6 @@ function ProductGridSkeleton() {
   );
 }
 
-// Newsletter section component
 function NewsletterSection() {
   return (
     <div className="bg-gradient-to-r from-primary-800 via-primary-700 to-primary-800 py-20">
@@ -355,7 +349,7 @@ function NewsletterSection() {
           </h3>
           <p className="text-xl text-primary-200 mb-8">
             Seja o primeiro a saber sobre novos produtos, ofertas exclusivas e
-            lançamentos especiais
+            lançamentos de camisas tailandesas
           </p>
 
           <div className="max-w-md mx-auto">
