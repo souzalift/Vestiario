@@ -6,31 +6,15 @@ import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  where,
-  doc,
-  updateDoc,
-  deleteDoc,
-  addDoc,
-  Timestamp,
-} from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   Package,
-  ShoppingCart,
   DollarSign,
-  Users,
-  TrendingUp,
-  TrendingDown,
-  Star,
   Eye,
   Edit,
   Trash2,
@@ -41,12 +25,19 @@ import {
   BarChart3,
   Calendar,
   Clock,
+  Star,
+  TrendingUp,
+  Users,
+  ArrowUpRight,
+  Grid3X3,
+  ShoppingBag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Product {
   id: string;
   title: string;
+  slug: string;
   price: number;
   category: string;
   stock?: number;
@@ -57,6 +48,14 @@ interface Product {
   createdAt: any;
 }
 
+interface CategoryStat {
+  category: string;
+  count: number;
+  views: number;
+  avgPrice: number;
+  percentage: number;
+}
+
 interface DashboardStats {
   totalProducts: number;
   totalViews: number;
@@ -64,7 +63,16 @@ interface DashboardStats {
   totalCategories: number;
   recentProducts: Product[];
   topProducts: Product[];
+  topRatedProducts: Product[];
   categoryStats: { [key: string]: number };
+  detailedCategoryStats: CategoryStat[];
+  avgViewsPerProduct: number;
+  mostViewedCategory: string;
+  totalReviews: number;
+  productsWithViews: number;
+  productsWithRating: number;
+  totalStock: number;
+  avgPrice: number;
 }
 
 export default function AdminDashboard() {
@@ -73,7 +81,6 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -97,96 +104,42 @@ export default function AdminDashboard() {
     }
   }, [isLoaded, user, isAdmin, router]);
 
+  // Carregar dados apenas da API
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      await Promise.all([loadProducts(), loadStats()]);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      toast.error('Erro ao carregar dados do dashboard');
-    } finally {
-      setLoading(false);
-    }
-  };
+      console.log('📊 Carregando estatísticas via API...');
 
-  const loadProducts = async () => {
-    try {
-      const productsRef = collection(db, 'products');
-      const productsQuery = query(
-        productsRef,
-        orderBy('createdAt', 'desc'),
-        limit(50),
-      );
-
-      const snapshot = await getDocs(productsQuery);
-      const productsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Product[];
-
-      setProducts(productsData);
-    } catch (error) {
-      console.error('Erro ao carregar produtos:', error);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      const productsRef = collection(db, 'products');
-      const snapshot = await getDocs(productsRef);
-
-      let totalViews = 0;
-      let totalRating = 0;
-      let totalRatingCount = 0;
-      const categoryStats: { [key: string]: number } = {};
-
-      const allProducts = snapshot.docs.map((doc) => {
-        const data = doc.data() as Product;
-
-        totalViews += data.views || 0;
-
-        if (data.rating && data.reviewCount) {
-          totalRating += data.rating * data.reviewCount;
-          totalRatingCount += data.reviewCount;
-        }
-
-        if (data.category) {
-          categoryStats[data.category] =
-            (categoryStats[data.category] || 0) + 1;
-        }
-
-        const { id: _ignored, ...restData } = data;
-        return { id: doc.id, ...restData };
+      const response = await fetch('/api/admin/stats', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store', // Sempre buscar dados frescos
       });
 
-      // Produtos mais recentes
-      const recentProducts = allProducts
-        .sort((a, b) => {
-          const dateA = a.createdAt?.toDate?.() || new Date(0);
-          const dateB = b.createdAt?.toDate?.() || new Date(0);
-          return dateB.getTime() - dateA.getTime();
-        })
-        .slice(0, 5);
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      }
 
-      // Produtos mais visualizados
-      const topProducts = allProducts
-        .sort((a, b) => (b.views || 0) - (a.views || 0))
-        .slice(0, 5);
+      const result = await response.json();
 
-      const dashboardStats: DashboardStats = {
-        totalProducts: allProducts.length,
-        totalViews,
-        averageRating:
-          totalRatingCount > 0 ? totalRating / totalRatingCount : 0,
-        totalCategories: Object.keys(categoryStats).length,
-        recentProducts,
-        topProducts,
-        categoryStats,
-      };
-
-      setStats(dashboardStats);
+      if (result.success) {
+        setStats(result.data);
+        console.log('✅ Estatísticas carregadas via API:', {
+          produtos: result.data.totalProducts,
+          views: result.data.totalViews,
+          categorias: result.data.totalCategories,
+          avgViews: result.data.avgViewsPerProduct,
+        });
+      } else {
+        throw new Error(result.error || 'Erro desconhecido');
+      }
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      console.error('❌ Erro ao carregar estatísticas:', error);
+      toast.error('Erro ao carregar estatísticas do dashboard');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -205,7 +158,7 @@ export default function AdminDashboard() {
     try {
       await deleteDoc(doc(db, 'products', productId));
       toast.success('Produto excluído com sucesso!');
-      await loadDashboardData();
+      await loadDashboardData(); // Recarregar dados via API
     } catch (error) {
       console.error('Erro ao excluir produto:', error);
       toast.error('Erro ao excluir produto');
@@ -248,19 +201,20 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-yellow-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
 
-      <div className="pt-20 pb-12">
-        <div className="max-w-7xl mx-auto px-4">
+      <main className="flex-1 pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                Dashboard Administrativo
+              <h1 className="text-3xl font-bold text-gray-900">
+                Dashboard Admin
               </h1>
               <p className="text-gray-600 mt-1">
-                Bem-vindo, {userProfile?.displayName || user.email}
+                Bem-vindo,{' '}
+                {userProfile?.displayName || user.email?.split('@')[0]}
               </p>
             </div>
             <div className="flex gap-3">
@@ -268,18 +222,18 @@ export default function AdminDashboard() {
                 onClick={refreshData}
                 variant="outline"
                 disabled={refreshing}
-                className="flex items-center gap-2"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 {refreshing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : (
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-4 h-4 mr-2" />
                 )}
                 Atualizar
               </Button>
               <Button
                 onClick={() => router.push('/admin/products/new')}
-                className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                className="bg-gray-900 hover:bg-gray-800 text-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Produto
@@ -290,70 +244,154 @@ export default function AdminDashboard() {
           {/* Estatísticas Principais */}
           {stats && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+              <Card className="border border-gray-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-blue-100">
+                  <CardTitle className="text-sm font-medium text-gray-600">
                     Total de Produtos
                   </CardTitle>
-                  <Package className="h-5 w-5 text-blue-200" />
+                  <Package className="h-5 w-5 text-gray-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats.totalProducts}
+                  <div className="text-2xl font-bold text-gray-900">
+                    {stats.totalProducts.toLocaleString('pt-BR')}
                   </div>
-                  <p className="text-xs text-blue-200">
+                  <p className="text-xs text-gray-500">
                     em {stats.totalCategories} categorias
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+              <Card className="border border-gray-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-100">
+                  <CardTitle className="text-sm font-medium text-gray-600">
                     Total de Visualizações
                   </CardTitle>
-                  <Eye className="h-5 w-5 text-green-200" />
+                  <Eye className="h-5 w-5 text-gray-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold text-gray-900">
                     {stats.totalViews.toLocaleString('pt-BR')}
                   </div>
-                  <p className="text-xs text-green-200">
-                    {Math.round(stats.totalViews / stats.totalProducts)} por
-                    produto
+                  <p className="text-xs text-gray-500">
+                    {stats.avgViewsPerProduct.toFixed(1)} por produto
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-yellow-500 to-orange-500 text-white border-0">
+              <Card className="border border-gray-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-yellow-100">
+                  <CardTitle className="text-sm font-medium text-gray-600">
                     Avaliação Média
                   </CardTitle>
-                  <Star className="h-5 w-5 text-yellow-200" />
+                  <Star className="h-5 w-5 text-gray-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold text-gray-900">
                     {stats.averageRating.toFixed(1)}
                   </div>
-                  <p className="text-xs text-yellow-200">⭐⭐⭐⭐⭐ de 5.0</p>
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-3 w-3 ${
+                          i < Math.floor(stats.averageRating)
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                    <span className="text-xs text-gray-500 ml-1">
+                      ({stats.totalReviews} avaliações)
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0">
+              <Card className="border border-gray-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-100">
-                    Categorias Ativas
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    Preço Médio
                   </CardTitle>
-                  <BarChart3 className="h-5 w-5 text-purple-200" />
+                  <DollarSign className="h-5 w-5 text-gray-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats.totalCategories}
+                  <div className="text-2xl font-bold text-gray-900">
+                    {formatPrice(stats.avgPrice)}
                   </div>
-                  <p className="text-xs text-purple-200">
-                    categorias diferentes
-                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Estatísticas Secundárias */}
+          {stats && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="border border-gray-200 shadow-sm">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Eye className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        Produtos com Views
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats.productsWithViews}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(
+                          (stats.productsWithViews / stats.totalProducts) *
+                          100
+                        ).toFixed(1)}
+                        % do total
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-gray-200 shadow-sm">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                      <Star className="w-6 h-6 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        Produtos Avaliados
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats.productsWithRating}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(
+                          (stats.productsWithRating / stats.totalProducts) *
+                          100
+                        ).toFixed(1)}
+                        % do total
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-gray-200 shadow-sm">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        Categoria Líder
+                      </p>
+                      <p className="text-lg font-bold text-gray-900 capitalize">
+                        {stats.mostViewedCategory}
+                      </p>
+                      <p className="text-xs text-gray-500">mais visualizada</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -362,164 +400,216 @@ export default function AdminDashboard() {
           {/* Grid de Conteúdo */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Produtos Recentes */}
-            <Card className="lg:col-span-2">
+            <Card className="lg:col-span-2 border border-gray-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-green-600" />
+                <CardTitle className="flex items-center gap-2 text-gray-900">
+                  <Clock className="w-5 h-5" />
                   Produtos Recentes
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {stats?.recentProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        {product.images?.[0] ? (
-                          <Image
-                            width={48}
-                            height={48}
-                            src={product.images[0]}
-                            alt={product.title}
-                            className="w-12 h-12 object-cover rounded-lg"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                            <Package className="w-6 h-6 text-gray-400" />
-                          </div>
-                        )}
-                        <div>
-                          <h3 className="font-medium text-gray-900 line-clamp-1">
-                            {product.title}
-                          </h3>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Badge variant="secondary" className="text-xs">
-                              {product.category}
-                            </Badge>
-                            <span>{formatPrice(product.price)}</span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <Eye className="w-3 h-3" />
-                              {product.views}
-                            </span>
+                  {stats && stats.recentProducts.length > 0 ? (
+                    stats.recentProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          {product.images?.[0] ? (
+                            <Image
+                              width={48}
+                              height={48}
+                              src={product.images[0]}
+                              alt={product.title}
+                              className="w-12 h-12 object-cover rounded-lg"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Package className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                          <div>
+                            <h3 className="font-medium text-gray-900 line-clamp-1">
+                              {product.title}
+                            </h3>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-gray-300"
+                              >
+                                {product.category}
+                              </Badge>
+                              <span>{formatPrice(product.price)}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Eye className="w-3 h-3" />
+                                {product.views.toLocaleString('pt-BR')}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              router.push(
+                                `/produto/${product.slug || product.id}`,
+                              )
+                            }
+                            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              router.push(`/admin/products/${product.id}`)
+                            }
+                            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              deleteProduct(product.id, product.title)
+                            }
+                            className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            router.push(`/admin/products/${product.id}`)
-                          }
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            deleteProduct(product.id, product.title)
-                          }
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum produto encontrado</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             {/* Produtos Mais Visualizados */}
-            <Card>
+            <Card className="border border-gray-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                <CardTitle className="flex items-center gap-2 text-gray-900">
+                  <TrendingUp className="w-5 h-5" />
                   Mais Visualizados
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {stats?.topProducts.map((product, index) => (
-                    <div key={product.id} className="flex items-center gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {product.title}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <Eye className="w-3 h-3" />
-                          <span>{product.views} views</span>
-                          <span>•</span>
-                          <span>⭐ {product.rating.toFixed(1)}</span>
+                  {stats &&
+                  stats.topProducts &&
+                  stats.topProducts.length > 0 ? (
+                    stats.topProducts.map((product, index) => (
+                      <div
+                        key={product.id}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() =>
+                          router.push(`/produto/${product.slug || product.id}`)
+                        }
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {product.title}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <Eye className="w-3 h-3" />
+                            <span>
+                              {product.views.toLocaleString('pt-BR')} views
+                            </span>
+                            <span>•</span>
+                            <span>⭐ {product.rating.toFixed(1)}</span>
+                          </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Eye className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Nenhuma visualização ainda</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Distribuição por Categorias */}
-          {stats && (
-            <Card className="mt-6">
+          {stats && stats.detailedCategoryStats.length > 0 && (
+            <Card className="mt-6 border border-gray-200 shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-green-600" />
+                <CardTitle className="flex items-center gap-2 text-gray-900">
+                  <BarChart3 className="w-5 h-5" />
                   Distribuição por Categorias
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {Object.entries(stats.categoryStats)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([category, count]) => (
-                      <div key={category} className="bg-gray-50 p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-gray-900">
-                          {count}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {stats.detailedCategoryStats.map((categoryStat) => (
+                    <div
+                      key={categoryStat.category}
+                      className="border border-gray-100 p-4 rounded-lg bg-white hover:shadow-sm transition-shadow"
+                    >
+                      <div className="text-2xl font-bold text-gray-900">
+                        {categoryStat.count}
+                      </div>
+                      <div className="text-sm text-gray-600 capitalize font-medium">
+                        {categoryStat.category}
+                      </div>
+                      <div className="mt-2 space-y-1">
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>
+                            {categoryStat.views.toLocaleString('pt-BR')} views
+                          </span>
+                          <span>{formatPrice(categoryStat.avgPrice)}</span>
                         </div>
-                        <div className="text-sm text-gray-600 capitalize">
-                          {category}
-                        </div>
-                        <div className="mt-2 bg-gray-200 rounded-full h-2">
+                        <div className="bg-gray-100 rounded-full h-2">
                           <div
-                            className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full"
+                            className="bg-gray-900 h-2 rounded-full transition-all duration-300"
                             style={{
-                              width: `${(count / stats.totalProducts) * 100}%`,
+                              width: `${categoryStat.percentage}%`,
                             }}
                           />
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {((count / stats.totalProducts) * 100).toFixed(1)}%
+                          {categoryStat.percentage.toFixed(1)}%
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           )}
 
           {/* Lista Completa de Produtos */}
-          <Card className="mt-6">
+          <Card className="mt-6 border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex items-center justify-between text-gray-900">
                 <span className="flex items-center gap-2">
-                  <Package className="w-5 h-5 text-green-600" />
-                  Todos os Produtos ({products.length})
+                  <Package className="w-5 h-5" />
+                  Todos os Produtos (
+                  {stats?.totalProducts.toLocaleString('pt-BR')})
                 </span>
                 <Button
                   size="sm"
                   onClick={() => router.push('/admin/products')}
                   variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Ver Todos
+                  <ArrowUpRight className="w-4 h-4 ml-1" />
                 </Button>
               </CardTitle>
             </CardHeader>
@@ -527,61 +617,80 @@ export default function AdminDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-2">Produto</th>
-                      <th className="text-left py-3 px-2">Categoria</th>
-                      <th className="text-left py-3 px-2">Preço</th>
-                      <th className="text-left py-3 px-2">Views</th>
-                      <th className="text-left py-3 px-2">Avaliação</th>
-                      <th className="text-left py-3 px-2">Criado</th>
-                      <th className="text-right py-3 px-2">Ações</th>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Produto
+                      </th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Categoria
+                      </th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Preço
+                      </th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Views
+                      </th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Avaliação
+                      </th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Criado
+                      </th>
+                      <th className="text-right py-3 px-2 text-sm font-medium text-gray-600">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {products.slice(0, 10).map((product) => (
+                    {stats?.recentProducts.slice(0, 10).map((product) => (
                       <tr
                         key={product.id}
-                        className="border-b hover:bg-gray-50"
+                        className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-3 px-2">
                           <div className="flex items-center gap-3">
                             {product.images?.[0] ? (
                               <Image
+                                width={40}
+                                height={40}
                                 src={product.images[0]}
                                 alt={product.title}
                                 className="w-10 h-10 object-cover rounded"
                               />
                             ) : (
-                              <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
+                              <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
                                 <Package className="w-5 h-5 text-gray-400" />
                               </div>
                             )}
-                            <span className="font-medium text-sm truncate max-w-[200px]">
+                            <span className="font-medium text-sm text-gray-900 truncate max-w-[200px]">
                               {product.title}
                             </span>
                           </div>
                         </td>
                         <td className="py-3 px-2">
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-gray-300"
+                          >
                             {product.category}
                           </Badge>
                         </td>
-                        <td className="py-3 px-2 font-medium">
+                        <td className="py-3 px-2 font-medium text-gray-900">
                           {formatPrice(product.price)}
                         </td>
                         <td className="py-3 px-2">
-                          <span className="flex items-center gap-1 text-sm">
+                          <span className="flex items-center gap-1 text-sm text-gray-600">
                             <Eye className="w-3 h-3" />
                             {product.views}
                           </span>
                         </td>
                         <td className="py-3 px-2">
-                          <span className="flex items-center gap-1 text-sm">
-                            <Star className="w-3 h-3 text-yellow-500" />
+                          <span className="flex items-center gap-1 text-sm text-gray-600">
+                            <Star className="w-3 h-3 text-yellow-400" />
                             {product.rating.toFixed(1)}
                           </span>
                         </td>
-                        <td className="py-3 px-2 text-sm text-gray-600">
+                        <td className="py-3 px-2 text-sm text-gray-500">
                           {formatDate(product.createdAt)}
                         </td>
                         <td className="py-3 px-2">
@@ -590,8 +699,9 @@ export default function AdminDashboard() {
                               size="sm"
                               variant="outline"
                               onClick={() =>
-                                router.push(`/products/${product.id}`)
+                                router.push(`/produto/${product.id}`)
                               }
+                              className="border-gray-300 text-gray-700 hover:bg-gray-50"
                             >
                               <Eye className="w-3 h-3" />
                             </Button>
@@ -601,6 +711,7 @@ export default function AdminDashboard() {
                               onClick={() =>
                                 router.push(`/admin/products/${product.id}`)
                               }
+                              className="border-gray-300 text-gray-700 hover:bg-gray-50"
                             >
                               <Edit className="w-3 h-3" />
                             </Button>
@@ -610,7 +721,7 @@ export default function AdminDashboard() {
                               onClick={() =>
                                 deleteProduct(product.id, product.title)
                               }
-                              className="text-red-600 hover:text-red-700"
+                              className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-red-600"
                             >
                               <Trash2 className="w-3 h-3" />
                             </Button>
@@ -624,7 +735,9 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }
@@ -632,11 +745,14 @@ export default function AdminDashboard() {
 // Componente de loading
 function AdminLoadingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-yellow-50 flex items-center justify-center">
-      <div className="text-center">
-        <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-green-600" />
-        <p className="text-gray-600 text-lg">Carregando dashboard...</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header />
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-600 text-lg">Carregando dashboard...</p>
+        </div>
+      </main>
     </div>
   );
 }
@@ -646,28 +762,32 @@ function AdminAccessDenied() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-yellow-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
-      <div className="pt-20 pb-12 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <main className="flex-1 pt-20 pb-12 flex items-center justify-center">
+        <Card className="w-full max-w-md border border-gray-200 shadow-sm">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-red-600" />
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-gray-400" />
             </div>
-            <CardTitle className="text-red-900">Acesso Negado</CardTitle>
+            <CardTitle className="text-gray-900">Acesso Negado</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-gray-600">
               Você não tem permissão para acessar o painel administrativo.
             </p>
             <div className="space-y-2">
-              <Button onClick={() => router.push('/')} className="w-full">
+              <Button
+                onClick={() => router.push('/')}
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white"
+              >
                 Voltar ao Início
               </Button>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }

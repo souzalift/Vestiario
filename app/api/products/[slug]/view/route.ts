@@ -1,89 +1,110 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  increment,
-  collection,
-  query,
-  where,
-  getDocs,
-  limit
-} from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-
-interface Params {
-  slug: string;
-}
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<Params> }
+  { params }: { params: { slug: string } }
 ) {
   try {
-    // Aguardar params conforme NextJS 15
-    const { slug } = await params;
+    const productSlug = params.slug;
 
-
-
-    let productRef = null;
-
-    // Primeiro, tentar encontrar por ID
-    const directDoc = await getDoc(doc(db, 'products', slug));
-
-    if (directDoc.exists()) {
-      productRef = doc(db, 'products', slug);
-
-    } else {
-      // Se não encontrar por ID, buscar por campo slug
-
-      const slugQuery = query(
-        collection(db, 'products'),
-        where('slug', '==', slug),
-        limit(1)
+    if (!productSlug) {
+      return NextResponse.json(
+        { error: 'Slug do produto é obrigatório' },
+        { status: 400 }
       );
-
-      const slugSnapshot = await getDocs(slugQuery);
-
-      if (!slugSnapshot.empty) {
-        productRef = slugSnapshot.docs[0].ref;
-
-      }
     }
 
-    if (!productRef) {
+    // Pegar IP do usuário para evitar múltiplas views da mesma pessoa
+    const userIP = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
 
+    // Buscar produto pelo slug
+    const productsRef = collection(db, 'products');
+    const q = query(productsRef, where('slug', '==', productSlug));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Produto não encontrado'
-        },
+        { error: 'Produto não encontrado' },
         { status: 404 }
       );
     }
 
-    // Incrementar views
+    // Pegar o primeiro documento (slug deve ser único)
+    const productDoc = querySnapshot.docs[0];
+    const productRef = doc(db, 'products', productDoc.id);
+
+    // Incrementar view count
     await updateDoc(productRef, {
       views: increment(1),
-      lastViewed: new Date()
+      lastViewed: new Date(),
+      // Opcional: rastrear último IP que visualizou
+      lastViewedIP: userIP
     });
 
-
+    console.log(`📊 View registrada para produto ${productSlug} (${productDoc.id}) do IP ${userIP}`);
 
     return NextResponse.json({
       success: true,
-      message: 'Views incrementadas'
+      message: 'View registrada com sucesso',
+      productId: productDoc.id,
+      slug: productSlug
     });
 
   } catch (error) {
-    console.error('💥 Erro ao incrementar views:', error);
-
+    console.error('❌ Erro ao registrar view:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Erro ao incrementar views',
-        details: error instanceof Error ? error.message : 'Erro desconhecido'
-      },
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET para obter contagem atual de views
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    const productSlug = params.slug;
+
+    if (!productSlug) {
+      return NextResponse.json(
+        { error: 'Slug do produto é obrigatório' },
+        { status: 400 }
+      );
+    }
+
+    // Buscar produto pelo slug
+    const productsRef = collection(db, 'products');
+    const q = query(productsRef, where('slug', '==', productSlug));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return NextResponse.json(
+        { error: 'Produto não encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const productDoc = querySnapshot.docs[0];
+    const data = productDoc.data();
+
+    return NextResponse.json({
+      success: true,
+      views: data.views || 0,
+      lastViewed: data.lastViewed || null,
+      productId: productDoc.id,
+      slug: productSlug
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar views:', error);
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }

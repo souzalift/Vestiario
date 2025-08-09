@@ -1,8 +1,17 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import {
+  updateProfile,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from 'firebase/auth';
+import { updateDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -14,7 +23,6 @@ import {
   Phone,
   User,
   MapPin,
-  Calendar,
   Shield,
   AlertCircle,
   CheckCircle,
@@ -22,15 +30,17 @@ import {
   Eye,
   EyeOff,
   X,
+  Upload,
+  Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 interface FormData {
   firstName: string;
   lastName: string;
-  username: string;
-  primaryEmailAddress: string;
-  primaryPhoneNumber: string;
+  displayName: string;
+  phoneNumber: string;
 }
 
 interface Address {
@@ -41,15 +51,31 @@ interface Address {
   city: string;
   state: string;
   zipCode: string;
+  country: string;
+}
+
+interface PasswordData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface Preferences {
+  newsletter: boolean;
+  notifications: boolean;
+  favoriteTeams: string[];
 }
 
 export default function EditarPerfilPage() {
-  const { user, isLoaded } = useUser();
+  const { user, isAuthenticated } = useAuth();
+  const {
+    userProfile,
+    updateUserProfile,
+    loading: profileLoading,
+  } = useUserProfile();
+  const router = useRouter();
+
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{
-    type: 'success' | 'error';
-    text: string;
-  } | null>(null);
   const [activeTab, setActiveTab] = useState('pessoal');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -58,9 +84,8 @@ export default function EditarPerfilPage() {
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
-    username: '',
-    primaryEmailAddress: '',
-    primaryPhoneNumber: '',
+    displayName: '',
+    phoneNumber: '',
   });
 
   const [address, setAddress] = useState<Address>({
@@ -71,12 +96,19 @@ export default function EditarPerfilPage() {
     city: '',
     state: '',
     zipCode: '',
+    country: 'Brasil',
   });
 
-  const [passwordData, setPasswordData] = useState({
+  const [passwordData, setPasswordData] = useState<PasswordData>({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
+  });
+
+  const [preferences, setPreferences] = useState<Preferences>({
+    newsletter: true,
+    notifications: true,
+    favoriteTeams: [],
   });
 
   const [showPasswords, setShowPasswords] = useState({
@@ -86,39 +118,41 @@ export default function EditarPerfilPage() {
   });
 
   // Redirect se não estiver logado
-  if (isLoaded && !user) {
-    redirect('/login');
-  }
-
-  // Carregar dados do usuário
   useEffect(() => {
-    if (user) {
+    if (!profileLoading && !isAuthenticated) {
+      toast.error('Você precisa estar logado para acessar esta página');
+      router.push('/login');
+    }
+  }, [isAuthenticated, profileLoading, router]);
+
+  // Carregar dados do usuário quando disponível
+  useEffect(() => {
+    if (userProfile) {
       setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        username: user.username || '',
-        primaryEmailAddress: user.primaryEmailAddress?.emailAddress || '',
-        primaryPhoneNumber: user.primaryPhoneNumber?.phoneNumber || '',
+        firstName: userProfile.firstName || '',
+        lastName: userProfile.lastName || '',
+        displayName: userProfile.displayName || '',
+        phoneNumber: userProfile.phoneNumber || '',
       });
 
-      // Carregar endereço do usuário (se existir)
-      loadUserAddress();
-    }
-  }, [user]);
+      setAddress({
+        street: userProfile.address?.street || '',
+        number: (userProfile.address as any)?.number || '',
+        complement: (userProfile.address as any)?.complement || '',
+        neighborhood: (userProfile.address as any)?.neighborhood || '',
+        city: userProfile.address?.city || '',
+        state: userProfile.address?.state || '',
+        zipCode: userProfile.address?.zipCode || '',
+        country: userProfile.address?.country || 'Brasil',
+      });
 
-  const loadUserAddress = async () => {
-    try {
-      const response = await fetch('/api/user/address');
-      if (response.ok) {
-        const addressData = await response.json();
-        if (addressData.address) {
-          setAddress(addressData.address);
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao carregar endereço:', error);
+      setPreferences({
+        newsletter: userProfile.preferences?.newsletter ?? true,
+        notifications: userProfile.preferences?.notifications ?? true,
+        favoriteTeams: userProfile.preferences?.favoriteTeams || [],
+      });
     }
-  };
+  }, [userProfile]);
 
   // Handlers
   const handleFormDataChange = (field: keyof FormData, value: string) => {
@@ -129,13 +163,23 @@ export default function EditarPerfilPage() {
     setAddress((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handlePasswordChange = (field: string, value: string) => {
+  const handlePasswordChange = (field: keyof PasswordData, value: string) => {
     setPasswordData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handlePreferenceChange = (field: keyof Preferences, value: any) => {
+    setPreferences((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB limit
+        toast.error('Arquivo muito grande. Máximo 10MB.');
+        return;
+      }
+
       setImageFile(file);
       const reader = new FileReader();
       reader.onload = () => {
@@ -150,7 +194,7 @@ export default function EditarPerfilPage() {
     setImagePreview(null);
   };
 
-  // CEP lookup
+  // CEP lookup usando ViaCEP
   const handleCepChange = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, '');
     handleAddressChange('zipCode', cleanCep);
@@ -170,74 +214,72 @@ export default function EditarPerfilPage() {
             city: data.localidade || '',
             state: data.uf || '',
           }));
+          toast.success('CEP encontrado!');
+        } else {
+          toast.error('CEP não encontrado');
         }
       } catch (error) {
         console.error('Erro ao buscar CEP:', error);
+        toast.error('Erro ao buscar CEP');
       }
     }
+  };
+
+  // Upload de imagem para Firebase Storage (simulado)
+  const uploadImage = async (file: File): Promise<string> => {
+    // Aqui você implementaria o upload real para Firebase Storage
+    // Por enquanto, vamos simular com base64
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
   };
 
   // Submit handlers
   const handlePersonalInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage(null);
 
     try {
-      // Preparar atualizações usando apenas parâmetros válidos do Clerk
-      const updates: any = {};
+      console.log('📝 Atualizando informações pessoais...');
 
-      if (formData.firstName !== user?.firstName) {
-        updates.firstName = formData.firstName;
-      }
-
-      // Remover lastName - usar apenas firstName
-      // O Clerk automaticamente separará o nome completo
-
-      if (formData.username && formData.username !== user?.username) {
-        updates.username = formData.username;
-      }
-
-      // Atualizar informações básicas
-      if (Object.keys(updates).length > 0) {
-        await user?.update(updates);
-      }
+      // Preparar dados para atualização
+      const updates: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        displayName:
+          formData.displayName ||
+          `${formData.firstName} ${formData.lastName}`.trim(),
+        phoneNumber: formData.phoneNumber,
+      };
 
       // Upload de imagem se selecionada
       if (imageFile) {
-        await user?.setProfileImage({ file: imageFile });
-        setImageFile(null);
-        setImagePreview(null);
-      }
+        console.log('📷 Fazendo upload da imagem...');
+        const photoURL = await uploadImage(imageFile);
+        updates.photoURL = photoURL;
 
-      // Atualizar telefone separadamente se mudou
-      if (
-        formData.primaryPhoneNumber &&
-        formData.primaryPhoneNumber !== user?.primaryPhoneNumber?.phoneNumber
-      ) {
-        try {
-          await user?.createPhoneNumber({
-            phoneNumber: formData.primaryPhoneNumber,
-          });
-        } catch (phoneError) {
-          console.log('Erro ao atualizar telefone:', phoneError);
-          // Telefone pode já existir ou ser inválido, não interromper o fluxo
+        // Atualizar também no Firebase Auth
+        if (user) {
+          await updateProfile(user, { photoURL });
         }
       }
 
-      setMessage({
-        type: 'success',
-        text: 'Informações pessoais atualizadas com sucesso!',
-      });
+      // Atualizar perfil
+      await updateUserProfile(updates);
+
+      // Atualizar displayName no Firebase Auth se mudou
+      if (user && updates.displayName !== user.displayName) {
+        await updateProfile(user, { displayName: updates.displayName });
+      }
+
+      setImageFile(null);
+      setImagePreview(null);
+      toast.success('Informações pessoais atualizadas com sucesso!');
     } catch (error: any) {
-      console.error('Erro ao atualizar:', error);
-      setMessage({
-        type: 'error',
-        text:
-          error.errors?.[0]?.message ||
-          error.message ||
-          'Erro ao atualizar informações',
-      });
+      console.error('❌ Erro ao atualizar informações:', error);
+      toast.error(error.message || 'Erro ao atualizar informações');
     } finally {
       setLoading(false);
     }
@@ -246,28 +288,27 @@ export default function EditarPerfilPage() {
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage(null);
 
     try {
-      const response = await fetch('/api/user/address', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address }),
+      console.log('🏠 Atualizando endereço...');
+
+      await updateUserProfile({
+        address: {
+          street: address.street,
+          number: address.number,
+          complement: address.complement,
+          neighborhood: address.neighborhood,
+          city: address.city,
+          state: address.state,
+          zipCode: address.zipCode,
+          country: address.country,
+        },
       });
 
-      if (response.ok) {
-        setMessage({
-          type: 'success',
-          text: 'Endereço atualizado com sucesso!',
-        });
-      } else {
-        throw new Error('Erro ao salvar endereço');
-      }
+      toast.success('Endereço atualizado com sucesso!');
     } catch (error: any) {
-      setMessage({
-        type: 'error',
-        text: error.message || 'Erro ao atualizar endereço',
-      });
+      console.error('❌ Erro ao atualizar endereço:', error);
+      toast.error(error.message || 'Erro ao atualizar endereço');
     } finally {
       setLoading(false);
     }
@@ -276,50 +317,90 @@ export default function EditarPerfilPage() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage(null);
 
+    // Validações
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage({ type: 'error', text: 'As senhas não coincidem' });
+      toast.error('As senhas não coincidem');
       setLoading(false);
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      setMessage({
-        type: 'error',
-        text: 'A nova senha deve ter pelo menos 8 caracteres',
-      });
+      toast.error('A nova senha deve ter pelo menos 8 caracteres');
+      setLoading(false);
+      return;
+    }
+
+    if (!user || !user.email) {
+      toast.error('Usuário não encontrado');
       setLoading(false);
       return;
     }
 
     try {
-      await user?.updatePassword({
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-      });
+      console.log('🔒 Alterando senha...');
+
+      // Reautenticar o usuário com a senha atual
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        passwordData.currentPassword,
+      );
+
+      await reauthenticateWithCredential(user, credential);
+
+      // Atualizar senha
+      await updatePassword(user, passwordData.newPassword);
 
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
-      setMessage({ type: 'success', text: 'Senha alterada com sucesso!' });
+
+      toast.success('Senha alterada com sucesso!');
     } catch (error: any) {
-      console.error('Erro ao alterar senha:', error);
-      setMessage({
-        type: 'error',
-        text:
-          error.errors?.[0]?.message ||
-          error.message ||
-          'Erro ao alterar senha',
-      });
+      console.error('❌ Erro ao alterar senha:', error);
+
+      if (error.code === 'auth/wrong-password') {
+        toast.error('Senha atual incorreta');
+      } else if (error.code === 'auth/weak-password') {
+        toast.error('A nova senha é muito fraca');
+      } else {
+        toast.error(
+          'Erro ao alterar senha: ' + (error.message || 'Erro desconhecido'),
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isLoaded) {
+  const handlePreferencesSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      console.log('⚙️ Atualizando preferências...');
+
+      await updateUserProfile({
+        preferences: {
+          newsletter: preferences.newsletter,
+          notifications: preferences.notifications,
+          favoriteTeams: preferences.favoriteTeams,
+        },
+      });
+
+      toast.success('Preferências atualizadas com sucesso!');
+    } catch (error: any) {
+      console.error('❌ Erro ao atualizar preferências:', error);
+      toast.error(error.message || 'Erro ao atualizar preferências');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Loading state
+  if (profileLoading || !isAuthenticated) {
     return <EditProfileSkeleton />;
   }
 
@@ -333,43 +414,17 @@ export default function EditarPerfilPage() {
           <div className="mb-8">
             <Link
               href="/perfil"
-              className="inline-flex items-center text-primary-600 hover:text-primary-800 transition-colors font-medium mb-4"
+              className="inline-flex items-center text-gray-600 hover:text-gray-800 transition-colors font-medium mb-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar ao perfil
             </Link>
 
-            <h1 className="text-3xl font-bold text-primary-900">
-              Editar Perfil
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">Editar Perfil</h1>
             <p className="text-gray-600 mt-1">
               Atualize suas informações pessoais e configurações
             </p>
           </div>
-
-          {/* Message */}
-          {message && (
-            <div
-              className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${
-                message.type === 'success'
-                  ? 'bg-green-50 text-green-800 border border-green-200'
-                  : 'bg-red-50 text-red-800 border border-red-200'
-              }`}
-            >
-              {message.type === 'success' ? (
-                <CheckCircle className="w-5 h-5" />
-              ) : (
-                <AlertCircle className="w-5 h-5" />
-              )}
-              <span>{message.text}</span>
-              <button
-                onClick={() => setMessage(null)}
-                className="ml-auto hover:opacity-70"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
 
           {/* Tabs */}
           <div className="bg-white rounded-2xl shadow-sm p-2 mb-8">
@@ -378,6 +433,7 @@ export default function EditarPerfilPage() {
                 { id: 'pessoal', name: 'Informações Pessoais', icon: User },
                 { id: 'endereco', name: 'Endereço', icon: MapPin },
                 { id: 'senha', name: 'Senha', icon: Shield },
+                { id: 'preferencias', name: 'Preferências', icon: AlertCircle },
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -386,7 +442,7 @@ export default function EditarPerfilPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
                       activeTab === tab.id
-                        ? 'bg-primary-800 text-white shadow-lg'
+                        ? 'bg-gray-900 text-white shadow-lg'
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
@@ -403,6 +459,7 @@ export default function EditarPerfilPage() {
             {activeTab === 'pessoal' && (
               <PersonalInfoForm
                 user={user}
+                userProfile={userProfile}
                 formData={formData}
                 onFormDataChange={handleFormDataChange}
                 onImageChange={handleImageChange}
@@ -433,6 +490,15 @@ export default function EditarPerfilPage() {
                 loading={loading}
               />
             )}
+
+            {activeTab === 'preferencias' && (
+              <PreferencesForm
+                preferences={preferences}
+                onPreferenceChange={handlePreferenceChange}
+                onSubmit={handlePreferencesSubmit}
+                loading={loading}
+              />
+            )}
           </div>
         </div>
       </main>
@@ -445,6 +511,7 @@ export default function EditarPerfilPage() {
 // Personal Info Form Component
 function PersonalInfoForm({
   user,
+  userProfile,
   formData,
   onFormDataChange,
   onImageChange,
@@ -455,7 +522,7 @@ function PersonalInfoForm({
 }: any) {
   return (
     <form onSubmit={onSubmit} className="p-8">
-      <h2 className="text-2xl font-bold text-primary-900 mb-6">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">
         Informações Pessoais
       </h2>
 
@@ -466,7 +533,7 @@ function PersonalInfoForm({
         </label>
         <div className="flex items-center gap-6">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
               {imagePreview ? (
                 <Image
                   width={96}
@@ -475,11 +542,11 @@ function PersonalInfoForm({
                   alt="Preview"
                   className="w-full h-full object-cover"
                 />
-              ) : user?.imageUrl ? (
+              ) : userProfile?.photoURL ? (
                 <Image
                   width={96}
                   height={96}
-                  src={user.imageUrl}
+                  src={userProfile.photoURL}
                   alt="Perfil"
                   className="w-full h-full object-cover"
                 />
@@ -493,7 +560,7 @@ function PersonalInfoForm({
               <button
                 type="button"
                 onClick={onImageRemove}
-                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -509,67 +576,83 @@ function PersonalInfoForm({
             />
             <label
               htmlFor="image-upload"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 hover:bg-primary-200 text-primary-700 rounded-lg font-medium cursor-pointer transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium cursor-pointer transition-colors"
             >
               <Camera className="w-4 h-4" />
               Alterar Foto
             </label>
-            <p className="text-sm text-gray-500 mt-2">PNG, JPG até 10MB</p>
+            <p className="text-sm text-gray-500 mt-2">
+              PNG, JPG ou WEBP até 10MB
+            </p>
           </div>
         </div>
       </div>
 
       {/* Form Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="md:col-span-2">
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nome Completo *
+            Nome *
           </label>
           <input
             type="text"
             value={formData.firstName}
             onChange={(e) => onFormDataChange('firstName', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
-            placeholder="Digite seu nome completo"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+            placeholder="Digite seu nome"
             required
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Sobrenome *
+          </label>
+          <input
+            type="text"
+            value={formData.lastName}
+            onChange={(e) => onFormDataChange('lastName', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+            placeholder="Digite seu sobrenome"
+            required
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Nome de Exibição
+          </label>
+          <input
+            type="text"
+            value={formData.displayName}
+            onChange={(e) => onFormDataChange('displayName', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+            placeholder="Como você quer ser chamado?"
+          />
           <p className="text-xs text-gray-500 mt-1">
-            O Clerk gerenciará automaticamente nome e sobrenome
+            Se vazio, será usado "Nome + Sobrenome"
           </p>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nome de Usuário
-          </label>
-          <input
-            type="text"
-            value={formData.username}
-            onChange={(e) => onFormDataChange('username', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
-            placeholder="Escolha um nome de usuário"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            E-mail *
+            E-mail
           </label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="email"
-              value={formData.primaryEmailAddress}
+              value={userProfile?.email || user?.email || ''}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500"
               disabled
             />
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Para alterar o e-mail, use as configurações do Clerk
+            Para alterar o e-mail, entre em contato com o suporte
           </p>
         </div>
 
-        <div className="md:col-span-2">
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Telefone
           </label>
@@ -577,17 +660,45 @@ function PersonalInfoForm({
             <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="tel"
-              value={formData.primaryPhoneNumber}
-              onChange={(e) =>
-                onFormDataChange('primaryPhoneNumber', e.target.value)
-              }
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+              value={formData.phoneNumber}
+              onChange={(e) => onFormDataChange('phoneNumber', e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
               placeholder="(11) 99999-9999"
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Formato: (11) 99999-9999 ou +5511999999999
-          </p>
+        </div>
+      </div>
+
+      {/* Status */}
+      <div className="mb-8 p-4 bg-gray-50 rounded-xl">
+        <h3 className="font-medium text-gray-900 mb-3">Status da Conta</h3>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            {user?.emailVerified ? (
+              <>
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-800">
+                  E-mail verificado
+                </span>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="w-4 h-4 text-yellow-600" />
+                <span className="text-sm text-yellow-800">
+                  E-mail não verificado
+                </span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-600" />
+            <span className="text-sm text-green-800">
+              Membro desde{' '}
+              {userProfile?.createdAt
+                ? new Date(userProfile.createdAt.toDate()).getFullYear()
+                : new Date().getFullYear()}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -595,7 +706,7 @@ function PersonalInfoForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-primary-800 hover:bg-primary-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -618,7 +729,7 @@ function AddressForm({
 }: any) {
   return (
     <form onSubmit={onSubmit} className="p-8">
-      <h2 className="text-2xl font-bold text-primary-900 mb-6">Endereço</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Endereço</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div>
@@ -629,11 +740,14 @@ function AddressForm({
             type="text"
             value={address.zipCode}
             onChange={(e) => onCepChange(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
             placeholder="00000-000"
             maxLength={8}
             required
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Digite o CEP para preenchimento automático
+          </p>
         </div>
 
         <div></div>
@@ -646,7 +760,8 @@ function AddressForm({
             type="text"
             value={address.street}
             onChange={(e) => onAddressChange('street', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+            placeholder="Nome da rua"
             required
           />
         </div>
@@ -659,7 +774,8 @@ function AddressForm({
             type="text"
             value={address.number}
             onChange={(e) => onAddressChange('number', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+            placeholder="123"
             required
           />
         </div>
@@ -672,7 +788,7 @@ function AddressForm({
             type="text"
             value={address.complement}
             onChange={(e) => onAddressChange('complement', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
             placeholder="Apartamento, bloco, etc."
           />
         </div>
@@ -685,7 +801,8 @@ function AddressForm({
             type="text"
             value={address.neighborhood}
             onChange={(e) => onAddressChange('neighborhood', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+            placeholder="Nome do bairro"
             required
           />
         </div>
@@ -698,7 +815,8 @@ function AddressForm({
             type="text"
             value={address.city}
             onChange={(e) => onAddressChange('city', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+            placeholder="Nome da cidade"
             required
           />
         </div>
@@ -710,7 +828,7 @@ function AddressForm({
           <select
             value={address.state}
             onChange={(e) => onAddressChange('state', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
             required
           >
             <option value="">Selecione...</option>
@@ -748,7 +866,7 @@ function AddressForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-primary-800 hover:bg-primary-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -772,9 +890,7 @@ function PasswordForm({
 }: any) {
   return (
     <form onSubmit={onSubmit} className="p-8">
-      <h2 className="text-2xl font-bold text-primary-900 mb-6">
-        Alterar Senha
-      </h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Alterar Senha</h2>
 
       <div className="space-y-6 mb-8">
         <div>
@@ -788,22 +904,17 @@ function PasswordForm({
               onChange={(e) =>
                 onPasswordChange('currentPassword', e.target.value)
               }
-              className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+              className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+              placeholder="Digite sua senha atual"
               required
             />
             <button
               type="button"
               onClick={() =>
-                setShowPasswords(
-                  (prev: {
-                    current: boolean;
-                    new: boolean;
-                    confirm: boolean;
-                  }) => ({
-                    ...prev,
-                    current: !prev.current,
-                  }),
-                )
+                setShowPasswords((prev: any) => ({
+                  ...prev,
+                  current: !prev.current,
+                }))
               }
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
@@ -825,20 +936,18 @@ function PasswordForm({
               type={showPasswords.new ? 'text' : 'password'}
               value={passwordData.newPassword}
               onChange={(e) => onPasswordChange('newPassword', e.target.value)}
-              className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+              className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+              placeholder="Digite sua nova senha"
               required
               minLength={8}
             />
             <button
               type="button"
               onClick={() =>
-                setShowPasswords(
-                  (prev: {
-                    current: boolean;
-                    new: boolean;
-                    confirm: boolean;
-                  }) => ({ ...prev, new: !prev.new }),
-                )
+                setShowPasswords((prev: any) => ({
+                  ...prev,
+                  new: !prev.new,
+                }))
               }
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
@@ -863,22 +972,17 @@ function PasswordForm({
               onChange={(e) =>
                 onPasswordChange('confirmPassword', e.target.value)
               }
-              className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all"
+              className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
+              placeholder="Confirme sua nova senha"
               required
             />
             <button
               type="button"
               onClick={() =>
-                setShowPasswords(
-                  (prev: {
-                    current: boolean;
-                    new: boolean;
-                    confirm: boolean;
-                  }) => ({
-                    ...prev,
-                    confirm: !prev.confirm,
-                  }),
-                )
+                setShowPasswords((prev: any) => ({
+                  ...prev,
+                  confirm: !prev.confirm,
+                }))
               }
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
@@ -892,10 +996,20 @@ function PasswordForm({
         </div>
       </div>
 
+      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+        <div className="flex items-center gap-2 text-yellow-800">
+          <AlertCircle className="w-5 h-5" />
+          <span className="font-medium">Importante</span>
+        </div>
+        <p className="text-yellow-700 text-sm mt-1">
+          Após alterar a senha, você será desconectado de todos os dispositivos.
+        </p>
+      </div>
+
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-primary-800 hover:bg-primary-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -908,6 +1022,121 @@ function PasswordForm({
   );
 }
 
+// Preferences Form Component
+function PreferencesForm({
+  preferences,
+  onPreferenceChange,
+  onSubmit,
+  loading,
+}: any) {
+  const teams = [
+    'Flamengo',
+    'Corinthians',
+    'Palmeiras',
+    'São Paulo',
+    'Santos',
+    'Vasco',
+    'Grêmio',
+    'Internacional',
+    'Cruzeiro',
+    'Atlético-MG',
+    'Botafogo',
+    'Fluminense',
+  ];
+
+  return (
+    <form onSubmit={onSubmit} className="p-8">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Preferências</h2>
+
+      <div className="space-y-6 mb-8">
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Comunicação
+          </h3>
+          <div className="space-y-3">
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={preferences.newsletter}
+                onChange={(e) =>
+                  onPreferenceChange('newsletter', e.target.checked)
+                }
+                className="w-4 h-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500"
+              />
+              <div>
+                <span className="font-medium text-gray-900">Newsletter</span>
+                <p className="text-sm text-gray-600">
+                  Receber ofertas e novidades por e-mail
+                </p>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={preferences.notifications}
+                onChange={(e) =>
+                  onPreferenceChange('notifications', e.target.checked)
+                }
+                className="w-4 h-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500"
+              />
+              <div>
+                <span className="font-medium text-gray-900">Notificações</span>
+                <p className="text-sm text-gray-600">
+                  Receber notificações sobre pedidos e atualizações
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Times Favoritos
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {teams.map((team) => (
+              <label key={team} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={preferences.favoriteTeams.includes(team)}
+                  onChange={(e) => {
+                    const newTeams = e.target.checked
+                      ? [...preferences.favoriteTeams, team]
+                      : preferences.favoriteTeams.filter(
+                          (t: string) => t !== team,
+                        );
+                    onPreferenceChange('favoriteTeams', newTeams);
+                  }}
+                  className="w-4 h-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500"
+                />
+                <span className="text-sm text-gray-900">{team}</span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Selecionando seus times favoritos, você receberá ofertas
+            personalizadas
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+      >
+        {loading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Save className="w-4 h-4" />
+        )}
+        {loading ? 'Salvando...' : 'Salvar Preferências'}
+      </button>
+    </form>
+  );
+}
+
 // Loading Skeleton
 function EditProfileSkeleton() {
   return (
@@ -915,7 +1144,11 @@ function EditProfileSkeleton() {
       <Header />
       <main className="flex-1 pt-20 pb-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-2xl h-16 animate-pulse mb-8"></div>
+          <div className="space-y-4 mb-8">
+            <div className="bg-gray-200 rounded h-6 w-32 animate-pulse"></div>
+            <div className="bg-gray-200 rounded h-8 w-64 animate-pulse"></div>
+            <div className="bg-gray-200 rounded h-4 w-96 animate-pulse"></div>
+          </div>
           <div className="bg-gray-200 rounded-2xl h-16 animate-pulse mb-8"></div>
           <div className="bg-gray-200 rounded-2xl h-96 animate-pulse"></div>
         </div>

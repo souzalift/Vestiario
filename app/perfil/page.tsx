@@ -1,8 +1,9 @@
 'use client';
 
-import { useUser, useClerk } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -30,112 +31,65 @@ import {
   CheckCircle,
   Truck,
   XCircle,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import Image from 'next/image';
-
-// Interfaces para tipagem
-interface UserStats {
-  totalOrders: number;
-  totalSpent: number;
-  favoriteProducts: number;
-  memberSince: string;
-}
-
-interface RecentOrder {
-  _id: string;
-  orderNumber: string;
-  createdAt: string;
-  orderStatus: string;
-  total: number;
-  items: Array<{
-    title: string;
-    quantity: number;
-  }>;
-}
-
-interface FavoriteProduct {
-  _id: string;
-  title: string;
-  price: number;
-  image: string;
-  team: string;
-}
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 export default function PerfilPage() {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { user, logout, isAuthenticated } = useAuth();
+  const {
+    userProfile,
+    userStats,
+    recentOrders,
+    favoriteProducts,
+    loading,
+    isVipMember,
+    isProfileComplete,
+    refreshUserData,
+  } = useUserProfile();
+
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('perfil');
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [favoriteProducts, setFavoriteProducts] = useState<FavoriteProduct[]>(
-    [],
-  );
-  const [loading, setLoading] = useState(true);
 
   // Redirect se não estiver logado
-  if (isLoaded && !user) {
-    redirect('/login');
-  }
-
-  // Carregar dados do usuário
   useEffect(() => {
-    if (user) {
-      loadUserData();
+    if (!loading && !isAuthenticated) {
+      router.push('/login');
     }
-  }, [user]);
-
-  const loadUserData = async () => {
-    try {
-      setLoading(true);
-
-      // Carregar estatísticas do usuário
-      const [statsResponse, ordersResponse, favoritesResponse] =
-        await Promise.all([
-          fetch('/api/user/stats'),
-          fetch('/api/orders?limit=3'),
-          fetch('/api/user/favorites?limit=6'),
-        ]);
-
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setUserStats(statsData);
-      }
-
-      if (ordersResponse.ok) {
-        const ordersData = await ordersResponse.json();
-        setRecentOrders(ordersData.orders || []);
-      }
-
-      if (favoritesResponse.ok) {
-        const favoritesData = await favoritesResponse.json();
-        setFavoriteProducts(favoritesData.favorites || []);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados do usuário:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isAuthenticated, loading, router]);
 
   // Loading state
-  if (!isLoaded || loading) {
+  if (loading || !isAuthenticated) {
     return <ProfileSkeleton />;
   }
 
-  const handleSignOut = () => {
-    signOut(() => redirect('/'));
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      toast.success('Logout realizado com sucesso!');
+      router.push('/');
+    } catch (error) {
+      toast.error('Erro ao fazer logout');
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
       <Header />
 
-      {/* Main Content */}
       <main className="flex-1 pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Profile Header */}
-          <ProfileHeader user={user} userStats={userStats} />
+          <ProfileHeader
+            user={user}
+            userProfile={userProfile}
+            userStats={userStats}
+            isVipMember={isVipMember}
+          />
 
           {/* Profile Navigation */}
           <ProfileNavigation
@@ -145,7 +99,13 @@ export default function PerfilPage() {
 
           {/* Profile Content */}
           <div className="mt-8">
-            {activeTab === 'perfil' && <ProfileInfo user={user} />}
+            {activeTab === 'perfil' && (
+              <ProfileInfo
+                user={user}
+                userProfile={userProfile}
+                isProfileComplete={isProfileComplete}
+              />
+            )}
             {activeTab === 'pedidos' && (
               <OrdersSection recentOrders={recentOrders} />
             )}
@@ -153,13 +113,17 @@ export default function PerfilPage() {
               <FavoritesSection favoriteProducts={favoriteProducts} />
             )}
             {activeTab === 'configuracoes' && (
-              <SettingsSection user={user} onSignOut={handleSignOut} />
+              <SettingsSection
+                user={user}
+                userProfile={userProfile}
+                onSignOut={handleSignOut}
+                onRefresh={refreshUserData}
+              />
             )}
           </div>
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );
@@ -168,27 +132,37 @@ export default function PerfilPage() {
 // Profile Header Component
 function ProfileHeader({
   user,
+  userProfile,
   userStats,
+  isVipMember,
 }: {
   user: any;
-  userStats: UserStats | null;
+  userProfile: any;
+  userStats: any;
+  isVipMember: boolean;
 }) {
-  const memberSince = user?.createdAt
-    ? new Date(user.createdAt).getFullYear()
+  const memberSince = userProfile?.createdAt
+    ? new Date(userProfile.createdAt.toDate()).getFullYear()
     : new Date().getFullYear();
 
+  const displayName =
+    userProfile?.displayName ||
+    `${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`.trim() ||
+    user?.email?.split('@')[0] ||
+    'Torcedor';
+
   return (
-    <div className="bg-gradient-to-r from-primary-800 via-primary-700 to-primary-800 rounded-3xl p-8 text-white">
+    <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-8 text-white">
       <div className="flex flex-col lg:flex-row items-center gap-6">
         {/* Avatar */}
         <div className="relative">
           <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-            {user?.imageUrl ? (
+            {userProfile?.photoURL || user?.photoURL ? (
               <Image
                 width={96}
                 height={96}
-                src={user.imageUrl}
-                alt={user.fullName || 'Usuário'}
+                src={userProfile?.photoURL || user?.photoURL}
+                alt={displayName}
                 className="w-24 h-24 rounded-full object-cover"
               />
             ) : (
@@ -196,7 +170,7 @@ function ProfileHeader({
             )}
           </div>
           {userStats && userStats.totalOrders > 0 && (
-            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-accent-500 rounded-full flex items-center justify-center">
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
               <Trophy className="w-4 h-4 text-white" />
             </div>
           )}
@@ -204,45 +178,43 @@ function ProfileHeader({
 
         {/* User Info */}
         <div className="flex-1 text-center lg:text-left">
-          <h1 className="text-3xl font-bold mb-2">
-            {user?.fullName || user?.firstName || 'Torcedor'}
-          </h1>
-          <p className="text-primary-200 mb-4">
-            {user?.primaryEmailAddress?.emailAddress}
+          <h1 className="text-3xl font-bold mb-2">{displayName}</h1>
+          <p className="text-gray-300 mb-4">
+            {userProfile?.email || user?.email}
           </p>
 
           {/* Stats */}
           <div className="flex justify-center lg:justify-start gap-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-accent-400">
+              <div className="text-2xl font-bold text-yellow-400">
                 {userStats?.totalOrders || 0}
               </div>
-              <div className="text-sm text-primary-200">Pedidos</div>
+              <div className="text-sm text-gray-300">Pedidos</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-accent-400">
+              <div className="text-2xl font-bold text-yellow-400">
                 {userStats?.favoriteProducts || 0}
               </div>
-              <div className="text-sm text-primary-200">Favoritos</div>
+              <div className="text-sm text-gray-300">Favoritos</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-accent-400">
+              <div className="text-2xl font-bold text-yellow-400">
                 R$ {userStats?.totalSpent?.toFixed(0) || '0'}
               </div>
-              <div className="text-sm text-primary-200">Gastos</div>
+              <div className="text-sm text-gray-300">Gastos</div>
             </div>
           </div>
         </div>
 
         {/* Membership Badge */}
         <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center">
-          <div className="w-12 h-12 bg-accent-500 rounded-full flex items-center justify-center mx-auto mb-2">
+          <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-2">
             <Star className="w-6 h-6 text-white" />
           </div>
           <div className="text-sm font-medium">
-            {userStats && userStats.totalOrders >= 5 ? 'Membro VIP' : 'Membro'}
+            {isVipMember ? 'Membro VIP' : 'Membro'}
           </div>
-          <div className="text-xs text-primary-200">Desde {memberSince}</div>
+          <div className="text-xs text-gray-300">Desde {memberSince}</div>
         </div>
       </div>
     </div>
@@ -275,7 +247,7 @@ function ProfileNavigation({
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'bg-primary-800 text-white shadow-lg'
+                  ? 'bg-gray-900 text-white shadow-lg'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
@@ -290,19 +262,47 @@ function ProfileNavigation({
 }
 
 // Profile Info Section
-function ProfileInfo({ user }: { user: any }) {
+function ProfileInfo({
+  user,
+  userProfile,
+  isProfileComplete,
+}: {
+  user: any;
+  userProfile: any;
+  isProfileComplete: boolean;
+}) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Personal Information */}
       <div className="lg:col-span-2 space-y-6">
+        {/* Profile completion warning */}
+        {!isProfileComplete && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-yellow-800 mb-2">
+              <AlertTriangle className="w-5 h-5" />
+              <span className="font-medium">Perfil Incompleto</span>
+            </div>
+            <p className="text-yellow-700 text-sm mb-3">
+              Complete seu perfil para ter uma melhor experiência na loja.
+            </p>
+            <Link
+              href="/perfil/editar"
+              className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Edit3 className="w-4 h-4" />
+              Completar Perfil
+            </Link>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-primary-900">
+            <h3 className="text-xl font-bold text-gray-900">
               Informações Pessoais
             </h3>
             <Link
               href="/perfil/editar"
-              className="flex items-center gap-2 text-primary-600 hover:text-primary-800 font-medium"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 font-medium"
             >
               <Edit3 className="w-4 h-4" />
               Editar
@@ -312,29 +312,33 @@ function ProfileInfo({ user }: { user: any }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">
                     Nome Completo
                   </label>
-                  <p className="text-primary-900 font-medium">
-                    {user?.fullName || user?.firstName || 'Não informado'}
+                  <p className="text-gray-900 font-medium">
+                    {userProfile?.displayName ||
+                      `${userProfile?.firstName || ''} ${
+                        userProfile?.lastName || ''
+                      }`.trim() ||
+                      'Não informado'}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-secondary-100 text-secondary-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center">
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">
                     E-mail
                   </label>
-                  <p className="text-primary-900 font-medium">
-                    {user?.primaryEmailAddress?.emailAddress || 'Não informado'}
+                  <p className="text-gray-900 font-medium">
+                    {userProfile?.email || user?.email || 'Não informado'}
                   </p>
                 </div>
               </div>
@@ -342,30 +346,32 @@ function ProfileInfo({ user }: { user: any }) {
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent-100 text-accent-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center">
                   <Phone className="w-5 h-5" />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">
                     Telefone
                   </label>
-                  <p className="text-primary-900 font-medium">
-                    {user?.primaryPhoneNumber?.phoneNumber || 'Não informado'}
+                  <p className="text-gray-900 font-medium">
+                    {userProfile?.phoneNumber || 'Não informado'}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-success-100 text-success-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">
                     Membro desde
                   </label>
-                  <p className="text-primary-900 font-medium">
-                    {user?.createdAt
-                      ? new Date(user.createdAt).toLocaleDateString('pt-BR')
+                  <p className="text-gray-900 font-medium">
+                    {userProfile?.createdAt
+                      ? new Date(
+                          userProfile.createdAt.toDate(),
+                        ).toLocaleDateString('pt-BR')
                       : 'Não informado'}
                   </p>
                 </div>
@@ -376,16 +382,13 @@ function ProfileInfo({ user }: { user: any }) {
 
         {/* Email Verification Status */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-primary-900">
-              Status da Conta
-            </h3>
-          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-6">
+            Status da Conta
+          </h3>
 
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              {user?.primaryEmailAddress?.verification?.status ===
-              'verified' ? (
+              {user?.emailVerified ? (
                 <>
                   <CheckCircle className="w-5 h-5 text-green-600" />
                   <span className="text-green-800 font-medium">
@@ -402,30 +405,22 @@ function ProfileInfo({ user }: { user: any }) {
               )}
             </div>
 
-            {user?.primaryPhoneNumber?.verification?.status === 'verified' ? (
+            {userProfile?.phoneNumber && (
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600" />
                 <span className="text-green-800 font-medium">
-                  Telefone verificado
+                  Telefone cadastrado
                 </span>
               </div>
-            ) : user?.primaryPhoneNumber ? (
-              <div className="flex items-center gap-3">
-                <XCircle className="w-5 h-5 text-red-600" />
-                <span className="text-red-800 font-medium">
-                  Telefone não verificado
-                </span>
-              </div>
-            ) : null}
+            )}
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="space-y-6">
-        {/* Quick Actions */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h3 className="text-xl font-bold text-primary-900 mb-4">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">
             Ações Rápidas
           </h3>
           <div className="space-y-3">
@@ -434,10 +429,8 @@ function ProfileInfo({ user }: { user: any }) {
               className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
-                <Package className="w-5 h-5 text-primary-600" />
-                <span className="font-medium text-primary-900">
-                  Ver Pedidos
-                </span>
+                <Package className="w-5 h-5 text-gray-600" />
+                <span className="font-medium text-gray-900">Ver Pedidos</span>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>
@@ -447,8 +440,8 @@ function ProfileInfo({ user }: { user: any }) {
               className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
-                <Heart className="w-5 h-5 text-secondary-600" />
-                <span className="font-medium text-primary-900">Favoritos</span>
+                <Heart className="w-5 h-5 text-gray-600" />
+                <span className="font-medium text-gray-900">Favoritos</span>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>
@@ -458,8 +451,8 @@ function ProfileInfo({ user }: { user: any }) {
               className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-accent-600" />
-                <span className="font-medium text-primary-900">Suporte</span>
+                <Shield className="w-5 h-5 text-gray-600" />
+                <span className="font-medium text-gray-900">Suporte</span>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>
@@ -470,8 +463,8 @@ function ProfileInfo({ user }: { user: any }) {
   );
 }
 
-// Orders Section - usando dados reais
-function OrdersSection({ recentOrders }: { recentOrders: RecentOrder[] }) {
+// Orders Section
+function OrdersSection({ recentOrders }: { recentOrders: any[] }) {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'delivered':
@@ -492,10 +485,10 @@ function OrdersSection({ recentOrders }: { recentOrders: RecentOrder[] }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-primary-900">Pedidos Recentes</h3>
+        <h3 className="text-xl font-bold text-gray-900">Pedidos Recentes</h3>
         <Link
           href="/pedidos"
-          className="text-primary-600 hover:text-primary-800 font-medium"
+          className="text-gray-600 hover:text-gray-800 font-medium"
         >
           Ver todos
         </Link>
@@ -512,7 +505,7 @@ function OrdersSection({ recentOrders }: { recentOrders: RecentOrder[] }) {
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 bg-primary-800 hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-bold transition-colors"
+            className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-xl font-bold transition-colors"
           >
             <ShoppingBag className="w-4 h-4" />
             Explorar Produtos
@@ -521,28 +514,32 @@ function OrdersSection({ recentOrders }: { recentOrders: RecentOrder[] }) {
       ) : (
         <div className="space-y-4">
           {recentOrders.map((order) => {
-            const statusConfig = getStatusConfig(order.orderStatus);
+            const statusConfig = getStatusConfig(order.status);
             const totalItems = order.items.reduce(
-              (sum, item) => sum + item.quantity,
+              (sum: number, item: any) => sum + item.quantity,
               0,
             );
 
             return (
               <div
-                key={order._id}
+                key={order.id}
                 className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center">
                       <Package className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-primary-900">
+                      <h4 className="font-bold text-gray-900">
                         {order.orderNumber}
                       </h4>
                       <p className="text-sm text-gray-600">
-                        {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                        {order.createdAt
+                          ? new Date(
+                              order.createdAt.toDate(),
+                            ).toLocaleDateString('pt-BR')
+                          : 'Data não disponível'}
                       </p>
                     </div>
                   </div>
@@ -557,7 +554,7 @@ function OrdersSection({ recentOrders }: { recentOrders: RecentOrder[] }) {
                   <div className="text-sm text-gray-600">
                     {totalItems} {totalItems === 1 ? 'item' : 'itens'}
                   </div>
-                  <div className="font-bold text-primary-900">
+                  <div className="font-bold text-gray-900">
                     R$ {order.total.toFixed(2).replace('.', ',')}
                   </div>
                 </div>
@@ -570,21 +567,15 @@ function OrdersSection({ recentOrders }: { recentOrders: RecentOrder[] }) {
   );
 }
 
-// Favorites Section - usando dados reais
-function FavoritesSection({
-  favoriteProducts,
-}: {
-  favoriteProducts: FavoriteProduct[];
-}) {
+// Favorites Section
+function FavoritesSection({ favoriteProducts }: { favoriteProducts: any[] }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-primary-900">
-          Produtos Favoritos
-        </h3>
+        <h3 className="text-xl font-bold text-gray-900">Produtos Favoritos</h3>
         <Link
           href="/favoritos"
-          className="text-primary-600 hover:text-primary-800 font-medium"
+          className="text-gray-600 hover:text-gray-800 font-medium"
         >
           Ver todos
         </Link>
@@ -601,7 +592,7 @@ function FavoritesSection({
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 bg-primary-800 hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-bold transition-colors"
+            className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-xl font-bold transition-colors"
           >
             <ShoppingBag className="w-4 h-4" />
             Explorar Produtos
@@ -611,8 +602,8 @@ function FavoritesSection({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {favoriteProducts.map((product) => (
             <Link
-              key={product._id}
-              href={`/produto/${product._id}`}
+              key={product.id}
+              href={`/produto/${product.slug || product.productId}`}
               className="group border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all"
             >
               <div className="aspect-square mb-3 overflow-hidden rounded-lg bg-gray-100">
@@ -624,11 +615,11 @@ function FavoritesSection({
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
               </div>
-              <h4 className="font-medium text-primary-900 mb-1 line-clamp-2">
+              <h4 className="font-medium text-gray-900 mb-1 line-clamp-2">
                 {product.title}
               </h4>
-              <p className="text-sm text-gray-600 mb-2">{product.team}</p>
-              <p className="font-bold text-primary-900">
+              <p className="text-sm text-gray-600 mb-2">{product.category}</p>
+              <p className="font-bold text-gray-900">
                 R$ {product.price.toFixed(2).replace('.', ',')}
               </p>
             </Link>
@@ -642,68 +633,63 @@ function FavoritesSection({
 // Settings Section
 function SettingsSection({
   user,
+  userProfile,
   onSignOut,
+  onRefresh,
 }: {
   user: any;
+  userProfile: any;
   onSignOut: () => void;
+  onRefresh: () => void;
 }) {
   return (
     <div className="space-y-6">
       {/* Account Settings */}
       <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="text-xl font-bold text-primary-900 mb-6">
+        <h3 className="text-xl font-bold text-gray-900 mb-6">
           Configurações da Conta
         </h3>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors">
+          <Link
+            href="/perfil/editar"
+            className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors"
+          >
             <div className="flex items-center gap-3">
-              <Bell className="w-5 h-5 text-primary-600" />
+              <User className="w-5 h-5 text-gray-600" />
               <div>
-                <p className="font-medium text-primary-900">Notificações</p>
-                <p className="text-sm text-gray-600">
-                  Gerenciar preferências de notificação
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-400" />
-          </div>
-
-          <div className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="flex items-center gap-3">
-              <Lock className="w-5 h-5 text-primary-600" />
-              <div>
-                <p className="font-medium text-primary-900">Segurança</p>
-                <p className="text-sm text-gray-600">
-                  Alterar senha e configurações de segurança
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-400" />
-          </div>
-
-          <div className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="flex items-center gap-3">
-              <User className="w-5 h-5 text-primary-600" />
-              <div>
-                <p className="font-medium text-primary-900">
+                <p className="font-medium text-gray-900">
                   Informações Pessoais
                 </p>
                 <p className="text-sm text-gray-600">
-                  Editar nome, e-mail e telefone
+                  Editar nome, telefone e endereço
                 </p>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400" />
-          </div>
+          </Link>
+
+          <button
+            onClick={onRefresh}
+            className="flex items-center justify-between w-full p-4 hover:bg-gray-50 rounded-lg transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <RefreshCw className="w-5 h-5 text-gray-600" />
+              <div>
+                <p className="font-medium text-gray-900">Atualizar Dados</p>
+                <p className="text-sm text-gray-600">
+                  Recarregar informações da conta
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+          </button>
         </div>
       </div>
 
       {/* Danger Zone */}
       <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="text-xl font-bold text-primary-900 mb-6">
-          Zona de Perigo
-        </h3>
+        <h3 className="text-xl font-bold text-gray-900 mb-6">Zona de Perigo</h3>
 
         <button
           onClick={onSignOut}

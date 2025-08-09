@@ -176,14 +176,18 @@ export default function RegisterPage() {
     setErrors({});
 
     try {
-      await register(formData.email, formData.password);
+      // Passar dados adicionais para o registro
+      await register(formData.email, formData.password, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        displayName: `${formData.firstName} ${formData.lastName}`.trim(),
+      });
 
       toast.success('Conta criada com sucesso!', {
         description: 'Bem-vindo ao O Vestiário! Redirecionando...',
         duration: 3000,
       });
 
-      // Pequeno delay para mostrar o toast
       setTimeout(() => {
         router.push(returnUrl);
       }, 1000);
