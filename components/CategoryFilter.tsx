@@ -6,42 +6,170 @@ import { ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 
 const categories = [
-  { 
-    name: 'Todos', 
-    icon: '🌍' // Mantém emoji para "Todos"
+  {
+    name: 'Todos',
+    icon: '🌍', // Mantém emoji para "Todos"
   },
-  { 
-    name: 'Premier League', 
-    logo: 'https://zdlvtzr07o.ufs.sh/f/cXvxCn0ZpQhH5N6cRpmfj75w32KxhWAJvyloDuYcdn0bMs9i',
-    teams: ['Manchester United', 'Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Tottenham']
+  {
+    name: 'Brasileirão Série A',
+    logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2Fbrasileirao.png?alt=media&token=dcd6c766-facb-474b-922c-8fe7253b5120',
+    teams: [
+      'Atlético Mineiro',
+      'Bahia',
+      'Botafogo',
+      'Ceará',
+      'Corinthians',
+      'Cruzeiro',
+      'Flamengo',
+      'Fluminense',
+      'Fortaleza',
+      'Grêmio',
+      'Internacional',
+      'Juventude',
+      'Mirassol',
+      'Palmeiras',
+      'Red Bull Bragantino',
+      'Santos',
+      'São Paulo',
+      'Sport Recife',
+      'Vasco da Gama',
+      'Vitória',
+    ],
   },
-  { 
-    name: 'La Liga', 
-    logo: 'https://zdlvtzr07o.ufs.sh/f/cXvxCn0ZpQhHeVR5Rh7GF6SbcRANd8MEDiPokpvOHywKmlfQ',
-    teams: ['Real Madrid', 'Barcelona', 'Atlético Madrid', 'Sevilla', 'Valencia', 'Real Sociedad']
+  {
+    name: 'Premier League',
+    logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2Fpremierleague.png?alt=media&token=be4395fd-9ed4-47e7-be1e-194c1d4b7ff6',
+    teams: [
+      'Arsenal',
+      'Aston Villa',
+      'Bournemouth',
+      'Brentford',
+      'Brighton',
+      'Chelsea',
+      'Crystal Palace',
+      'Everton',
+      'Fulham',
+      'Ipswich Town',
+      'Leicester City',
+      'Liverpool',
+      'Manchester City',
+      'Manchester United',
+      'Newcastle United',
+      'Nottingham Forest',
+      'Southampton',
+      'Tottenham Hotspur',
+      'West Ham United',
+      'Wolverhampton',
+    ],
   },
-  { 
-    name: 'Serie A', 
+  {
+    name: 'La Liga',
+    logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2Flaliga.png?alt=media&token=a18399af-05bb-4c47-ba51-5a9be56ba4f2',
+    teams: [
+      'Alavés',
+      'Almería',
+      'Athletic Bilbao',
+      'Atlético Madrid',
+      'Barcelona',
+      'Celta de Vigo',
+      'Espanyol',
+      'Getafe',
+      'Girona',
+      'Las Palmas',
+      'Leganés',
+      'Mallorca',
+      'Osasuna',
+      'Rayo Vallecano',
+      'Real Betis',
+      'Real Madrid',
+      'Real Sociedad',
+      'Sevilla',
+      'Valencia',
+      'Valladolid',
+    ],
+  },
+  {
+    name: 'Serie A',
     logo: 'https://zdlvtzr07o.ufs.sh/f/cXvxCn0ZpQhHPeSG73yF7ZgQzTo3HiqDLN0jbB9We8VcrUxY',
-    teams: ['Juventus', 'Milan', 'Inter de Milão', 'Napoli', 'Roma', 'Lazio']
+    teams: [
+      'Atalanta',
+      'Bologna',
+      'Cagliari',
+      'Como',
+      'Empoli',
+      'Fiorentina',
+      'Genoa',
+      'Hellas Verona',
+      'Inter de Milão',
+      'Juventus',
+      'Lazio',
+      'Lecce',
+      'Milan',
+      'Monza',
+      'Napoli',
+      'Parma',
+      'Roma',
+      'Torino',
+      'Udinese',
+      'Venezia',
+    ],
   },
-  { 
-    name: 'Bundesliga', 
-    logo: 'https://zdlvtzr07o.ufs.sh/f/cXvxCn0ZpQhHNsLdDYkHsjPrt3ZUcJ56kXSI27xVRTQLyWwm',
-    teams: ['Bayern de Munique', 'Borussia Dortmund', 'RB Leipzig', 'Bayer Leverkusen', 'Eintracht Frankfurt', 'Borussia Mönchengladbach']
+  {
+    name: 'Bundesliga',
+    logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2Fbundesliga.png?alt=media&token=3ab8afb5-c7f6-456a-9bb8-00bb20dd083d',
+    teams: [
+      'Augsburg',
+      'Bayer Leverkusen',
+      'Bayern de Munique',
+      'Bochum',
+      'Borussia Dortmund',
+      'Borussia Mönchengladbach',
+      'Eintracht Frankfurt',
+      'Friburgo',
+      'Heidenheim',
+      'Hoffenheim',
+      'Mainz 05',
+      'RB Leipzig',
+      'St. Pauli',
+      'Stuttgart',
+      'Union Berlin',
+      'Werder Bremen',
+      'Wolfsburg',
+    ],
   },
-  { 
-    name: 'Brasileirão', 
-    logo: 'https://zdlvtzr07o.ufs.sh/f/cXvxCn0ZpQhH0Ld8JOIFNOAv4wCjohudz8QrMJtcHIX62Epi',
-    teams: ['Bahia', 'Flamengo', 'Palmeiras', 'Corinthians', 'São Paulo', 'Santos', 'Vasco', 'Botafogo', 'Fluminense', 'Grêmio', 'Internacional']
-  }
+  {
+    name: 'Ligue 1',
+    logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2Fleague1.png?alt=media&token=f9830919-5f4e-4710-ac2a-6967bd969fa4', // adicionar URL do logo se desejar
+    teams: [
+      'Angers',
+      'Auxerre',
+      'Brest',
+      'Le Havre',
+      'Lens',
+      'Lille',
+      'Lyon',
+      'Marseille',
+      'Monaco',
+      'Montpellier',
+      'Nantes',
+      'Nice',
+      'Paris Saint-Germain',
+      'Reims',
+      'Rennes',
+      'Saint-Étienne',
+      'Strasbourg',
+      'Toulouse',
+    ],
+  },
 ];
 
 interface CategoryFilterProps {
   selectedCategory: string;
 }
 
-export default function CategoryFilter({ selectedCategory }: CategoryFilterProps) {
+export default function CategoryFilter({
+  selectedCategory,
+}: CategoryFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -49,13 +177,13 @@ export default function CategoryFilter({ selectedCategory }: CategoryFilterProps
 
   const handleCategoryChange = (category: string) => {
     const params = new URLSearchParams(searchParams);
-    
+
     if (category === 'Todos') {
       params.delete('categoria'); // Mudança aqui
     } else {
       params.set('categoria', category); // Mudança aqui
     }
-    
+
     router.push(`/?${params.toString()}#produtos`);
     setOpenDropdown(null);
   };
@@ -77,7 +205,7 @@ export default function CategoryFilter({ selectedCategory }: CategoryFilterProps
       timeoutRef.current = null;
     }
 
-    if (categories.find(cat => cat.name === categoryName)?.teams) {
+    if (categories.find((cat) => cat.name === categoryName)?.teams) {
       setOpenDropdown(categoryName);
     }
   };
@@ -107,8 +235,8 @@ export default function CategoryFilter({ selectedCategory }: CategoryFilterProps
     <div id="produtos" className="mb-12">
       <div className="flex flex-wrap gap-3 justify-center">
         {categories.map((category) => (
-          <div 
-            key={category.name} 
+          <div
+            key={category.name}
             className="relative"
             onMouseEnter={() => handleMouseEnter(category.name)}
             onMouseLeave={handleMouseLeave}
@@ -143,20 +271,20 @@ export default function CategoryFilter({ selectedCategory }: CategoryFilterProps
                   {category.icon}
                 </span>
               )}
-              
+
               <span>{category.name}</span>
               {category.teams && (
-                <ChevronDown 
+                <ChevronDown
                   className={`h-4 w-4 transition-transform duration-200 ${
                     openDropdown === category.name ? 'rotate-180' : ''
-                  }`} 
+                  }`}
                 />
               )}
             </button>
 
             {/* Dropdown Menu */}
             {category.teams && openDropdown === category.name && (
-              <div 
+              <div
                 className="absolute top-full mt-2 left-0 bg-white rounded-xl shadow-xl border border-gray-200 py-2 min-w-48 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
                 onMouseEnter={handleDropdownMouseEnter}
                 onMouseLeave={handleDropdownMouseLeave}
@@ -165,7 +293,9 @@ export default function CategoryFilter({ selectedCategory }: CategoryFilterProps
                 <button
                   onClick={() => handleCategoryChange(category.name)}
                   className={`w-full text-left px-4 py-2 text-sm font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2 ${
-                    selectedCategory === category.name ? 'text-blue-600 bg-blue-50' : 'text-gray-900'
+                    selectedCategory === category.name
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-gray-900'
                   }`}
                 >
                   {category.logo && (
@@ -181,16 +311,18 @@ export default function CategoryFilter({ selectedCategory }: CategoryFilterProps
                   )}
                   {category.name}
                 </button>
-                
+
                 <hr className="my-2 border-gray-100" />
-                
+
                 {/* Times individuais */}
                 {category.teams.map((team) => (
                   <button
                     key={team}
                     onClick={() => handleTeamChange(team)}
                     className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                      selectedCategory === team ? 'text-blue-600 bg-blue-50 font-medium' : 'text-gray-700'
+                      selectedCategory === team
+                        ? 'text-blue-600 bg-blue-50 font-medium'
+                        : 'text-gray-700'
                     }`}
                   >
                     {team}
