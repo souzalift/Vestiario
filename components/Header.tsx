@@ -1,7 +1,8 @@
+// components/Header.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { ShoppingCart, Menu, X, Search, User, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { user, isLoaded } = useUser();
+  const { user, userProfile, loading, logout } = useAuth();
 
   // Monitor scroll position
   useEffect(() => {
@@ -40,8 +41,16 @@ export default function Header() {
     };
 
     loadCartCount();
-    window.addEventListener('storage', loadCartCount);
-    return () => window.removeEventListener('storage', loadCartCount);
+
+    // Listen for cart updates
+    const handleCartUpdate = () => loadCartCount();
+    window.addEventListener('storage', handleCartUpdate);
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleCartUpdate);
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
   }, []);
 
   return (
@@ -130,15 +139,19 @@ export default function Header() {
             </div>
 
             {/* User Authentication */}
-            {isLoaded &&
+            {!loading &&
               (user ? (
                 // User logged in - Show dropdown
                 <div className="relative">
-                  <UserDropdown isScrolled={isScrolled} />
+                  <UserDropdown
+                    isScrolled={isScrolled}
+                    user={user}
+                    userProfile={userProfile}
+                  />
                 </div>
               ) : (
-                // User not logged in - Show user icon that goes to login
-                <Link href="/admin/login">
+                // User not logged in - Show login button
+                <Link href="/login">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -153,6 +166,11 @@ export default function Header() {
                   </Button>
                 </Link>
               ))}
+
+            {/* Loading state */}
+            {loading && (
+              <div className="w-8 h-8 rounded-full border-2 border-gray-300 border-t-primary-600 animate-spin"></div>
+            )}
 
             {/* Cart */}
             <Link href="/carrinho">
@@ -230,11 +248,14 @@ export default function Header() {
             </Link>
 
             {/* Mobile User Menu */}
-            {isLoaded &&
+            {!loading &&
               (user ? (
                 <div className="border-t border-gray-200 pt-2 mt-2">
+                  <div className="px-3 py-2 text-sm text-gray-600">
+                    Olá, {userProfile?.displayName || user.email}
+                  </div>
                   <Link
-                    href="/perfil"
+                    href="/profile"
                     className="flex items-center px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -242,29 +263,49 @@ export default function Header() {
                     Meu Perfil
                   </Link>
                   <Link
-                    href="/meus-pedidos"
+                    href="/orders"
                     className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Meus Pedidos
                   </Link>
                   <Link
-                    href="/favoritos"
+                    href="/favorites"
                     className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Favoritos
                   </Link>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await logout(); // Use logout from useAuth hook
+                        setIsMenuOpen(false);
+                      } catch (error) {
+                        console.error('Erro ao fazer logout:', error);
+                      }
+                    }}
+                    className="block w-full text-left px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md font-medium"
+                  >
+                    Sair
+                  </button>
                 </div>
               ) : (
                 <div className="border-t border-gray-200 pt-2 mt-2">
                   <Link
-                    href="/admin/login"
+                    href="/login"
                     className="flex items-center px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <User className="h-4 w-4 mr-2" />
                     Fazer Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Criar Conta
                   </Link>
                 </div>
               ))}

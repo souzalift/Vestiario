@@ -1,71 +1,54 @@
+// components/LogoutButton.tsx
 'use client';
 
 import { useState } from 'react';
-import { LogOut } from 'lucide-react';
-import { useLogout } from '../hooks/useLogout';
-import LogoutModal from './LogoutModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { LogOut, Loader2 } from 'lucide-react';
 
 interface LogoutButtonProps {
-  variant?: 'button' | 'menu-item' | 'icon';
-  redirectTo?: string;
+  onLogout?: () => void;
   className?: string;
-  showConfirmation?: boolean;
+  children?: React.ReactNode;
 }
 
 export default function LogoutButton({
-  variant = 'button',
-  redirectTo = '/',
-  className = '',
-  showConfirmation = true,
+  onLogout,
+  className,
+  children,
 }: LogoutButtonProps) {
-  const [showModal, setShowModal] = useState(false);
-  const { logout, isLoggingOut } = useLogout();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { logout } = useAuth();
+  const router = useRouter();
 
-  const handleClick = async () => {
-    if (showConfirmation) {
-      setShowModal(true);
-    } else {
-      await logout(redirectTo);
-    }
-  };
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
 
-  // Variantes do botão
-  const getVariantClasses = () => {
-    switch (variant) {
-      case 'button':
-        return `inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 ${className}`;
-      case 'menu-item':
-        return `flex items-center gap-3 w-full p-3 text-left hover:bg-red-50 rounded-lg transition-colors text-red-600 hover:text-red-700 ${className}`;
-      case 'icon':
-        return `p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors ${className}`;
-      default:
-        return className;
+    setIsLoggingOut(true);
+
+    try {
+      await logout();
+      onLogout?.();
+      router.push('/');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
   return (
-    <>
-      <button
-        onClick={handleClick}
-        disabled={isLoggingOut}
-        className={getVariantClasses()}
-      >
-        <LogOut className="w-4 h-4" />
-        {variant !== 'icon' && (
-          <span>{isLoggingOut ? 'Saindo...' : 'Sair'}</span>
-        )}
-        {isLoggingOut && variant !== 'icon' && (
-          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin ml-2" />
-        )}
-      </button>
-
-      {showConfirmation && (
-        <LogoutModal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          redirectTo={redirectTo}
-        />
+    <button
+      onClick={handleLogout}
+      disabled={isLoggingOut}
+      className={className}
+    >
+      {isLoggingOut ? (
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+      ) : (
+        <LogOut className="h-4 w-4 mr-2" />
       )}
-    </>
+      {children || (isLoggingOut ? 'Saindo...' : 'Sair')}
+    </button>
   );
 }

@@ -2,18 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
-
-interface Product {
-  _id: string;
-  title: string;
-  description: string;
-  price: number;
-  image: string;
-  slug: string;
-  league?: string;
-  team?: string;
-  categories?: string[];
-}
+import { Product } from '@/services/products';
 
 interface ProductGridProps {
   category: string;
@@ -68,12 +57,38 @@ export default function ProductGrid({
         const data = await response.json();
 
         if (data.success) {
-          setProducts(data.data);
+          // Mapear os dados da API para a interface Product correta
+          const mappedProducts: Product[] = data.data.map((item: any) => ({
+            id: item.id || item._id,
+            title: item.title,
+            description: item.description,
+            price: item.price,
+            images: item.images || [item.image].filter(Boolean),
+            category: item.category || 'Sem categoria',
+            sizes: item.sizes || [],
+            featured: item.featured || false,
+            tags: item.tags || [],
+            brand: item.brand || '',
+            league: item.league || '',
+            season: item.season || '',
+            playerName: item.playerName || '',
+            playerNumber: item.playerNumber || '',
+            slug: item.slug,
+            views: item.views || 0,
+            rating: item.rating || 0,
+            reviewCount: item.reviewCount || 0,
+            createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
+            updatedAt: item.updatedAt ? new Date(item.updatedAt) : new Date(),
+          }));
+
+          setProducts(mappedProducts);
         } else {
           console.error('Failed to fetch products:', data.error);
+          setProducts([]);
         }
       } catch (error) {
         console.error('Error fetching products:', error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -84,7 +99,7 @@ export default function ProductGrid({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
         {[...Array(8)].map((_, i) => (
           <div
             key={i}
@@ -114,6 +129,9 @@ export default function ProductGrid({
             ? 'Não há produtos disponíveis no momento.'
             : `Não há produtos disponíveis para ${category}.`}
         </p>
+        {searchQuery && (
+          <p className="text-gray-500 mt-2">Busca por: {searchQuery}</p>
+        )}
       </div>
     );
   }
@@ -121,7 +139,18 @@ export default function ProductGrid({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
       {products.map((product) => (
-        <ProductCard key={product.slug} product={product} />
+        <ProductCard
+          key={product.id || product.slug}
+          product={product}
+          onAddToCart={(product) => {
+            // Implementar lógica do carrinho
+            console.log('Adicionar ao carrinho:', product.title);
+          }}
+          onToggleFavorite={(product) => {
+            // Implementar lógica de favoritos
+            console.log('Toggle favorito:', product.title);
+          }}
+        />
       ))}
     </div>
   );
