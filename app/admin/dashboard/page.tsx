@@ -379,6 +379,8 @@ export default function AdminDashboard() {
                       <div className="flex items-center gap-4">
                         {product.images?.[0] ? (
                           <Image
+                            width={48}
+                            height={48}
                             src={product.images[0]}
                             alt={product.title}
                             className="w-12 h-12 object-cover rounded-lg"

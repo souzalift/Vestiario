@@ -34,7 +34,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "seed.js",
-    "scripts/importProducts.js"
+    "scriptss/importProducts.js"
   ],
   "exclude": [
     "node_modules"

@@ -7,9 +7,9 @@ import {
 } from '@/services/products';
 
 interface RouteParams {
-  params: {
-    slug: string; // Mudança aqui: slug em vez de id
-  };
+  params: Promise<{
+    slug: string;
+  }>;
 }
 
 export async function GET(
@@ -17,25 +17,32 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const { slug } = params; // Mudança aqui
+    // Aguardar params conforme NextJS 15
+    const { slug } = await params;
+
+
 
     // Como é uma route [slug], sempre buscar por slug
     const product = await getProductBySlug(slug);
 
     if (!product) {
+
       return NextResponse.json(
         { success: false, error: 'Produto não encontrado' },
         { status: 404 }
       );
     }
 
+
+
     return NextResponse.json({
       success: true,
       data: product,
+      product: product, // Compatibilidade com diferentes clientes
     });
 
   } catch (error) {
-    console.error('Erro ao buscar produto:', error);
+    console.error('💥 Erro ao buscar produto:', error);
     return NextResponse.json(
       {
         success: false,
@@ -52,12 +59,16 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
-    const { slug } = params;
+    // Aguardar params conforme NextJS 15
+    const { slug } = await params;
     const body = await request.json();
+
+
 
     // Primeiro, buscar o produto pelo slug para obter o ID
     const existingProduct = await getProductBySlug(slug);
     if (!existingProduct) {
+
       return NextResponse.json(
         { success: false, error: 'Produto não encontrado' },
         { status: 404 }
@@ -70,13 +81,15 @@ export async function PUT(
 
     await updateProduct(existingProduct.id!, updateData);
 
+
+
     return NextResponse.json({
       success: true,
       message: 'Produto atualizado com sucesso'
     });
 
   } catch (error) {
-    console.error('Erro ao atualizar produto:', error);
+    console.error('💥 Erro ao atualizar produto:', error);
     return NextResponse.json(
       {
         success: false,
@@ -93,11 +106,15 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const { slug } = params;
+    // Aguardar params conforme NextJS 15
+    const { slug } = await params;
+
+
 
     // Primeiro, buscar o produto pelo slug para obter o ID
     const existingProduct = await getProductBySlug(slug);
     if (!existingProduct) {
+
       return NextResponse.json(
         { success: false, error: 'Produto não encontrado' },
         { status: 404 }
@@ -106,13 +123,15 @@ export async function DELETE(
 
     await deleteProduct(existingProduct.id!);
 
+
+
     return NextResponse.json({
       success: true,
       message: 'Produto excluído com sucesso'
     });
 
   } catch (error) {
-    console.error('Erro ao excluir produto:', error);
+    console.error('💥 Erro ao excluir produto:', error);
     return NextResponse.json(
       {
         success: false,

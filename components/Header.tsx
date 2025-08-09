@@ -1,328 +1,639 @@
 // components/Header.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
-import { ShoppingCart, Menu, X, Search, User, ChevronDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  ShoppingCart,
+  Menu,
+  X,
+  Search,
+  User,
+  Heart,
+  ChevronDown,
+  LogOut,
+  Package,
+  Settings,
+  Bell,
+  Star,
+  TrendingUp,
+  Shirt,
+  Trophy,
+  Globe,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import UserDropdown from './UserDropdown';
+import { Badge } from './ui/badge';
+import { Separator } from './ui/separator';
+
+const teams = [
+  { name: 'Flamengo', slug: 'flamengo', country: 'Brasil' },
+  { name: 'Corinthians', slug: 'corinthians', country: 'Brasil' },
+  { name: 'Real Madrid', slug: 'real-madrid', country: 'Espanha' },
+  { name: 'Barcelona', slug: 'barcelona', country: 'Espanha' },
+  {
+    name: 'Manchester United',
+    slug: 'manchester-united',
+    country: 'Inglaterra',
+  },
+  { name: 'Manchester City', slug: 'manchester-city', country: 'Inglaterra' },
+];
+
+const categories = [
+  { name: 'Lançamentos', icon: Star, href: '/categoria/lancamentos' },
+  { name: 'Mais Vendidas', icon: TrendingUp, href: '/categoria/mais-vendidas' },
+  { name: 'Brasileirão', icon: Trophy, href: '/categoria/brasileirao' },
+  { name: 'Europeus', icon: Globe, href: '/categoria/europeus' },
+  { name: 'Retrô', icon: Shirt, href: '/categoria/retro' },
+];
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isTeamsMenuOpen, setIsTeamsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
-  const { user, userProfile, loading, logout } = useAuth();
+
+  const { user, loading, logout, isAuthenticated } = useAuth();
+  const { getItemCount } = useCart();
+  const [cartCount, setCartCount] = useState(0);
+  const [favoritesCount, setFavoritesCount] = useState(0);
+
+  const router = useRouter();
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const teamsMenuRef = useRef<HTMLDivElement>(null);
 
   // Monitor scroll position
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
+      setIsScrolled(window.scrollY > 10);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Load cart count from localStorage
+  // Update cart count
   useEffect(() => {
-    const loadCartCount = () => {
+    setCartCount(getItemCount());
+
+    // Load favorites count
+    try {
+      const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+      setFavoritesCount(favorites.length);
+    } catch {
+      setFavoritesCount(0);
+    }
+  }, [getItemCount]);
+
+  // Listen for cart updates
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      setCartCount(getItemCount());
+    };
+
+    const handleFavoritesUpdate = () => {
       try {
-        const cart = JSON.parse(localStorage.getItem('carrinho') || '[]');
-        const totalItems = cart.reduce(
-          (sum: number, item: any) => sum + (item.quantity || 1),
-          0,
-        );
-        setCartCount(totalItems);
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        setFavoritesCount(favorites.length);
       } catch {
-        setCartCount(0);
+        setFavoritesCount(0);
       }
     };
 
-    loadCartCount();
-
-    // Listen for cart updates
-    const handleCartUpdate = () => loadCartCount();
-    window.addEventListener('storage', handleCartUpdate);
     window.addEventListener('cartUpdated', handleCartUpdate);
+    window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
 
     return () => {
-      window.removeEventListener('storage', handleCartUpdate);
       window.removeEventListener('cartUpdated', handleCartUpdate);
+      window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
     };
+  }, [getItemCount]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsUserMenuOpen(false);
+      }
+      if (
+        teamsMenuRef.current &&
+        !teamsMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsTeamsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/busca?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsUserMenuOpen(false);
+      router.push('/');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
+
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-200'
-          : 'bg-primary-800 text-white'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                isScrolled
-                  ? 'bg-primary-800 text-white'
-                  : 'bg-white text-primary-800'
-              }`}
-            >
-              ⚽
+    <>
+      {/* Top Bar */}
+      <div className="bg-gray-900 text-white py-2 text-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <span className="flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Frete grátis acima de 4 produtos
+              </span>
+              <span className="hidden md:flex items-center gap-2">
+                <Star className="w-4 h-4" />
+                Produtos oficiais licenciados
+              </span>
             </div>
-            <span
-              className={`text-xl font-black tracking-tight ${
-                isScrolled ? 'text-primary-800' : 'text-white'
-              }`}
-            >
-              O Vestiário
-            </span>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link
-              href="/"
-              className={`font-medium transition-colors hover:${
-                isScrolled ? 'text-primary-600' : 'text-accent-400'
-              } ${isScrolled ? 'text-gray-700' : 'text-white'}`}
-            >
-              Início
-            </Link>
-            <Link
-              href="/#produtos"
-              className={`font-medium transition-colors hover:${
-                isScrolled ? 'text-primary-600' : 'text-accent-400'
-              } ${isScrolled ? 'text-gray-700' : 'text-white'}`}
-            >
-              Produtos
-            </Link>
-            <Link
-              href="/sobre"
-              className={`font-medium transition-colors hover:${
-                isScrolled ? 'text-primary-600' : 'text-accent-400'
-              } ${isScrolled ? 'text-gray-700' : 'text-white'}`}
-            >
-              Sobre
-            </Link>
-            <Link
-              href="/contato"
-              className={`font-medium transition-colors hover:${
-                isScrolled ? 'text-primary-600' : 'text-accent-400'
-              } ${isScrolled ? 'text-gray-700' : 'text-white'}`}
-            >
-              Contato
-            </Link>
-          </nav>
-
-          {/* Actions */}
-          <div className="flex items-center space-x-4">
-            {/* Search */}
-            <div className="hidden lg:flex relative">
-              <Search
-                className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
-                  isScrolled ? 'text-gray-400' : 'text-gray-300'
-                }`}
-              />
-              <Input
-                placeholder="Buscar camisas..."
-                className={`pl-10 w-64 h-9 ${
-                  isScrolled
-                    ? 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500'
-                    : 'bg-white/10 border-white/20 text-white placeholder-gray-300'
-                }`}
-              />
-            </div>
-
-            {/* User Authentication */}
-            {!loading &&
-              (user ? (
-                // User logged in - Show dropdown
-                <div className="relative">
-                  <UserDropdown
-                    isScrolled={isScrolled}
-                    user={user}
-                    userProfile={userProfile}
-                  />
-                </div>
-              ) : (
-                // User not logged in - Show login button
-                <Link href="/login">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`${
-                      isScrolled
-                        ? 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
-                        : 'text-white hover:text-accent-400 hover:bg-white/10'
-                    }`}
-                    title="Fazer login"
-                  >
-                    <User className="h-5 w-5" />
-                  </Button>
-                </Link>
-              ))}
-
-            {/* Loading state */}
-            {loading && (
-              <div className="w-8 h-8 rounded-full border-2 border-gray-300 border-t-primary-600 animate-spin"></div>
-            )}
-
-            {/* Cart */}
-            <Link href="/carrinho">
+            <div className="flex items-center gap-4">
+              <span className="hidden sm:block">
+                Central de Atendimento: (11) 99999-9999
+              </span>
               <Button
-                variant="ghost"
+                variant="link"
                 size="sm"
-                className={`relative ${
-                  isScrolled
-                    ? 'text-gray-700 hover:text-primary-600 hover:bg-gray-100'
-                    : 'text-white hover:text-accent-400 hover:bg-white/10'
-                }`}
-                title="Carrinho de compras"
+                className="text-white p-0 h-auto"
+                asChild
               >
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-secondary-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
-                    {cartCount}
-                  </span>
-                )}
+                <Link href="/rastreamento">Rastrear Pedido</Link>
               </Button>
-            </Link>
-
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`md:hidden ${
-                isScrolled
-                  ? 'text-gray-700 hover:text-primary-600'
-                  : 'text-white hover:text-accent-400'
-              }`}
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200 shadow-lg">
-          <div className="px-4 py-2 space-y-1">
-            <Link
-              href="/"
-              className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Início
-            </Link>
-            <Link
-              href="/produtos"
-              className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Produtos
-            </Link>
-            <Link
-              href="/sobre"
-              className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Sobre
-            </Link>
-            <Link
-              href="/contato"
-              className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Contato
-            </Link>
-
-            {/* Mobile User Menu */}
-            {!loading &&
-              (user ? (
-                <div className="border-t border-gray-200 pt-2 mt-2">
-                  <div className="px-3 py-2 text-sm text-gray-600">
-                    Olá, {userProfile?.displayName || user.email}
-                  </div>
-                  <Link
-                    href="/profile"
-                    className="flex items-center px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    Meu Perfil
-                  </Link>
-                  <Link
-                    href="/orders"
-                    className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Meus Pedidos
-                  </Link>
-                  <Link
-                    href="/favorites"
-                    className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Favoritos
-                  </Link>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await logout(); // Use logout from useAuth hook
-                        setIsMenuOpen(false);
-                      } catch (error) {
-                        console.error('Erro ao fazer logout:', error);
-                      }
-                    }}
-                    className="block w-full text-left px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md font-medium"
-                  >
-                    Sair
-                  </button>
-                </div>
-              ) : (
-                <div className="border-t border-gray-200 pt-2 mt-2">
-                  <Link
-                    href="/login"
-                    className="flex items-center px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    Fazer Login
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="block px-3 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Criar Conta
-                  </Link>
-                </div>
-              ))}
-
-            {/* Mobile Search */}
-            <div className="px-3 py-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar camisas..."
-                  className="pl-10 bg-gray-50 border-gray-200"
-                />
+      {/* Main Header */}
+      <header
+        className={`sticky top-0 z-50 bg-white border-b transition-all duration-300 ${
+          isScrolled ? 'border-gray-300 shadow-lg' : 'border-gray-200'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-12 h-12 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <span className="text-white font-bold text-lg">OV</span>
               </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors">
+                  O Vestiário
+                </span>
+                <span className="text-xs text-gray-500 -mt-1">
+                  Camisas Oficiais
+                </span>
+              </div>
+            </Link>
+
+            {/* Search Bar - Desktop */}
+            <form
+              onSubmit={handleSearch}
+              className="hidden lg:flex flex-1 max-w-xl mx-8"
+            >
+              <div className="relative w-full">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  type="text"
+                  placeholder="Buscar camisas, times, jogadores..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-12 pr-4 py-3 w-full border-gray-200 focus:border-gray-400 rounded-xl text-gray-700 placeholder-gray-400"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg px-4"
+                >
+                  Buscar
+                </Button>
+              </div>
+            </form>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              {/* Search Mobile */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden text-gray-700 hover:bg-gray-100"
+                onClick={() => {
+                  const searchMobile = document.getElementById('search-mobile');
+                  searchMobile?.focus();
+                }}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+
+              {/* Favorites */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative text-gray-700 hover:bg-gray-100 hidden sm:flex"
+                asChild
+              >
+                <Link href="/favoritos">
+                  <Heart className="h-5 w-5" />
+                  {favoritesCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white min-w-5 h-5 text-xs flex items-center justify-center p-0">
+                      {favoritesCount}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+
+              {/* User Menu */}
+              <div className="relative" ref={userMenuRef}>
+                {isAuthenticated ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-2 text-gray-700 hover:bg-gray-100 px-3"
+                  >
+                    <div className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="hidden md:block text-sm font-medium">
+                      {user?.email?.split('@')[0]}
+                    </span>
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-700 hover:bg-gray-100"
+                      asChild
+                    >
+                      <Link href="/login">
+                        <User className="w-4 h-4 mr-2" />
+                        Entrar
+                      </Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-gray-900 hover:bg-gray-800 text-white hidden sm:flex"
+                      asChild
+                    >
+                      <Link href="/register">Cadastro</Link>
+                    </Button>
+                  </div>
+                )}
+
+                {/* User Dropdown */}
+                {isAuthenticated && isUserMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">
+                        {user?.email}
+                      </p>
+                      <p className="text-xs text-gray-500">Minha conta</p>
+                    </div>
+
+                    <div className="py-2">
+                      <Link
+                        href="/perfil"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <User className="w-4 h-4" />
+                        Meu Perfil
+                      </Link>
+                      <Link
+                        href="/pedidos"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <Package className="w-4 h-4" />
+                        Meus Pedidos
+                      </Link>
+                      <Link
+                        href="/favoritos"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <Heart className="w-4 h-4" />
+                        Favoritos
+                        {favoritesCount > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="ml-auto text-xs"
+                          >
+                            {favoritesCount}
+                          </Badge>
+                        )}
+                      </Link>
+                      <Link
+                        href="/configuracoes"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <Settings className="w-4 h-4" />
+                        Configurações
+                      </Link>
+                    </div>
+
+                    <Separator />
+
+                    <div className="py-2">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sair
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Cart */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative text-gray-700 hover:bg-gray-100"
+                asChild
+              >
+                <Link href="/carrinho">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 bg-red-700 hover:bg-gray-900 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center p-0 border-2 border-white">
+                      {cartCount}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+
+              {/* Mobile Menu Toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden text-gray-700 hover:bg-gray-100"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {isMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </Button>
             </div>
           </div>
         </div>
+
+        {/* Navigation Bar */}
+        <div className="hidden lg:block border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav className="flex items-center justify-between h-12">
+              <div className="flex items-center space-x-8">
+                {categories.map((category) => (
+                  <Link
+                    key={category.name}
+                    href={category.href}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    <category.icon className="w-4 h-4" />
+                    {category.name}
+                  </Link>
+                ))}
+
+                {/* Teams Dropdown */}
+                <div className="relative" ref={teamsMenuRef}>
+                  <button
+                    onClick={() => setIsTeamsMenuOpen(!isTeamsMenuOpen)}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    Times
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  {isTeamsMenuOpen && (
+                    <div className="absolute left-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 py-4 z-50">
+                      <div className="px-4 mb-3">
+                        <h3 className="text-sm font-semibold text-gray-900">
+                          Times Populares
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 px-2">
+                        {teams.map((team) => (
+                          <Link
+                            key={team.slug}
+                            href={`/time/${team.slug}`}
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"
+                            onClick={() => setIsTeamsMenuOpen(false)}
+                          >
+                            <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                              <Shirt className="w-3 h-3 text-gray-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium">{team.name}</div>
+                              <div className="text-xs text-gray-500">
+                                {team.country}
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                      <Separator className="my-3" />
+                      <div className="px-4">
+                        <Link
+                          href="/times"
+                          className="text-sm font-medium text-gray-900 hover:text-gray-700"
+                          onClick={() => setIsTeamsMenuOpen(false)}
+                        >
+                          Ver todos os times →
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right side nav */}
+              <div className="flex items-center gap-6">
+                <Link
+                  href="/outlet"
+                  className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                >
+                  🔥 Outlet
+                </Link>
+                <Link
+                  href="/personalizar"
+                  className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                >
+                  Personalizar
+                </Link>
+              </div>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-white">
+          <div className="flex flex-col h-full">
+            {/* Mobile Search */}
+            <div className="p-4 border-b border-gray-200">
+              <form onSubmit={handleSearch} className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  id="search-mobile"
+                  type="text"
+                  placeholder="Buscar camisas, times..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-12 pr-4 py-3 w-full border-gray-200 focus:border-gray-400 rounded-xl"
+                />
+              </form>
+            </div>
+
+            {/* Mobile Navigation */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-6">
+                {/* Categories */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Categorias
+                  </h3>
+                  <div className="space-y-3">
+                    {categories.map((category) => (
+                      <Link
+                        key={category.name}
+                        href={category.href}
+                        className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <category.icon className="w-5 h-5" />
+                        {category.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Teams */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Times
+                  </h3>
+                  <div className="space-y-3">
+                    {teams.slice(0, 4).map((team) => (
+                      <Link
+                        key={team.slug}
+                        href={`/time/${team.slug}`}
+                        className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                          <Shirt className="w-4 h-4 text-gray-600" />
+                        </div>
+                        {team.name}
+                      </Link>
+                    ))}
+                    <Link
+                      href="/times"
+                      className="text-gray-900 font-medium hover:text-gray-700"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Ver todos os times →
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Quick Links */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Links Rápidos
+                  </h3>
+                  <div className="space-y-3">
+                    <Link
+                      href="/favoritos"
+                      className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Heart className="w-5 h-5" />
+                      Favoritos
+                      {favoritesCount > 0 && (
+                        <Badge variant="secondary" className="ml-auto text-xs">
+                          {favoritesCount}
+                        </Badge>
+                      )}
+                    </Link>
+                    <Link
+                      href="/outlet"
+                      className="flex items-center gap-3 text-red-600 hover:text-red-700 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <span className="text-lg">🔥</span>
+                      Outlet
+                    </Link>
+                    <Link
+                      href="/personalizar"
+                      className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Settings className="w-5 h-5" />
+                      Personalizar
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Auth */}
+            {!isAuthenticated && (
+              <div className="p-4 border-t border-gray-200">
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-gray-300 text-gray-700"
+                    asChild
+                  >
+                    <Link href="/login" onClick={() => setIsMenuOpen(false)}>
+                      Entrar
+                    </Link>
+                  </Button>
+                  <Button
+                    className="flex-1 bg-gray-900 hover:bg-gray-800 text-white"
+                    asChild
+                  >
+                    <Link href="/register" onClick={() => setIsMenuOpen(false)}>
+                      Cadastro
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
-    </header>
+    </>
   );
 }
