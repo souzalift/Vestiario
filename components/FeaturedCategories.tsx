@@ -56,16 +56,29 @@ function CategoryCard({ category, index }: CategoryCardProps) {
     setImageError(true);
   };
 
+  // Mapear cores de borda
+  const getBorderColor = (accentColor: string) => {
+    const borderMap: { [key: string]: string } = {
+      'text-green-600': 'hover:border-green-400',
+      'text-purple-600': 'hover:border-purple-400',
+      'text-red-600': 'hover:border-red-400',
+      'text-blue-600': 'hover:border-blue-400',
+    };
+    return borderMap[accentColor] || 'hover:border-gray-400';
+  };
+
   return (
     <Link
       href={`/?categoria=${category.name}`}
-      className="group bg-white rounded-2xl border border-gray-200 hover:border-gray-300 
-                 p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+      className={`group bg-white rounded-2xl border border-gray-300 ${getBorderColor(
+        category.accentColor,
+      )}
+                 p-6 transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-1`}
     >
       {/* Imagem centralizada */}
       <div className="flex items-center justify-center h-32 mb-6">
         {!imageError ? (
-          <div className="relative w-full h-full max-w-[120px]">
+          <div className="relative w-full h-full max-w-[200px]">
             <Image
               src={category.image}
               alt={`Logo ${category.name}`}
@@ -85,7 +98,10 @@ function CategoryCard({ category, index }: CategoryCardProps) {
 
       {/* Conteúdo */}
       <div className="text-center">
-        <h3 className="text-gray-900 font-bold text-lg mb-2">
+        <h3
+          className={`${category.accentColor} font-bold text-lg mb-2 
+                       group-hover:scale-105 transition-transform duration-300`}
+        >
           {category.name}
         </h3>
         <p className="text-gray-600 text-sm mb-4">{category.count}</p>
