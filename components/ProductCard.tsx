@@ -135,7 +135,7 @@ export default function ProductCard({
             {onAddToCart && (
               <Button
                 size="sm"
-                className="flex-1"
+                className="flex-1 text-white bg-stone-700  "
                 onClick={(e) => {
                   e.preventDefault();
                   onAddToCart(product);

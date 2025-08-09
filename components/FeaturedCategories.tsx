@@ -125,7 +125,7 @@ export default function FeaturedCategories() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-primary-900 mb-4">
-            Principais Competições
+            Principais Ligas
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Camisas tailandesas dos maiores campeonatos do mundo

@@ -1,32 +1,100 @@
-import { useUser } from '@clerk/nextjs';
-import { useMemo } from 'react';
+'use client';
 
-const ADMIN_EMAILS = [
-  'souzalift@gmail.com',
-  'admin@ovestiario.com'
-];
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
-export function useAdmin() {
-  const { user, isLoaded } = useUser();
+interface AdminStats {
+  totalProducts: number;
+  totalOrders: number;
+  totalRevenue: number;
+  totalUsers: number;
+  recentOrders: any[];
+  topProducts: any[];
+  salesData: any[];
+}
 
-  const isAdmin = useMemo(() => {
-    if (!isLoaded || !user) return false;
+export const useAdmin = () => {
+  const { user, userProfile, loading: authLoading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    const email = user.primaryEmailAddress?.emailAddress;
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (authLoading) return;
 
-    console.log('🔍 Verificação admin:', {
-      email,
-      adminEmails: ADMIN_EMAILS,
-      isAdmin: email ? ADMIN_EMAILS.includes(email) : false
-    });
+      setLoading(true);
 
-    return email ? ADMIN_EMAILS.includes(email) : false;
-  }, [user, isLoaded]);
+      try {
+        if (!user) {
+          setIsAdmin(false);
+          setIsLoaded(true);
+          setLoading(false);
+          return;
+        }
+
+        // Verificar se é admin através do userProfile ou email específico
+        const adminCheck =
+          userProfile?.role === 'admin' ||
+          user.email === 'admin@ovestiario.com' ||
+          user.email === 'souzalift@gmail.com';
+
+        setIsAdmin(adminCheck);
+
+        // Se for admin, carregar estatísticas
+        if (adminCheck) {
+          await loadAdminStats();
+        }
+      } catch (error) {
+        console.error('Erro ao verificar admin:', error);
+        setIsAdmin(false);
+      } finally {
+        setIsLoaded(true);
+        setLoading(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user, userProfile, authLoading]);
+
+  const loadAdminStats = async () => {
+    try {
+      const stats: AdminStats = {
+        totalProducts: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        totalUsers: 0,
+        recentOrders: [],
+        topProducts: [],
+        salesData: [],
+      };
+
+      // Carregar produtos
+      const productsRef = collection(db, 'products');
+      const productsSnapshot = await getDocs(productsRef);
+      stats.totalProducts = productsSnapshot.size;
+
+      // Carregar usuários
+      const usersRef = collection(db, 'users');
+      const usersSnapshot = await getDocs(usersRef);
+      stats.totalUsers = usersSnapshot.size;
+
+      setAdminStats(stats);
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+    }
+  };
 
   return {
     isAdmin,
     isLoaded,
+    loading,
     user,
-    email: user?.primaryEmailAddress?.emailAddress
+    email: user?.email || '',
+    adminStats,
+    loadAdminStats,
   };
-}
+};

@@ -37,15 +37,19 @@ const generateSlug = (title) => {
     .trim();
 };
 
-// Verificar se produto já existe
-const productExists = async (slug) => {
+// Verificar se produto já existe e obter dados existentes
+const getExistingProduct = async (slug) => {
   try {
     const docRef = doc(db, 'products', slug);
     const docSnap = await getDoc(docRef);
-    return docSnap.exists();
+
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+    return null;
   } catch (error) {
-    console.log(`Erro ao verificar se produto existe: ${error}`);
-    return false;
+    console.log(`Erro ao verificar produto existente: ${error}`);
+    return null;
   }
 };
 
@@ -102,6 +106,7 @@ service cloud.firestore {
 // Função principal de importação
 const importProducts = async (jsonFilePath) => {
   console.log('🚀 Iniciando importação de produtos para o Firebase...');
+  console.log('🔄 MODO: SOBRESCREVER produtos existentes');
 
   // Verificar se arquivo foi fornecido
   if (!jsonFilePath) {
@@ -147,14 +152,14 @@ const importProducts = async (jsonFilePath) => {
 
     if (productsData.length === 0) {
       console.log('⚠️  Arquivo JSON está vazio');
-      return { imported: 0, skipped: 0, errors: 0, details: [] };
+      return { imported: 0, updated: 0, errors: 0, details: [] };
     }
 
     console.log(`📦 Encontrados ${productsData.length} produtos para importar`);
 
     const results = {
       imported: 0,
-      skipped: 0,
+      updated: 0,
       errors: 0,
       details: [],
     };
@@ -180,10 +185,10 @@ const importProducts = async (jsonFilePath) => {
         const slug = generateSlug(productData.title);
         console.log(`🔗 Slug gerado: ${slug}`);
 
-        // Verificar se já existe (com retry)
-        let exists = false;
+        // Verificar se produto já existe
+        let existingProduct = null;
         try {
-          exists = await productExists(slug);
+          existingProduct = await getExistingProduct(slug);
         } catch (error) {
           if (error.code === 'permission-denied') {
             console.log('❌ Erro de permissão ao verificar produto existente');
@@ -195,28 +200,32 @@ const importProducts = async (jsonFilePath) => {
           );
         }
 
-        if (exists) {
-          console.log(`⏭️  Produto já existe: ${productData.title}`);
-          results.skipped++;
-          results.details.push({
-            title: productData.title,
-            status: 'skipped',
-            message: 'Produto já existe',
-          });
-          continue;
+        const isUpdate = existingProduct !== null;
+
+        if (isUpdate) {
+          console.log(
+            `🔄 Produto existente será atualizado: ${productData.title}`,
+          );
+        } else {
+          console.log(`✨ Novo produto será criado: ${productData.title}`);
         }
 
+        // Preparar dados do produto
         const product = {
           ...productData,
           slug,
-          createdAt: new Date(),
           updatedAt: new Date(),
-          views: Math.floor(Math.random() * 100 + 50),
-          rating: Number((Math.random() * 1.5 + 3.5).toFixed(1)),
-          reviewCount: Math.floor(Math.random() * 25 + 5),
+          // Preservar dados existentes ou criar novos
+          createdAt: existingProduct?.createdAt || new Date(),
+          views: existingProduct?.views || Math.floor(Math.random() * 100 + 50),
+          rating:
+            existingProduct?.rating ||
+            Number((Math.random() * 1.5 + 3.5).toFixed(1)),
+          reviewCount:
+            existingProduct?.reviewCount || Math.floor(Math.random() * 25 + 5),
         };
 
-        // Tentar importar com retry
+        // Tentar salvar com retry
         let attempts = 0;
         const maxAttempts = 3;
         let success = false;
@@ -227,14 +236,28 @@ const importProducts = async (jsonFilePath) => {
             console.log(`💾 Tentativa ${attempts}/${maxAttempts} de salvar...`);
 
             const docRef = doc(db, 'products', slug);
-            await setDoc(docRef, product);
+            await setDoc(docRef, product, { merge: false }); // Sobrescrever completamente
 
-            console.log(`✅ Produto importado: ${product.title} (ID: ${slug})`);
-            results.imported++;
-            results.details.push({
-              title: productData.title,
-              status: 'success',
-            });
+            if (isUpdate) {
+              console.log(
+                `🔄 Produto atualizado: ${product.title} (ID: ${slug})`,
+              );
+              results.updated++;
+              results.details.push({
+                title: productData.title,
+                status: 'updated',
+                message: 'Produto atualizado com sucesso',
+              });
+            } else {
+              console.log(`✅ Produto criado: ${product.title} (ID: ${slug})`);
+              results.imported++;
+              results.details.push({
+                title: productData.title,
+                status: 'created',
+                message: 'Produto criado com sucesso',
+              });
+            }
+
             success = true;
           } catch (importError) {
             console.log(
@@ -263,7 +286,9 @@ const importProducts = async (jsonFilePath) => {
         await new Promise((resolve) => setTimeout(resolve, 300));
       } catch (error) {
         console.error(
-          `❌ Erro ao importar produto "${productData.title || 'Sem título'}":`,
+          `❌ Erro ao processar produto "${
+            productData.title || 'Sem título'
+          }":`,
           error.message,
         );
 
@@ -286,8 +311,8 @@ const importProducts = async (jsonFilePath) => {
     // Relatório final
     console.log('\n📊 RELATÓRIO FINAL:');
     console.log('='.repeat(50));
-    console.log(`✅ Importados com sucesso: ${results.imported}`);
-    console.log(`⏭️  Produtos já existentes: ${results.skipped}`);
+    console.log(`✅ Produtos criados: ${results.imported}`);
+    console.log(`🔄 Produtos atualizados: ${results.updated}`);
     console.log(`❌ Erros encontrados: ${results.errors}`);
     console.log(`📦 Total processados: ${productsData.length}`);
     console.log('='.repeat(50));
@@ -303,9 +328,18 @@ const importProducts = async (jsonFilePath) => {
     }
 
     if (results.imported > 0) {
-      console.log('\n✅ PRODUTOS IMPORTADOS:');
+      console.log('\n✨ PRODUTOS CRIADOS:');
       results.details
-        .filter((d) => d.status === 'success')
+        .filter((d) => d.status === 'created')
+        .forEach((detail, index) => {
+          console.log(`  ${index + 1}. ${detail.title}`);
+        });
+    }
+
+    if (results.updated > 0) {
+      console.log('\n🔄 PRODUTOS ATUALIZADOS:');
+      results.details
+        .filter((d) => d.status === 'updated')
         .forEach((detail, index) => {
           console.log(`  ${index + 1}. ${detail.title}`);
         });
@@ -313,7 +347,7 @@ const importProducts = async (jsonFilePath) => {
 
     console.log('\n🎉 Importação concluída!');
 
-    if (results.imported > 0) {
+    if (results.imported > 0 || results.updated > 0) {
       console.log('\n🔗 Acesse o Firebase Console para verificar:');
       console.log(
         'https://console.firebase.google.com/project/o-vestiario-67951/firestore/data',
@@ -335,7 +369,7 @@ if (require.main === module) {
     .then((results) => {
       console.log('\n🏁 Script finalizado!');
       console.log(
-        `📈 Resumo: ${results.imported} importados, ${results.errors} erros`,
+        `📈 Resumo: ${results.imported} criados, ${results.updated} atualizados, ${results.errors} erros`,
       );
 
       // Sair com código de erro se houve falhas
