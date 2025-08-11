@@ -16,9 +16,14 @@ const LEAGUES = [
 
 import { useSearchParams } from 'next/navigation';
 
-export default function ProductGrid() {
+// ProductGrid component code
+interface ProductGridProps {
+  league: string;
+  searchQuery: string;
+}
+
+const ProductGrid: React.FC<ProductGridProps> = ({ league, searchQuery }) => {
   const searchParams = useSearchParams();
-  const searchQuery = searchParams.get('search') || '';
   const category =
     searchParams.get('team') || searchParams.get('league') || 'Todos';
 
@@ -154,4 +159,6 @@ export default function ProductGrid() {
       ))}
     </div>
   );
-}
+};
+
+export default ProductGrid;
