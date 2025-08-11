@@ -4,21 +4,41 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCart } from '@/contexts/CartContext';
-import { IProduct } from '@/models/Product';
 import { toast } from 'sonner';
 import { ArrowLeft, ShoppingCart, Star } from 'lucide-react';
 import Link from 'next/link';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+interface Product {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  images: string[];
+  sizes: string[];
+  featured: boolean;
+  tags: string[];
+  brand?: string;
+  league?: string;
+  playerName?: string;
+  playerNumber?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  slug: string;
+}
 
 export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
   const { addItem } = useCart();
-  const [product, setProduct] = useState<IProduct | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
@@ -39,16 +59,37 @@ export default function ProductPage() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/products/${slug}`);
-      const data = await response.json();
+      // Busca direto no Firestore pelo slug como id
+      const ref = doc(db, 'products', slug);
+      const snap = await getDoc(ref);
 
-      if (data.success) {
-        setProduct(data.data);
+      if (snap.exists()) {
+        const data = snap.data();
+        setProduct({
+          id: snap.id,
+          title: data.title,
+          description: data.description,
+          price: data.price,
+          images: data.images || [],
+          sizes: data.sizes || [],
+          featured: data.featured || false,
+          tags: data.tags || [],
+          brand: data.brand,
+          league: data.league,
+          playerName: data.playerName,
+          playerNumber: data.playerNumber,
+          createdAt: data.createdAt?.toDate
+            ? data.createdAt.toDate()
+            : new Date(data.createdAt),
+          updatedAt: data.updatedAt?.toDate
+            ? data.updatedAt.toDate()
+            : new Date(data.updatedAt),
+          slug: data.slug,
+        });
       } else {
-        setError(data.error || 'Produto não encontrado');
+        setError('Produto não encontrado');
       }
     } catch (error) {
-      console.error('Error fetching product:', error);
       setError('Erro ao carregar produto');
     } finally {
       setLoading(false);
@@ -69,12 +110,10 @@ export default function ProductPage() {
       const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
 
       const cartItem = {
-        id: `${product.slug || product._id}-${selectedSize}-${
-          customization.name
-        }-${customization.number}`,
+        id: `${product.slug}-${selectedSize}-${customization.name}-${customization.number}`,
         title: product.title,
         price: product.price,
-        image: product.image,
+        image: product.images?.[0] || '',
         size: selectedSize,
         customization,
         quantity: 1,
@@ -99,7 +138,6 @@ export default function ProductPage() {
         router.push('/carrinho');
       }, 1000);
     } catch (error) {
-      console.error('Erro ao adicionar ao carrinho:', error);
       toast.error('Erro ao adicionar produto ao carrinho');
     } finally {
       setAddingToCart(false);
@@ -176,7 +214,7 @@ export default function ProductPage() {
           {/* Breadcrumb */}
           <div className="mb-8">
             <Link
-              href="/"
+              href="/#produtos"
               className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -187,19 +225,35 @@ export default function ProductPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Product Image */}
             <div className="relative aspect-square overflow-hidden rounded-xl bg-white shadow-lg">
-              <Image
-                src={product.image}
-                alt={product.title}
-                fill
-                className="object-cover transition-transform hover:scale-105"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                priority
-              />
+              {product.images?.[0] ? (
+                <Image
+                  src={product.images[0]}
+                  alt={product.title}
+                  fill
+                  className="object-cover transition-transform hover:scale-105"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  Sem imagem
+                </div>
+              )}
 
               {/* League Badge */}
               {product.league && (
                 <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                   {product.league}
+                </div>
+              )}
+              {product.brand && (
+                <div className="absolute top-4 right-4 bg-gray-800 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  {product.brand}
+                </div>
+              )}
+              {product.featured && (
+                <div className="absolute bottom-4 left-4 bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-sm font-bold shadow">
+                  Destaque
                 </div>
               )}
             </div>
@@ -208,23 +262,17 @@ export default function ProductPage() {
             <div className="space-y-6">
               {/* Product Header */}
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-current" />
-                    ))}
-                  </div>
-                  <span className="text-gray-600 text-sm">
-                    (4.8/5 - 124 avaliações)
-                  </span>
-                </div>
+                <div className="flex items-center gap-2 mb-2"></div>
 
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
                   {product.title}
                 </h1>
 
-                {product.team && (
-                  <p className="text-lg text-gray-600 mb-3">{product.team}</p>
+                {product.playerName && (
+                  <p className="text-lg text-gray-600 mb-3">
+                    Jogador: {product.playerName}
+                    {product.playerNumber && ` (${product.playerNumber})`}
+                  </p>
                 )}
 
                 <p className="text-4xl font-bold text-green-600">
@@ -253,13 +301,13 @@ export default function ProductPage() {
                             key={size}
                             onClick={() => setSelectedSize(size)}
                             className={`
-                            w-16 h-16 rounded-full border-2 font-bold text-lg transition-all duration-200 hover:scale-110 active:scale-95
-                            ${
-                              selectedSize === size
-                                ? 'border-blue-600 bg-blue-600 text-white shadow-lg transform scale-105'
-                                : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
-                            }
-                          `}
+                              w-16 h-16 rounded-full border-2 font-bold text-lg transition-all duration-200 hover:scale-110 active:scale-95
+                              ${
+                                selectedSize === size
+                                  ? 'border-blue-600 bg-blue-600 text-white shadow-lg transform scale-105'
+                                  : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                              }
+                            `}
                           >
                             {size}
                           </button>
@@ -390,6 +438,7 @@ export default function ProductPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -22,23 +22,18 @@ import {
   getDocs,
   query,
   orderBy,
-  where,
   deleteDoc,
   doc,
-  updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   Package,
   Search,
-  Filter,
   Plus,
   Edit,
   Trash2,
   Eye,
   Star,
-  TrendingUp,
-  ArrowUpDown,
   Grid3X3,
   List,
   Loader2,
@@ -48,16 +43,19 @@ import { toast } from 'sonner';
 interface Product {
   id: string;
   title: string;
-  price: number;
-  category: string;
-  stock?: number;
-  views: number;
-  rating: number;
-  reviewCount: number;
-  images: string[];
   description: string;
-  createdAt: any;
-  updatedAt?: any;
+  price: number;
+  images: string[];
+  sizes: string[];
+  featured: boolean;
+  tags: string[];
+  brand?: string;
+  league?: string;
+  playerName?: string;
+  playerNumber?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  slug: string;
 }
 
 export default function AdminProductsPage() {
@@ -68,10 +66,11 @@ export default function AdminProductsPage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedLeague, setSelectedLeague] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-  const [categories, setCategories] = useState<string[]>([]);
+  const [leagues, setLeagues] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -85,7 +84,7 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     filterAndSortProducts();
-  }, [products, searchTerm, selectedCategory, sortBy]);
+  }, [products, searchTerm, selectedLeague, sortBy]);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -94,18 +93,42 @@ export default function AdminProductsPage() {
       const productsQuery = query(productsRef, orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(productsQuery);
 
-      const productsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Product[];
+      const productsData = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          description: data.description,
+          price: data.price,
+          images: data.images || [],
+          sizes: data.sizes || [],
+          featured: data.featured || false,
+          tags: data.tags || [],
+          brand: data.brand,
+          league: data.league,
+          playerName: data.playerName,
+          playerNumber: data.playerNumber,
+          createdAt: data.createdAt?.toDate
+            ? data.createdAt.toDate()
+            : new Date(data.createdAt),
+          updatedAt: data.updatedAt?.toDate
+            ? data.updatedAt.toDate()
+            : new Date(data.updatedAt),
+          slug: data.slug,
+        };
+      }) as Product[];
 
       setProducts(productsData);
 
-      // Extrair categorias únicas
-      const uniqueCategories = Array.from(
-        new Set(productsData.map((p) => p.category).filter(Boolean)),
+      // Extrair ligas únicas
+      const uniqueLeagues = Array.from(
+        new Set(
+          productsData
+            .map((p) => p.league)
+            .filter((l): l is string => typeof l === 'string'),
+        ),
       ).sort();
-      setCategories(uniqueCategories);
+      setLeagues(uniqueLeagues);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
       toast.error('Erro ao carregar produtos');
@@ -122,14 +145,14 @@ export default function AdminProductsPage() {
       filtered = filtered.filter(
         (product) =>
           product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.category.toLowerCase().includes(searchTerm.toLowerCase()),
+          product.league?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
-    // Filtrar por categoria
-    if (selectedCategory !== 'all') {
+    // Filtrar por liga
+    if (selectedLeague !== 'all') {
       filtered = filtered.filter(
-        (product) => product.category === selectedCategory,
+        (product) => product.league === selectedLeague,
       );
     }
 
@@ -137,15 +160,15 @@ export default function AdminProductsPage() {
     switch (sortBy) {
       case 'newest':
         filtered.sort((a, b) => {
-          const dateA = a.createdAt?.toDate?.() || new Date(0);
-          const dateB = b.createdAt?.toDate?.() || new Date(0);
+          const dateA = a.createdAt || new Date(0);
+          const dateB = b.createdAt || new Date(0);
           return dateB.getTime() - dateA.getTime();
         });
         break;
       case 'oldest':
         filtered.sort((a, b) => {
-          const dateA = a.createdAt?.toDate?.() || new Date(0);
-          const dateB = b.createdAt?.toDate?.() || new Date(0);
+          const dateA = a.createdAt || new Date(0);
+          const dateB = b.createdAt || new Date(0);
           return dateA.getTime() - dateB.getTime();
         });
         break;
@@ -155,17 +178,25 @@ export default function AdminProductsPage() {
       case 'price-low':
         filtered.sort((a, b) => a.price - b.price);
         break;
-      case 'views':
-        filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
-        break;
-      case 'rating':
-        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        break;
       default:
         break;
     }
 
     setFilteredProducts(filtered);
+  };
+
+  const handleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((_id) => _id !== id) : [...prev, id],
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredProducts.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredProducts.map((p) => p.id));
+    }
   };
 
   const deleteProduct = async (productId: string, productTitle: string) => {
@@ -177,9 +208,31 @@ export default function AdminProductsPage() {
       await deleteDoc(doc(db, 'products', productId));
       toast.success('Produto excluído com sucesso!');
       await loadProducts();
+      setSelectedIds((prev) => prev.filter((id) => id !== productId));
     } catch (error) {
       console.error('Erro ao excluir produto:', error);
       toast.error('Erro ao excluir produto');
+    }
+  };
+
+  // Ação em massa: deletar selecionados
+  const deleteSelectedProducts = async () => {
+    if (
+      selectedIds.length === 0 ||
+      !confirm(`Excluir ${selectedIds.length} produtos selecionados?`)
+    ) {
+      return;
+    }
+    try {
+      for (const id of selectedIds) {
+        await deleteDoc(doc(db, 'products', id));
+      }
+      toast.success('Produtos excluídos com sucesso!');
+      await loadProducts();
+      setSelectedIds([]);
+    } catch (error) {
+      console.error('Erro ao excluir produtos:', error);
+      toast.error('Erro ao excluir produtos');
     }
   };
 
@@ -190,16 +243,8 @@ export default function AdminProductsPage() {
     }).format(price);
   };
 
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'N/A';
-
-    let date: Date;
-    if (timestamp.toDate) {
-      date = timestamp.toDate();
-    } else {
-      date = new Date(timestamp);
-    }
-
+  const formatDate = (date: Date) => {
+    if (!date) return 'N/A';
     return date.toLocaleDateString('pt-BR');
   };
 
@@ -253,19 +298,19 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
 
-                {/* Categoria */}
+                {/* Liga */}
                 <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
+                  value={selectedLeague}
+                  onValueChange={setSelectedLeague}
                 >
                   <SelectTrigger className="w-full lg:w-48 border-gray-200 focus:border-gray-400">
-                    <SelectValue placeholder="Categoria" />
+                    <SelectValue placeholder="Liga" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas as categorias</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    <SelectItem value="all">Todas as ligas</SelectItem>
+                    {leagues.map((league) => (
+                      <SelectItem key={league} value={league}>
+                        {league}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -281,8 +326,6 @@ export default function AdminProductsPage() {
                     <SelectItem value="oldest">Mais antigos</SelectItem>
                     <SelectItem value="price-high">Maior preço</SelectItem>
                     <SelectItem value="price-low">Menor preço</SelectItem>
-                    <SelectItem value="views">Mais visualizados</SelectItem>
-                    <SelectItem value="rating">Melhor avaliados</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -317,6 +360,20 @@ export default function AdminProductsPage() {
             </CardContent>
           </Card>
 
+          {/* Botão de ação em massa */}
+          {viewMode === 'list' && (
+            <div className="mb-4 flex items-center gap-2">
+              <Button
+                variant="destructive"
+                disabled={selectedIds.length === 0}
+                onClick={deleteSelectedProducts}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir Selecionados ({selectedIds.length})
+              </Button>
+            </div>
+          )}
+
           {/* Lista/Grid de Produtos */}
           {viewMode === 'list' ? (
             <Card className="border-gray-200 shadow-sm">
@@ -331,20 +388,24 @@ export default function AdminProductsPage() {
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th className="py-4 px-6">
+                          <input
+                            type="checkbox"
+                            checked={
+                              selectedIds.length === filteredProducts.length &&
+                              filteredProducts.length > 0
+                            }
+                            onChange={handleSelectAll}
+                          />
+                        </th>
                         <th className="text-left py-4 px-6 font-medium text-gray-900">
                           Produto
                         </th>
                         <th className="text-left py-4 px-6 font-medium text-gray-900">
-                          Categoria
+                          Liga
                         </th>
                         <th className="text-left py-4 px-6 font-medium text-gray-900">
                           Preço
-                        </th>
-                        <th className="text-left py-4 px-6 font-medium text-gray-900">
-                          Views
-                        </th>
-                        <th className="text-left py-4 px-6 font-medium text-gray-900">
-                          Avaliação
                         </th>
                         <th className="text-left py-4 px-6 font-medium text-gray-900">
                           Criado
@@ -360,6 +421,13 @@ export default function AdminProductsPage() {
                           key={product.id}
                           className="border-t border-gray-100 hover:bg-gray-50"
                         >
+                          <td className="py-4 px-6">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(product.id)}
+                              onChange={() => handleSelect(product.id)}
+                            />
+                          </td>
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-4">
                               {product.images?.[0] ? (
@@ -394,26 +462,11 @@ export default function AdminProductsPage() {
                               variant="secondary"
                               className="bg-gray-100 text-gray-700 hover:bg-gray-200"
                             >
-                              {product.category}
+                              {product.league}
                             </Badge>
                           </td>
                           <td className="py-4 px-6 font-medium text-gray-900">
                             {formatPrice(product.price)}
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className="flex items-center gap-1 text-sm text-gray-600">
-                              <Eye className="w-4 h-4" />
-                              {product.views || 0}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className="flex items-center gap-1 text-sm text-gray-600">
-                              <Star className="w-4 h-4 text-yellow-500" />
-                              {product.rating.toFixed(1)}
-                              <span className="text-gray-500">
-                                ({product.reviewCount})
-                              </span>
-                            </span>
                           </td>
                           <td className="py-4 px-6 text-sm text-gray-600">
                             {formatDate(product.createdAt)}
@@ -500,12 +553,12 @@ export default function AdminProductsPage() {
                         </div>
                       )}
 
-                      {/* Badge de categoria */}
+                      {/* Badge de liga */}
                       <Badge
                         variant="secondary"
                         className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm border border-gray-200"
                       >
-                        {product.category}
+                        {product.league}
                       </Badge>
 
                       {/* Ações flutuantes */}
@@ -551,17 +604,9 @@ export default function AdminProductsPage() {
                         <span className="text-lg font-bold text-gray-900">
                           {formatPrice(product.price)}
                         </span>
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
-                          <Star className="w-4 h-4 text-yellow-500" />
-                          {product.rating.toFixed(1)}
-                        </div>
                       </div>
 
                       <div className="flex items-center justify-between text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <Eye className="w-4 h-4" />
-                          {product.views || 0} views
-                        </span>
                         <span>{formatDate(product.createdAt)}</span>
                       </div>
                     </div>
