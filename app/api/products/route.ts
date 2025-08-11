@@ -11,7 +11,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
 
     // Extrair parâmetros de busca
-    const category = searchParams.get('category');
     const league = searchParams.get('league');
     const team = searchParams.get('team');
     const search = searchParams.get('search');
@@ -25,16 +24,12 @@ export async function GET(request: Request) {
     // Construir filtros
     const filters: ProductFilters = {};
 
-    if (category) {
-      filters.category = category;
-    }
-
     if (league) {
       filters.league = league;
     }
 
     if (team) {
-      // Para compatibilidade, buscar por team nas tags
+      // Buscar por team nas tags
       filters.search = team;
     }
 
@@ -92,11 +87,11 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // Validação básica
-    if (!body.title || !body.price || !body.category) {
+    if (!body.title || !body.price || !body.league) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields: title, price, category'
+          error: 'Missing required fields: title, price, league'
         },
         { status: 400 }
       );
@@ -120,19 +115,12 @@ export async function POST(request: Request) {
       description: body.description || '',
       price: parseFloat(body.price),
       images: body.images || [],
-      category: body.category,
       sizes: body.sizes || [],
       featured: body.featured || false,
       tags: body.tags || [],
       brand: body.brand || '',
-      league: body.league || '',
-      season: body.season || '',
-      playerName: body.playerName || '',
-      playerNumber: body.playerNumber || '',
+      league: body.league,
       slug: body.slug,
-      views: 0,
-      rating: 0,
-      reviewCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

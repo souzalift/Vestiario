@@ -24,32 +24,26 @@ export interface Product {
   description: string;
   price: number;
   images: string[];
-  category: string;
   sizes: string[];
   featured: boolean;
   tags: string[];
   brand?: string;
   league?: string;
-  season?: string;
   playerName?: string;
   playerNumber?: string;
   createdAt: Date;
   updatedAt: Date;
   slug: string;
-  views: number;
-  rating: number;
-  reviewCount: number;
 }
 
 export interface ProductFilters {
-  category?: string;
   league?: string;
   search?: string;
   minPrice?: number;
   maxPrice?: number;
   sizes?: string[];
   featured?: boolean;
-  sortBy?: 'price_asc' | 'price_desc' | 'newest' | 'popular' | 'rating';
+  sortBy?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
 }
 
 // Buscar produtos com filtros avançados
@@ -59,11 +53,9 @@ export const getProducts = async (
   lastDoc?: QueryDocumentSnapshot
 ) => {
   try {
-    // Iniciar com a coleção base
     const baseCollection = collection(db, 'products');
     let q: Query<DocumentData, DocumentData> = baseCollection;
 
-    // Aplicar filtros
     const queryConstraints = [];
 
     // Filtro por Liga
@@ -85,14 +77,6 @@ export const getProducts = async (
         queryConstraints.push(orderBy('price', 'desc'));
         break;
       case 'newest':
-        queryConstraints.push(orderBy('createdAt', 'desc'));
-        break;
-      case 'popular':
-        queryConstraints.push(orderBy('views', 'desc'));
-        break;
-      case 'rating':
-        queryConstraints.push(orderBy('rating', 'desc'));
-        break;
       default:
         queryConstraints.push(orderBy('createdAt', 'desc'));
     }
@@ -105,7 +89,6 @@ export const getProducts = async (
     // Limite
     queryConstraints.push(limit(limitCount));
 
-    // Construir query final
     q = query(baseCollection, ...queryConstraints);
 
     const querySnapshot = await getDocs(q);
@@ -160,11 +143,6 @@ export const getProduct = async (id: string): Promise<Product | null> => {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      // Incrementar visualizações
-      await updateDoc(docRef, {
-        views: (docSnap.data().views || 0) + 1,
-      });
-
       return {
         id: docSnap.id,
         ...docSnap.data(),
@@ -189,12 +167,6 @@ export const getProductBySlug = async (slug: string): Promise<Product | null> =>
 
     if (!querySnapshot.empty) {
       const docSnapshot = querySnapshot.docs[0];
-
-      // Incrementar visualizações
-      await updateDoc(docSnapshot.ref, {
-        views: (docSnapshot.data().views || 0) + 1,
-      });
-
       return {
         id: docSnapshot.id,
         ...docSnapshot.data(),
@@ -210,81 +182,6 @@ export const getProductBySlug = async (slug: string): Promise<Product | null> =>
   }
 };
 
-// Buscar produtos relacionados
-export const getRelatedProducts = async (product: Product, limitCount: number = 4) => {
-  try {
-    // Buscar produtos da mesma categoria, excluindo o produto atual
-    const baseCollection = collection(db, 'products');
-    const q = query(
-      baseCollection,
-      where('category', '==', product.category),
-      orderBy('views', 'desc'),
-      limit(limitCount + 5) // Pegar alguns extras para filtrar
-    );
-
-    const querySnapshot = await getDocs(q);
-    const products = querySnapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      })) as Product[];
-
-    // Filtrar o produto atual e limitar
-    return products
-      .filter(p => p.id !== product.id)
-      .slice(0, limitCount);
-  } catch (error) {
-    console.error('Erro ao buscar produtos relacionados:', error);
-    return [];
-  }
-};
-
-// Buscar produtos em destaque
-export const getFeaturedProducts = async (limitCount: number = 8) => {
-  try {
-    const baseCollection = collection(db, 'products');
-    const q = query(
-      baseCollection,
-      where('featured', '==', true),
-      orderBy('views', 'desc'),
-      limit(limitCount)
-    );
-
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
-    })) as Product[];
-  } catch (error) {
-    console.error('Erro ao buscar produtos em destaque:', error);
-    return [];
-  }
-};
-
-// Buscar categorias disponíveis
-export const getCategories = async () => {
-  try {
-    const querySnapshot = await getDocs(collection(db, 'products'));
-    const categories = new Set<string>();
-
-    querySnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.category) {
-        categories.add(data.category);
-      }
-    });
-
-    return Array.from(categories).sort();
-  } catch (error) {
-    console.error('Erro ao buscar categorias:', error);
-    return [];
-  }
-};
-
 // Criar produto (admin)
 export const createProduct = async (productData: Omit<Product, 'id'>) => {
   try {
@@ -292,9 +189,6 @@ export const createProduct = async (productData: Omit<Product, 'id'>) => {
       ...productData,
       createdAt: new Date(),
       updatedAt: new Date(),
-      views: 0,
-      rating: 0,
-      reviewCount: 0,
     });
     return docRef.id;
   } catch (error) {
@@ -355,16 +249,6 @@ export const searchProducts = async (searchTerm: string, limitCount: number = 20
 
         return titleMatch || descMatch || tagsMatch || brandMatch || playerMatch;
       })
-      .sort((a, b) => {
-        // Ordenar por relevância (título > tags > descrição)
-        const aTitle = a.title.toLowerCase().includes(searchTermLower);
-        const bTitle = b.title.toLowerCase().includes(searchTermLower);
-
-        if (aTitle && !bTitle) return -1;
-        if (!aTitle && bTitle) return 1;
-
-        return b.views - a.views; // Por popularidade
-      })
       .slice(0, limitCount);
 
     return filteredProducts;
@@ -374,5 +258,4 @@ export const searchProducts = async (searchTerm: string, limitCount: number = 20
   }
 };
 
-// Re-exportar o tipo para corrigir o erro de importação
 export { QueryDocumentSnapshot } from 'firebase/firestore';
