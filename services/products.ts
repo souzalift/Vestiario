@@ -43,6 +43,7 @@ export interface Product {
 
 export interface ProductFilters {
   category?: string;
+  league?: string;
   search?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -65,9 +66,9 @@ export const getProducts = async (
     // Aplicar filtros
     const queryConstraints = [];
 
-    // Filtro por categoria
-    if (filters.category && filters.category !== 'Todos') {
-      queryConstraints.push(where('category', '==', filters.category));
+    // Filtro por Liga
+    if (filters.league && filters.league !== 'Todos') {
+      queryConstraints.push(where('league', '==', filters.league));
     }
 
     // Filtro por destaque

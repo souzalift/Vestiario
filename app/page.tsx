@@ -4,7 +4,7 @@ import CategoryFilter from '@/components/CategoryFilter';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HeroBannerGallery from '@/components/HeroBannerGallery';
-import FeaturedCategories from '@/components/FeaturedCategories'; // Import do novo componente
+
 import {
   Shield,
   Truck,
@@ -44,9 +44,6 @@ export default async function Home({ searchParams }: Props) {
 
       {/* Quality Features */}
       <QualityFeaturesSection />
-
-      {/* Featured Categories */}
-      <FeaturedCategories />
 
       {/* Main Content */}
       <div id="produtos" className="bg-gray-50 py-16 flex-1">

@@ -30,8 +30,7 @@ export async function GET(request: Request) {
     }
 
     if (league) {
-      // Para compatibilidade, mapear league para category se necessário
-      filters.category = league;
+      filters.league = league;
     }
 
     if (team) {

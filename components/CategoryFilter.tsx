@@ -11,7 +11,7 @@ const categories = [
     icon: '🌍', // Mantém emoji para "Todos"
   },
   {
-    name: 'Brasileirão Série A',
+    name: 'Brasileirão',
     logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2Fbrasileirao.png?alt=media&token=dcd6c766-facb-474b-922c-8fe7253b5120',
     teams: [
       'Atlético Mineiro',
@@ -175,13 +175,15 @@ export default function CategoryFilter({
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleCategoryChange = (category: string) => {
+  const handleLeagueChange = (league: string) => {
     const params = new URLSearchParams(searchParams);
 
-    if (category === 'Todos') {
-      params.delete('categoria'); // Mudança aqui
+    if (league === 'Todos') {
+      params.delete('league');
+      params.delete('team'); // remove também time
     } else {
-      params.set('categoria', category); // Mudança aqui
+      params.set('league', league);
+      params.delete('team'); // só liga, remove time
     }
 
     router.push(`/?${params.toString()}#produtos`);
@@ -190,7 +192,15 @@ export default function CategoryFilter({
 
   const handleTeamChange = (team: string) => {
     const params = new URLSearchParams(searchParams);
-    params.set('categoria', team); // Mudança aqui
+
+    if (team === 'Todos') {
+      params.delete('team');
+      params.delete('league'); // remove também liga
+    } else {
+      params.set('team', team);
+      params.delete('league'); // só time, remove liga
+    }
+
     router.push(`/?${params.toString()}#produtos`);
     setOpenDropdown(null);
   };
@@ -246,7 +256,7 @@ export default function CategoryFilter({
                 if (category.teams) {
                   toggleDropdown(category.name);
                 } else {
-                  handleCategoryChange(category.name);
+                  handleLeagueChange(category.name);
                 }
               }}
               className={`group flex items-center gap-3 px-6 py-3 rounded-full font-medium transition-all duration-300 transform hover:scale-105 ${
@@ -291,7 +301,7 @@ export default function CategoryFilter({
               >
                 {/* Liga completa */}
                 <button
-                  onClick={() => handleCategoryChange(category.name)}
+                  onClick={() => handleLeagueChange(category.name)}
                   className={`w-full text-left px-4 py-2 text-sm font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2 ${
                     selectedCategory === category.name
                       ? 'text-blue-600 bg-blue-50'
