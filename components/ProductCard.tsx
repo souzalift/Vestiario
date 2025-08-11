@@ -50,8 +50,11 @@ export default function ProductCard({
       <div className="relative">
         {/* Product Image */}
         <Link href={`/produto/${product.slug || product.id}`}>
-          <div className="relative aspect-square bg-gray-100 overflow-hidden">
-            {!imageError && product.images && product.images.length > 0 ? (
+          <div className="relative aspect-square bg-gray-100 overflow-hidden cursor-pointer">
+            {!imageError &&
+            product.images &&
+            product.images.length > 0 &&
+            product.images[currentImageIndex] ? (
               <Image
                 src={product.images[currentImageIndex]}
                 alt={product.title}
@@ -152,11 +155,6 @@ export default function ProductCard({
       {/* Product Info */}
       <div className="p-4">
         <Link href={`/produto/${product.slug || product.id}`}>
-          {/* Category */}
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-            {product.category || 'Categoria'}
-          </p>
-
           {/* Title */}
           <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-primary-600 transition-colors">
             {product.title}
@@ -171,25 +169,6 @@ export default function ProductCard({
                   #{product.playerNumber}
                 </span>
               )}
-            </div>
-          )}
-
-          {/* Rating */}
-          {product.rating && product.rating > 0 && (
-            <div className="flex items-center mb-2">
-              <div className="flex text-yellow-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-3 h-3 ${
-                      i < Math.floor(product.rating) ? 'fill-current' : ''
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-gray-500 ml-1">
-                ({product.reviewCount || 0})
-              </span>
             </div>
           )}
 
