@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,8 +28,31 @@ import {
   Palette,
 } from 'lucide-react';
 import Link from 'next/link';
+<<<<<<< HEAD
 import { useViewTracker } from '@/hooks/useViewTracker';
 import { ViewCounter } from '@/components/ViewCounter';
+=======
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+interface Product {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  images: string[];
+  sizes: string[];
+  featured: boolean;
+  tags: string[];
+  brand?: string;
+  league?: string;
+  playerName?: string;
+  playerNumber?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  slug: string;
+}
+>>>>>>> e97f73a853fb7a2a9b818f76cbe4e65fc8a78128
 
 interface Product {
   id: string;
@@ -58,7 +82,10 @@ interface Product {
 export default function ProductPage({ params }: { params: { slug: string } }) {
   const router = useRouter();
   const { addItem } = useCart();
+<<<<<<< HEAD
 
+=======
+>>>>>>> e97f73a853fb7a2a9b818f76cbe4e65fc8a78128
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,18 +119,44 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/products/${slug}`);
-      const data = await response.json();
+      // Busca direto no Firestore pelo slug como id
+      const ref = doc(db, 'products', slug);
+      const snap = await getDoc(ref);
 
+<<<<<<< HEAD
       if (data.success) {
         setProduct(data.product || data.data);
         // Incrementar views
         incrementViews(slug);
+=======
+      if (snap.exists()) {
+        const data = snap.data();
+        setProduct({
+          id: snap.id,
+          title: data.title,
+          description: data.description,
+          price: data.price,
+          images: data.images || [],
+          sizes: data.sizes || [],
+          featured: data.featured || false,
+          tags: data.tags || [],
+          brand: data.brand,
+          league: data.league,
+          playerName: data.playerName,
+          playerNumber: data.playerNumber,
+          createdAt: data.createdAt?.toDate
+            ? data.createdAt.toDate()
+            : new Date(data.createdAt),
+          updatedAt: data.updatedAt?.toDate
+            ? data.updatedAt.toDate()
+            : new Date(data.updatedAt),
+          slug: data.slug,
+        });
+>>>>>>> e97f73a853fb7a2a9b818f76cbe4e65fc8a78128
       } else {
-        setError(data.error || 'Produto não encontrado');
+        setError('Produto não encontrado');
       }
     } catch (error) {
-      console.error('Error fetching product:', error);
       setError('Erro ao carregar produto');
     } finally {
       setLoading(false);
@@ -157,6 +210,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
       }-${selectedSize}-${customizationId}-${Date.now()}`;
 
       const cartItem = {
+<<<<<<< HEAD
         id: cartItemId,
         productId: product.id,
         productSlug: product.slug || product.id,
@@ -164,6 +218,11 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
         price: finalPrice,
         basePrice: product.price,
         customizationFee: hasCustomization() ? CUSTOMIZATION_FEE : 0,
+=======
+        id: `${product.slug}-${selectedSize}-${customization.name}-${customization.number}`,
+        title: product.title,
+        price: product.price,
+>>>>>>> e97f73a853fb7a2a9b818f76cbe4e65fc8a78128
         image: product.images?.[0] || '',
         size: selectedSize,
         customization: customizationData,
@@ -185,7 +244,10 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
       // Redirecionar para o carrinho
       router.push('/carrinho');
     } catch (error) {
+<<<<<<< HEAD
       console.error('❌ Erro ao adicionar ao carrinho:', error);
+=======
+>>>>>>> e97f73a853fb7a2a9b818f76cbe4e65fc8a78128
       toast.error('Erro ao adicionar produto ao carrinho');
     } finally {
       setAddingToCart(false);
@@ -284,6 +346,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
 
+<<<<<<< HEAD
       <main className="flex-1 pt-20 pb-12">
         {product && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -412,9 +475,76 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                       </button>
                     ))}
                   </div>
+=======
+      <main className="pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Breadcrumb */}
+          <div className="mb-8">
+            <Link
+              href="/#produtos"
+              className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar para produtos
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Product Image */}
+            <div className="relative aspect-square overflow-hidden rounded-xl bg-white shadow-lg">
+              {product.images?.[0] ? (
+                <Image
+                  src={product.images[0]}
+                  alt={product.title}
+                  fill
+                  className="object-cover transition-transform hover:scale-105"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  Sem imagem
+                </div>
+              )}
+
+              {/* League Badge */}
+              {product.league && (
+                <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  {product.league}
+                </div>
+              )}
+              {product.brand && (
+                <div className="absolute top-4 right-4 bg-gray-800 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  {product.brand}
+                </div>
+              )}
+              {product.featured && (
+                <div className="absolute bottom-4 left-4 bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-sm font-bold shadow">
+                  Destaque
+                </div>
+              )}
+            </div>
+
+            {/* Product Details */}
+            <div className="space-y-6">
+              {/* Product Header */}
+              <div>
+                <div className="flex items-center gap-2 mb-2"></div>
+
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {product.title}
+                </h1>
+
+                {product.playerName && (
+                  <p className="text-lg text-gray-600 mb-3">
+                    Jogador: {product.playerName}
+                    {product.playerNumber && ` (${product.playerNumber})`}
+                  </p>
+>>>>>>> e97f73a853fb7a2a9b818f76cbe4e65fc8a78128
                 )}
               </div>
 
+<<<<<<< HEAD
               {/* Product Details */}
               <div className="space-y-6">
                 {/* Header */}
@@ -431,6 +561,37 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                         <Eye className="w-4 h-4" />
                         {product.views || 0} visualizações
                       </div>
+=======
+              <p className="text-gray-700 text-lg leading-relaxed">
+                {product.description}
+              </p>
+
+              <Card className="border-0 shadow-lg">
+                <CardContent className="p-6 space-y-6">
+                  {/* Size Selection - Circular Buttons */}
+                  <div>
+                    <Label className="text-base font-semibold mb-4 block">
+                      Tamanho
+                    </Label>
+                    <div className="flex flex-wrap gap-3">
+                      {product.sizes &&
+                        product.sizes.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => setSelectedSize(size)}
+                            className={`
+                              w-16 h-16 rounded-full border-2 font-bold text-lg transition-all duration-200 hover:scale-110 active:scale-95
+                              ${
+                                selectedSize === size
+                                  ? 'border-blue-600 bg-blue-600 text-white shadow-lg transform scale-105'
+                                  : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                              }
+                            `}
+                          >
+                            {size}
+                          </button>
+                        ))}
+>>>>>>> e97f73a853fb7a2a9b818f76cbe4e65fc8a78128
                     </div>
                   )}
 
@@ -790,6 +951,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

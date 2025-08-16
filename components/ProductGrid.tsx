@@ -4,11 +4,6 @@ import { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Product } from '@/services/products';
 
-interface ProductGridProps {
-  category: string;
-  searchQuery?: string;
-}
-
 // Lista de ligas conhecidas
 const LEAGUES = [
   'Premier League',
@@ -16,12 +11,22 @@ const LEAGUES = [
   'Serie A',
   'Bundesliga',
   'Brasileirão',
+  'Ligue 1',
 ];
 
-export default function ProductGrid({
-  category,
-  searchQuery = '',
-}: ProductGridProps) {
+import { useSearchParams } from 'next/navigation';
+
+// ProductGrid component code
+interface ProductGridProps {
+  league: string;
+  searchQuery: string;
+}
+
+const ProductGrid: React.FC<ProductGridProps> = ({ league, searchQuery }) => {
+  const searchParams = useSearchParams();
+  const category =
+    searchParams.get('team') || searchParams.get('league') || 'Todos';
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -154,4 +159,6 @@ export default function ProductGrid({
       ))}
     </div>
   );
-}
+};
+
+export default ProductGrid;

@@ -4,7 +4,7 @@ import CategoryFilter from '@/components/CategoryFilter';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HeroBannerGallery from '@/components/HeroBannerGallery';
-import FeaturedCategories from '@/components/FeaturedCategories'; // Import do novo componente
+
 import {
   Shield,
   Truck,
@@ -22,13 +22,17 @@ import {
 import Link from 'next/link';
 
 interface Props {
-  searchParams: Promise<{ categoria?: string; busca?: string }>;
+  searchParams: Promise<{
+    league: any;
+    categoria?: string;
+    busca?: string;
+  }>;
 }
 
 export default async function Home({ searchParams }: Props) {
   const params = await searchParams;
-  const selectedCategory =
-    typeof params.categoria === 'string' ? params.categoria : 'Todos';
+  const selectedLeague =
+    typeof params.league === 'string' ? params.league : 'Todos';
   const searchQuery = typeof params.busca === 'string' ? params.busca : '';
 
   return (
@@ -44,9 +48,6 @@ export default async function Home({ searchParams }: Props) {
 
       {/* Quality Features */}
       <QualityFeaturesSection />
-
-      {/* Featured Categories */}
-      <FeaturedCategories />
 
       {/* Main Content */}
       <div id="produtos" className="bg-gray-50 py-16 flex-1">
@@ -78,10 +79,7 @@ export default async function Home({ searchParams }: Props) {
 
           {/* Products Grid */}
           <Suspense fallback={<ProductGridSkeleton />}>
-            <ProductGrid
-              category={selectedCategory}
-              searchQuery={searchQuery}
-            />
+            <ProductGrid league={selectedLeague} searchQuery={searchQuery} />
           </Suspense>
         </div>
       </div>

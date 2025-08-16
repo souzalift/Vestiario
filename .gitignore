@@ -12,9 +12,9 @@
 /scripts
 
 # next.js
-
 /.next/
 /out/
+/scripts/
 
 # production
 
