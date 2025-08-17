@@ -58,7 +58,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={`${poppins.variable} antialiased`}>
+      <body
+        className={`${poppins.variable} font-sans min-h-screen flex flex-col`}
+      >
         <CartProvider>
           <AuthProvider>
             <Header />
@@ -67,7 +69,7 @@ export default function RootLayout({
               Atenção: Trabalhamos apenas com camisas tailandesas de alta
               qualidade. Não vendemos produtos oficiais/licenciados.
             </div>
-            {children}
+            <main className="flex-1">{children}</main>
           </AuthProvider>
           <Footer />
         </CartProvider>
