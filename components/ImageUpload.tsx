@@ -353,18 +353,24 @@ https://exemplo.com/imagem3.jpg`}
           <div key={index} className="relative group">
             <div className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg">
               {/* Preview da Imagem */}
-              <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                <Image
-                  src={imageUrl}
-                  alt={`Imagem ${index + 1}`}
-                  width={64}
-                  height={64}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      '/placeholder-image.jpg';
-                  }}
-                />
+              <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
+                {imageUrl ? (
+                  <Image
+                    src={imageUrl}
+                    alt={`Imagem ${index + 1}`}
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Não renderiza nada, mostra fallback abaixo
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : null}
+                {/* Fallback para erro ou imagem vazia */}
+                {(!imageUrl || imageUrl === '' || imageUrl === undefined) && (
+                  <Camera className="w-8 h-8 text-gray-300 absolute inset-0 m-auto" />
+                )}
               </div>
 
               {/* Info da Imagem */}
@@ -383,9 +389,6 @@ https://exemplo.com/imagem3.jpg`}
                       Firebase
                     </Badge>
                   )}
-                  <span className="text-sm font-medium text-gray-900">
-                    Imagem {index + 1}
-                  </span>
                 </div>
                 <p className="text-xs text-gray-600 truncate max-w-[300px]">
                   {imageUrl}
