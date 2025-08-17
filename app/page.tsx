@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import ProductGrid from '@/components/ProductGrid';
-import CategoryFilter from '@/components/CategoryFilter';
+import LeagueFilter from '@/components/LeagueFilter';
 
 import HeroBannerGallery from '@/components/HeroBannerGallery';
 
@@ -69,7 +69,7 @@ export default async function Home({ searchParams }: Props) {
           {/* Category Filter - Hide when searching */}
           {!searchQuery && (
             <div className="mb-12">
-              <CategoryFilter selectedCategory="Todos" />
+              <LeagueFilter selectedCategory="Todos" />
             </div>
           )}
 
