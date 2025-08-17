@@ -32,7 +32,7 @@ const categories = [
       'Red Bull Bragantino',
       'Santos',
       'São Paulo',
-      'Sport Recife',
+      'Sport',
       'Vasco da Gama',
       'Vitória',
     ],
@@ -168,11 +168,15 @@ interface CategoryFilterProps {
   selectedCategory: string;
 }
 
-export default function LeagueFilter({
-  selectedCategory,
-}: CategoryFilterProps) {
+export default function LeagueFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Pegue o valor do filtro ativo
+  const selectedTeam = searchParams.get('team');
+  const selectedLeague = searchParams.get('league');
+  const selectedCategory = selectedTeam || selectedLeague || 'Todos';
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -262,8 +266,8 @@ export default function LeagueFilter({
               }}
               className={`group flex items-center gap-3 px-6 py-3 rounded-full font-medium transition-all duration-300 transform hover:scale-105 ${
                 selectedCategory === category.name
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg border border-gray-200'
+                  ? 'bg-blue-700 text-white border-2 border-blue-700 shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-blue-50 shadow-md hover:shadow-lg border border-gray-200'
               }`}
             >
               {/* Logo ou Ícone */}

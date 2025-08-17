@@ -67,13 +67,13 @@ export default async function Home({ searchParams }: Props) {
           {/* Category Filter - Hide when searching */}
           {!searchQuery && (
             <div className="mb-12">
-              <LeagueFilter selectedCategory="Todos" />
+              <LeagueFilter />
             </div>
           )}
 
           {/* Products Grid */}
           <Suspense fallback={<ProductGridSkeleton />}>
-            <ProductGrid league={selectedLeague} searchQuery={searchQuery} />
+            <ProductGrid searchQuery={searchQuery} />
           </Suspense>
         </div>
       </div>

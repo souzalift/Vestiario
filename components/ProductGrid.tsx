@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ProductCard from './ProductCard';
 import { Product } from '@/services/products';
+import { useSearchParams } from 'next/navigation';
 
-// Lista de ligas conhecidas
 const LEAGUES = [
   'Premier League',
   'La Liga',
@@ -14,55 +14,43 @@ const LEAGUES = [
   'Ligue 1',
 ];
 
-import { useSearchParams } from 'next/navigation';
+const PER_PAGE = 20;
 
-// ProductGrid component code
+// O componente não precisa mais da prop 'league'.
 interface ProductGridProps {
-  league: string;
   searchQuery: string;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ league, searchQuery }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ searchQuery }) => {
   const searchParams = useSearchParams();
   const category =
     searchParams.get('team') || searchParams.get('league') || 'Todos';
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
+  // Usar useCallback para memorizar a função de busca
+  const fetchProducts = useCallback(
+    async (currentPage: number, isNewFilter: boolean) => {
+      setLoading(true);
       try {
-        setLoading(true);
-
-        let url = '/api/products';
         const params = new URLSearchParams();
+        params.set('page', currentPage.toString());
+        params.set('perPage', PER_PAGE.toString());
 
         if (searchQuery) {
           params.set('search', searchQuery);
         } else if (category && category !== 'Todos') {
-          // Verifica se é uma liga ou um time
           const isLeague = LEAGUES.includes(category);
-
-          if (isLeague) {
-            params.set('league', category);
-          } else {
-            // É um time, busca por team
-            params.set('team', category);
-          }
+          params.set(isLeague ? 'league' : 'team', category);
         }
 
-        if (params.toString()) {
-          url += `?${params.toString()}`;
-        }
-
-        console.log('Fetching from:', url);
-
-        const response = await fetch(url);
+        const response = await fetch(`/api/products?${params.toString()}`);
         const data = await response.json();
 
-        if (data.success) {
-          // Mapear os dados da API para a interface Product correta
+        if (data.success && data.data.length > 0) {
           const mappedProducts: Product[] = data.data.map((item: any) => ({
             id: item.id || item._id,
             title: item.title,
@@ -79,30 +67,59 @@ const ProductGrid: React.FC<ProductGridProps> = ({ league, searchQuery }) => {
             playerName: item.playerName || '',
             playerNumber: item.playerNumber || '',
             slug: item.slug,
-            views: item.views || 0,
-            rating: item.rating || 0,
-            reviewCount: item.reviewCount || 0,
+            team: item.team || '',
             createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
             updatedAt: item.updatedAt ? new Date(item.updatedAt) : new Date(),
           }));
 
-          setProducts(mappedProducts);
+          // Se for um filtro novo, substitui os produtos. Caso contrário, anexa.
+          setProducts((prev) =>
+            isNewFilter ? mappedProducts : [...prev, ...mappedProducts],
+          );
+          setHasMore(
+            data.pagination?.hasMore ?? mappedProducts.length === PER_PAGE,
+          );
         } else {
-          console.error('Failed to fetch products:', data.error);
-          setProducts([]);
+          if (isNewFilter) setProducts([]); // Limpa os produtos em um novo filtro sem resultados
+          setHasMore(false);
         }
       } catch (error) {
-        console.error('Error fetching products:', error);
-        setProducts([]);
+        console.error('Falha ao buscar produtos:', error);
+        if (isNewFilter) setProducts([]);
+        setHasMore(false);
       } finally {
         setLoading(false);
       }
-    };
+    },
+    [category, searchQuery],
+  ); // Dependências para o callback
 
-    fetchProducts();
-  }, [category, searchQuery]);
+  // useEffect único e unificado para lidar com busca de dados e reset de estado.
+  useEffect(() => {
+    // Quando category ou searchQuery muda, reinicia tudo e busca a página 1.
+    setProducts([]);
+    setPage(1);
+    setHasMore(true);
+    fetchProducts(1, true); // `true` indica que é um novo filtro
+  }, [category, searchQuery, fetchProducts]);
 
-  if (loading) {
+  const handleLoadMore = () => {
+    // Apenas incrementa a página. O useEffect cuidará da busca.
+    if (!loading) {
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
+
+  // Efeito para buscar páginas subsequentes
+  useEffect(() => {
+    // Não busca na carga inicial (página 1), pois o efeito acima já cuidou disso.
+    if (page > 1) {
+      fetchProducts(page, false); // `false` indica que estamos anexando produtos
+    }
+  }, [page, fetchProducts]);
+
+  // Estado de esqueleto de layout: apenas no carregamento inicial.
+  if (loading && products.length === 0) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
         {[...Array(8)].map((_, i) => (
@@ -122,7 +139,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({ league, searchQuery }) => {
     );
   }
 
-  if (products.length === 0) {
+  // Estado vazio: quando não há produtos e não está carregando.
+  if (!loading && products.length === 0) {
     return (
       <div className="text-center py-16">
         <div className="text-6xl mb-4">⚽</div>
@@ -141,23 +159,36 @@ const ProductGrid: React.FC<ProductGridProps> = ({ league, searchQuery }) => {
     );
   }
 
+  // Estado de sucesso: renderiza a grade e o botão "Carregar Mais".
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
-      {products.map((product) => (
-        <ProductCard
-          key={product.id || product.slug}
-          product={product}
-          onAddToCart={(product) => {
-            // Implementar lógica do carrinho
-            console.log('Adicionar ao carrinho:', product.title);
-          }}
-          onToggleFavorite={(product) => {
-            // Implementar lógica de favoritos
-            console.log('Toggle favorito:', product.title);
-          }}
-        />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+        {products.map((product) => (
+          <ProductCard
+            key={`${product.id}-${product.slug}`}
+            product={product}
+            onAddToCart={(product) =>
+              console.log('Adicionar ao carrinho:', product.title)
+            }
+            onToggleFavorite={(product) =>
+              console.log('Toggle favorito:', product.title)
+            }
+          />
+        ))}
+      </div>
+
+      {hasMore && (
+        <div className="flex justify-center mt-12">
+          <button
+            onClick={handleLoadMore}
+            disabled={loading}
+            className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+          >
+            {loading ? 'Carregando...' : 'Carregar Mais'}
+          </button>
+        </div>
+      )}
+    </>
   );
 };
 
