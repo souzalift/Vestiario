@@ -2,10 +2,9 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/hooks/useAdmin';
-import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,8 @@ import {
   orderBy,
   deleteDoc,
   doc,
+  addDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -37,8 +38,10 @@ import {
   Grid3X3,
   List,
   Loader2,
+  Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
 
 interface Product {
   id: string;
@@ -71,6 +74,8 @@ export default function AdminProductsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [leagues, setLeagues] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isLoaded) {
@@ -236,6 +241,30 @@ export default function AdminProductsPage() {
     }
   };
 
+  const importProductsFromJson = async (file: File) => {
+    try {
+      const text = await file.text();
+      const products = JSON.parse(text);
+
+      if (!Array.isArray(products)) {
+        throw new Error('O arquivo JSON deve conter um array de produtos.');
+      }
+
+      for (const product of products) {
+        // Adapte os campos conforme sua modelagem
+        await addDoc(collection(db, 'products'), {
+          ...product,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      toast.success(`Importação concluída! (${products.length} produtos)`);
+    } catch (err: any) {
+      toast.error('Erro ao importar produtos: ' + err.message);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -258,8 +287,6 @@ export default function AdminProductsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
-
       <div className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4">
           {/* Header */}
@@ -272,13 +299,41 @@ export default function AdminProductsPage() {
                 {filteredProducts.length} de {products.length} produtos
               </p>
             </div>
-            <Button
-              onClick={() => router.push('/admin/products/new')}
-              className="bg-gray-900 hover:bg-gray-800 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Produto
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => router.push('/admin/products/new')}
+                className="bg-gray-900 hover:bg-gray-800 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Produto
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={importing}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4" />
+                {importing ? 'Importando...' : 'Importar JSON'}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setImporting(true);
+                    await importProductsFromJson(file);
+                    setImporting(false);
+                    e.target.value = '';
+                    await loadProducts();
+                  }
+                }}
+              />
+            </div>
           </div>
 
           {/* Filtros */}
