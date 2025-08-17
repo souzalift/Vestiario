@@ -184,7 +184,7 @@ export default function ProductPage() {
           {/* Breadcrumb */}
           <div className="mb-8">
             <Link
-              href="/"
+              href="/#produtos"
               className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
