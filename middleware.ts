@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  console.log('🛡️ Middleware executado para:', pathname);
+
 
   // Rotas públicas que sempre devem ser acessíveis
   const publicRoutes = [
@@ -37,19 +37,18 @@ export function middleware(request: NextRequest) {
 
   // Verificar se é rota pública
   if (publicRoutes.some(route => pathname.startsWith(route))) {
-    console.log('✅ Rota pública, permitindo acesso');
     return NextResponse.next();
   }
 
   // Verificar se é rota de auth
   if (authRoutes.some(route => pathname.startsWith(route))) {
-    console.log('🔐 Rota de autenticação, permitindo acesso');
+
     return NextResponse.next();
   }
 
   // Verificar se é rota protegida
   if (protectedRoutes.some(route => pathname.startsWith(route))) {
-    console.log('🛡️ Rota protegida, verificando autenticação...');
+
 
     // Aqui você pode implementar verificação mais robusta se necessário
     // Por enquanto, vamos confiar no client-side do AuthContext
@@ -57,7 +56,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Para todas as outras rotas, permitir acesso
-  console.log('🌐 Rota não categorizada, permitindo acesso');
+
   return NextResponse.next();
 }
 
