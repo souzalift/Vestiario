@@ -100,7 +100,7 @@ interface ProductData {
   updatedAt?: any;
 }
 
-export function useUserProfile() {
+export function UserProfile() {
   const { user, isAuthenticated } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
