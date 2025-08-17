@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 import Image from 'next/image';
+import { Button } from './ui/button';
 
 const categories = [
   {
@@ -167,7 +168,7 @@ interface CategoryFilterProps {
   selectedCategory: string;
 }
 
-export default function CategoryFilter({
+export default function LeagueFilter({
   selectedCategory,
 }: CategoryFilterProps) {
   const router = useRouter();
@@ -243,7 +244,7 @@ export default function CategoryFilter({
 
   return (
     <div id="produtos" className="mb-12">
-      <div className="flex flex-wrap gap-3 justify-center">
+      <div className="flex flex-wrap gap-3 justify-center grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 w-full mx-auto">
         {categories.map((category) => (
           <div
             key={category.name}
@@ -251,7 +252,7 @@ export default function CategoryFilter({
             onMouseEnter={() => handleMouseEnter(category.name)}
             onMouseLeave={handleMouseLeave}
           >
-            <button
+            <Button
               onClick={() => {
                 if (category.teams) {
                   toggleDropdown(category.name);
@@ -290,7 +291,7 @@ export default function CategoryFilter({
                   }`}
                 />
               )}
-            </button>
+            </Button>
 
             {/* Dropdown Menu */}
             {category.teams && openDropdown === category.name && (
