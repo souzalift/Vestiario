@@ -1,8 +1,7 @@
 import { Suspense } from 'react';
 import ProductGrid from '@/components/ProductGrid';
 import CategoryFilter from '@/components/CategoryFilter';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+
 import HeroBannerGallery from '@/components/HeroBannerGallery';
 
 import {
@@ -37,9 +36,6 @@ export default async function Home({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <Header />
-
       {/* Hero Banner Gallery */}
       <HeroBannerGallery />
 
@@ -92,9 +88,6 @@ export default async function Home({ searchParams }: Props) {
 
       {/* Newsletter Section */}
       <NewsletterSection />
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

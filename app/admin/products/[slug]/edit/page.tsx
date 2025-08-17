@@ -144,7 +144,13 @@ export default function EditProductPage() {
       setColor(productData.color || '');
       setMaterial(productData.material || '');
       setSizes(productData.size || []);
-      setImages(productData.images || []);
+      setImages(
+        Array.isArray(productData.images)
+          ? productData.images.filter(
+              (img: string) => !!img && img.trim() !== '',
+            )
+          : [],
+      );
       setTags(productData.tags || []);
       setFeatures(productData.features || []);
       setIsActive(productData.isActive ?? true);
