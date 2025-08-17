@@ -52,7 +52,7 @@ interface Product {
   title: string;
   description: string;
   price: number;
-  category: string;
+  league: string; // ALTERADO de category para league
   brand?: string;
   team?: string;
   season?: string;
@@ -80,14 +80,14 @@ export default function EditProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [leagues, setLeagues] = useState<string[]>([]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Estados do formulário
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('');
+  const [league, setLeague] = useState('');
   const [brand, setBrand] = useState('');
   const [team, setTeam] = useState('');
   const [season, setSeason] = useState('');
@@ -111,7 +111,7 @@ export default function EditProductPage() {
         return;
       }
       loadProduct();
-      loadCategories();
+      loadLeagues();
     }
   }, [isLoaded, isAdmin, router, productId]);
 
@@ -137,7 +137,7 @@ export default function EditProductPage() {
       setTitle(productData.title || '');
       setDescription(productData.description || '');
       setPrice(productData.price?.toString() || '');
-      setCategory(productData.category || '');
+      setLeague(productData.league || ''); // Troque category por league
       setBrand(productData.brand || '');
       setTeam(productData.team || '');
       setSeason(productData.season || '');
@@ -158,20 +158,20 @@ export default function EditProductPage() {
     }
   };
 
-  const loadCategories = async () => {
+  const loadLeagues = async () => {
     try {
       const productsRef = collection(db, 'products');
       const productsSnap = await getDocs(productsRef);
 
-      const uniqueCategories = Array.from(
+      const uniqueLeagues = Array.from(
         new Set(
-          productsSnap.docs.map((doc) => doc.data().category).filter(Boolean),
+          productsSnap.docs.map((doc) => doc.data().league).filter(Boolean),
         ),
       ).sort();
 
-      setCategories(uniqueCategories);
+      setLeagues(uniqueLeagues);
     } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
+      console.error('Erro ao carregar ligas:', error);
     }
   };
 
@@ -183,7 +183,7 @@ export default function EditProductPage() {
     if (!price || isNaN(Number(price)) || Number(price) <= 0) {
       newErrors.price = 'Preço deve ser um número válido maior que 0';
     }
-    if (!category.trim()) newErrors.category = 'Categoria é obrigatória';
+    if (!league.trim()) newErrors.league = 'Liga é obrigatória'; // Troque category por league
     if (images.length === 0)
       newErrors.images = 'Pelo menos uma imagem é obrigatória';
 
@@ -203,7 +203,7 @@ export default function EditProductPage() {
         title: title.trim(),
         description: description.trim(),
         price: Number(price),
-        category: category.trim(),
+        league: league.trim(), // Troque category por league
         brand: brand.trim() || null,
         team: team.trim() || null,
         season: season.trim() || null,
@@ -427,43 +427,43 @@ export default function EditProductPage() {
                 </CardContent>
               </Card>
 
-              {/* Categorização */}
+              {/* Liga (no lugar de Categoria) */}
               <Card className="border-gray-200 shadow-sm">
                 <CardHeader className="border-b border-gray-100">
                   <CardTitle className="flex items-center gap-2 text-gray-900">
                     <Tag className="w-5 h-5 text-gray-600" />
-                    Categorização
+                    Liga
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4">
                   <div>
                     <Label
-                      htmlFor="category"
+                      htmlFor="league"
                       className="text-gray-700 font-medium"
                     >
-                      Categoria *
+                      Liga *
                     </Label>
-                    <Select value={category} onValueChange={setCategory}>
+                    <Select value={league} onValueChange={setLeague}>
                       <SelectTrigger
                         className={`mt-1 ${
-                          errors.category
+                          errors.league
                             ? 'border-red-500'
                             : 'border-gray-200 focus:border-gray-400'
                         }`}
                       >
-                        <SelectValue placeholder="Selecione uma categoria" />
+                        <SelectValue placeholder="Selecione uma liga" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
+                        {leagues.map((lg) => (
+                          <SelectItem key={lg} value={lg}>
+                            {lg}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {errors.category && (
+                    {errors.league && (
                       <p className="text-red-500 text-sm mt-1">
-                        {errors.category}
+                        {errors.league}
                       </p>
                     )}
                   </div>
