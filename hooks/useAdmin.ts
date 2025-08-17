@@ -16,7 +16,7 @@ interface AdminStats {
 }
 
 export const useAdmin = () => {
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const { userProfile, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
@@ -29,7 +29,7 @@ export const useAdmin = () => {
       setLoading(true);
 
       try {
-        if (!user) {
+        if (!userProfile) {
           setIsAdmin(false);
           setIsLoaded(true);
           setLoading(false);
@@ -39,8 +39,8 @@ export const useAdmin = () => {
         // Verificar se é admin através do userProfile ou email específico
         const adminCheck =
           userProfile?.role === 'admin' ||
-          user.email === 'admin@ovestiario.com' ||
-          user.email === 'souzalift@gmail.com';
+          userProfile.email === 'admin@ovestiario.com' ||
+          userProfile.email === 'souzalift@gmail.com';
 
         setIsAdmin(adminCheck);
 
@@ -58,7 +58,7 @@ export const useAdmin = () => {
     };
 
     checkAdminStatus();
-  }, [user, userProfile, authLoading]);
+  }, [userProfile, authLoading]);
 
   const loadAdminStats = async () => {
     try {
@@ -92,8 +92,7 @@ export const useAdmin = () => {
     isAdmin,
     isLoaded,
     loading,
-    user,
-    email: user?.email || '',
+    email: userProfile?.email || '',
     adminStats,
     loadAdminStats,
   };

@@ -11,10 +11,10 @@ interface UserDropdownProps {
 }
 
 export default function UserDropdown({ isScrolled }: UserDropdownProps) {
-  const { user, userProfile, logout } = useAuth();
+  const { userProfile, logout } = useAuth();
   const [open, setOpen] = useState(false);
 
-  if (!user) return null;
+  if (!userProfile) return null;
 
   return (
     <div className="relative">
@@ -36,7 +36,7 @@ export default function UserDropdown({ isScrolled }: UserDropdownProps) {
           </div>
         )}
         <span className="font-medium text-gray-800 text-sm">
-          {userProfile?.displayName || userProfile?.email || user.email}
+          {userProfile?.displayName || userProfile?.email || userProfile.email}
         </span>
         <ChevronDown
           className={`w-4 h-4 text-gray-500 transition-transform ${
@@ -49,10 +49,12 @@ export default function UserDropdown({ isScrolled }: UserDropdownProps) {
         <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="font-semibold text-gray-900">
-              {userProfile?.displayName || userProfile?.email || user.email}
+              {userProfile?.displayName ||
+                userProfile?.email ||
+                userProfile.email}
             </div>
             <div className="text-xs text-gray-500 truncate">
-              {userProfile?.email || user.email}
+              {userProfile?.email || userProfile.email}
             </div>
           </div>
           <ul className="py-1">

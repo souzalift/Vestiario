@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 interface UserProfile {
   uid: string;
   email: string;
+  emailVerified: boolean | undefined;
   displayName: string | null;
   firstName?: string;
   lastName?: string;
@@ -320,7 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     updateUserProfile,
     refreshUserProfile,
-    isAuthenticated: !!user,
+    isAuthenticated: !!userProfile,
     resetPassword, // ADICIONADO
   };
 

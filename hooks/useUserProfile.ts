@@ -101,8 +101,8 @@ interface ProductData {
 }
 
 export function UserProfile() {
-  const { user, isAuthenticated } = useAuth();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { userProfile, isAuthenticated } = useAuth();
+  const [userProfileState, setUserProfile] = useState<UserProfile | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [favoriteProducts, setFavoriteProducts] = useState<FavoriteProduct[]>([]);
@@ -228,7 +228,7 @@ export function UserProfile() {
 
   // Atualizar perfil do usuário
   const updateUserProfile = async (updates: Partial<UserProfile>) => {
-    if (!user || !userProfile) {
+    if (!userProfile) {
       throw new Error('Usuário não está logado');
     }
 
@@ -236,7 +236,7 @@ export function UserProfile() {
       setUpdating(true);
       console.log('📝 Atualizando perfil do usuário...');
 
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', userProfile.uid);
 
       await updateDoc(userRef, {
         ...updates,
@@ -244,7 +244,7 @@ export function UserProfile() {
       });
 
       // Recarregar perfil
-      const updatedProfile = await loadUserProfile(user.uid);
+      const updatedProfile = await loadUserProfile(userProfile.uid);
 
       console.log('✅ Perfil atualizado com sucesso');
       return updatedProfile;
@@ -258,7 +258,7 @@ export function UserProfile() {
 
   // Criar perfil inicial se não existir
   const createUserProfile = async (userData: Partial<UserProfile>) => {
-    if (!user) {
+    if (!userProfile) {
       throw new Error('Usuário não está logado');
     }
 
@@ -266,10 +266,10 @@ export function UserProfile() {
       console.log('🆕 Criando perfil inicial...');
 
       const newProfile: UserProfile = {
-        uid: user.uid,
-        email: user.email || '',
-        displayName: user.displayName,
-        photoURL: user.photoURL,
+        uid: userProfile.uid,
+        email: userProfile.email || '',
+        displayName: userProfile.displayName,
+        photoURL: userProfile.photoURL,
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
         phoneNumber: userData.phoneNumber || '',
@@ -281,14 +281,14 @@ export function UserProfile() {
           ...userData.preferences,
         },
         role: 'user',
-        emailVerified: user.emailVerified,
+        emailVerified: userProfile.emailVerified,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
       };
 
-      await setDoc(doc(db, 'users', user.uid), newProfile);
-      await loadUserProfile(user.uid);
+      await setDoc(doc(db, 'users', userProfile.uid), newProfile);
+      await loadUserProfile(userProfile.uid);
 
       console.log('✅ Perfil criado com sucesso');
       return newProfile;
@@ -312,14 +312,14 @@ export function UserProfile() {
 
   // Refresh completo dos dados
   const refreshUserData = async () => {
-    if (!user) return;
+    if (!userProfile) return;
 
     setLoading(true);
     try {
       console.log('🔄 Atualizando dados do usuário...');
       await Promise.all([
-        loadUserProfile(user.uid),
-        loadUserStats(user.uid),
+        loadUserProfile(userProfile.uid),
+        loadUserStats(userProfile.uid),
       ]);
       console.log('✅ Dados atualizados com sucesso');
     } catch (error) {
@@ -331,20 +331,20 @@ export function UserProfile() {
 
   // Adicionar produto aos favoritos
   const addToFavorites = async (productId: string) => {
-    if (!user) {
+    if (!userProfile) {
       throw new Error('Usuário não está logado');
     }
 
     try {
       const favoriteRef = doc(collection(db, 'favorites'));
       await setDoc(favoriteRef, {
-        userId: user.uid,
+        userId: userProfile.uid,
         productId,
         addedAt: serverTimestamp(),
       });
 
       // Recarregar favoritos
-      await loadUserStats(user.uid);
+      await loadUserStats(userProfile.uid);
       console.log(`✅ Produto ${productId} adicionado aos favoritos`);
     } catch (error) {
       console.error('❌ Erro ao adicionar aos favoritos:', error);
@@ -354,7 +354,7 @@ export function UserProfile() {
 
   // Remover produto dos favoritos
   const removeFromFavorites = async (favoriteId: string) => {
-    if (!user) {
+    if (!userProfile) {
       throw new Error('Usuário não está logado');
     }
 
@@ -362,7 +362,7 @@ export function UserProfile() {
       await deleteDoc(doc(db, 'favorites', favoriteId));
 
       // Recarregar favoritos
-      await loadUserStats(user.uid);
+      await loadUserStats(userProfile.uid);
       console.log(`✅ Favorito ${favoriteId} removido`);
     } catch (error) {
       console.error('❌ Erro ao remover favorito:', error);
@@ -384,14 +384,14 @@ export function UserProfile() {
 
   // Effect principal para carregar dados quando usuário muda
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && userProfile) {
       const loadAllData = async () => {
         setLoading(true);
         try {
           console.log('🔄 Carregando dados do usuário...');
-          const profile = await loadUserProfile(user.uid);
+          const profile = await loadUserProfile(userProfile.uid);
           if (profile) {
-            await loadUserStats(user.uid);
+            await loadUserStats(userProfile.uid);
           }
         } catch (error) {
           console.error('❌ Erro ao carregar dados:', error);
@@ -410,7 +410,7 @@ export function UserProfile() {
       setFavoriteProducts([]);
       setLoading(false);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated]);
 
   return {
     // Estados
