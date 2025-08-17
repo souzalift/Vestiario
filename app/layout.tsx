@@ -15,21 +15,23 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: 'O Vestiário',
-  description:
-    'Camisas oficiais dos maiores clubes do mundo com qualidade autêntica',
+  description: 'O Vestiário - Camisas Tailandesas',
   keywords: [
+    'camisas tailandesas',
     'camisas de futebol',
-    'camisas oficiais',
-    'clubes',
+    'camisas de clubes',
+    'camisas de times',
     'futebol',
     'esportes',
+    'não oficiais',
   ],
   authors: [{ name: 'O Vestiário' }],
   creator: 'O Vestiário',
   publisher: 'O Vestiário',
   openGraph: {
-    title: 'O Vestiário - Camisas Oficiais',
-    description: 'Camisas oficiais dos maiores clubes do mundo',
+    title: 'O Vestiário - Camisas Tailandesas',
+    description:
+      'Camisas tailandesas de alta qualidade inspiradas nos maiores clubes do mundo. Não vendemos produtos oficiais.',
     url: 'https://ovestiario.com.br',
     siteName: 'O Vestiário',
     locale: 'pt_BR',
@@ -59,7 +61,12 @@ export default function RootLayout({
       <body className={`${poppins.variable} antialiased`}>
         <CartProvider>
           <AuthProvider>
-            <Header></Header>
+            <Header />
+            {/* AVISO DE PRODUTO NÃO OFICIAL */}
+            <div className="w-full bg-yellow-100 text-yellow-900 text-center py-2 text-sm font-medium border-b border-yellow-300">
+              Atenção: Trabalhamos apenas com camisas tailandesas de alta
+              qualidade. Não vendemos produtos oficiais/licenciados.
+            </div>
             {children}
           </AuthProvider>
           <Footer />
