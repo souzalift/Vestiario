@@ -31,6 +31,7 @@ export interface Product {
   league?: string;
   playerName?: string;
   playerNumber?: string;
+  team?: string;
   createdAt: Date;
   updatedAt: Date;
   slug: string;
@@ -39,6 +40,7 @@ export interface Product {
 
 export interface ProductFilters {
   league?: string;
+  team?: string;
   search?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -50,7 +52,7 @@ export interface ProductFilters {
 // Buscar produtos com filtros avançados
 export const getProducts = async (
   filters: ProductFilters = {},
-  limitCount: number = 20,
+  limitCount: number = 99,
   lastDoc?: QueryDocumentSnapshot
 ) => {
   try {
@@ -62,6 +64,11 @@ export const getProducts = async (
     // Filtro por Liga
     if (filters.league && filters.league !== 'Todos') {
       queryConstraints.push(where('league', '==', filters.league));
+    }
+
+    // Filtro por Time
+    if (filters.team && filters.team !== 'Todos') {
+      queryConstraints.push(where('team', '==', filters.team));
     }
 
     // Filtro por destaque

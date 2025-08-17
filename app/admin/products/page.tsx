@@ -25,6 +25,7 @@ import {
   doc,
   addDoc,
   serverTimestamp,
+  setDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -251,12 +252,20 @@ export default function AdminProductsPage() {
       }
 
       for (const product of products) {
-        // Adapte os campos conforme sua modelagem
-        await addDoc(collection(db, 'products'), {
-          ...product,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
+        // Usa o slug como ID do documento
+        if (!product.slug) {
+          toast.error('Produto sem slug não pode ser importado.');
+          continue;
+        }
+        await setDoc(
+          doc(db, 'products', product.slug),
+          {
+            ...product,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
       }
 
       toast.success(`Importação concluída! (${products.length} produtos)`);
