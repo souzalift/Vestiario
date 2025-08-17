@@ -34,6 +34,7 @@ export interface Product {
   createdAt: Date;
   updatedAt: Date;
   slug: string;
+  isActive?: boolean;
 }
 
 export interface ProductFilters {
@@ -104,6 +105,9 @@ export const getProducts = async (
       createdAt: doc.data().createdAt?.toDate(),
       updatedAt: doc.data().updatedAt?.toDate(),
     })) as Product[];
+
+    // FILTRAR APENAS PRODUTOS ATIVOS
+    products = products.filter(product => product.isActive !== false);
 
     // Filtros que não podem ser feitos no Firestore
     if (filters.search) {
