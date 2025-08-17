@@ -153,8 +153,13 @@ export default function ProductCard({
       </div>
 
       {/* Product Info */}
-      <div className="p-4">
-        <Link href={`/produto/${product.slug || product.id}`}>
+      <div className="p-4 flex flex-col h-44">
+        {' '}
+        {/* <-- altura fixa para alinhar conteúdo */}
+        <Link
+          href={`/produto/${product.slug || product.id}`}
+          className="flex-1 flex flex-col"
+        >
           {/* Title */}
           <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-primary-600 transition-colors">
             {product.title}
@@ -172,40 +177,41 @@ export default function ProductCard({
             </div>
           )}
 
-          {/* Price */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-bold text-gray-900">
-                {formatPrice(product.price || 0)}
-              </span>
-            </div>
+          {/* Espaço flexível para empurrar o rodapé */}
+          <div className="flex-1" />
 
-            {/* Available Badge */}
-            <div className="text-xs">
-              <span className="text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
-                Disponível
-              </span>
+          {/* Rodapé fixo: preço, badge e tamanhos */}
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg font-bold text-gray-900">
+                  {formatPrice(product.price || 0)}
+                </span>
+              </div>
+              <div className="text-xs">
+                <span className="text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
+                  Disponível
+                </span>
+              </div>
             </div>
+            {product.sizes && product.sizes.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {product.sizes.slice(0, 6).map((size) => (
+                  <span
+                    key={size}
+                    className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-600"
+                  >
+                    {size}
+                  </span>
+                ))}
+                {product.sizes.length > 6 && (
+                  <span className="text-xs px-2 py-1 text-gray-400">
+                    +{product.sizes.length - 6}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-
-          {/* Sizes */}
-          {product.sizes && product.sizes.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {product.sizes.slice(0, 6).map((size) => (
-                <span
-                  key={size}
-                  className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-600"
-                >
-                  {size}
-                </span>
-              ))}
-              {product.sizes.length > 6 && (
-                <span className="text-xs px-2 py-1 text-gray-400">
-                  +{product.sizes.length - 6}
-                </span>
-              )}
-            </div>
-          )}
         </Link>
       </div>
     </div>
