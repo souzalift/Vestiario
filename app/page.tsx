@@ -35,7 +35,7 @@ export default async function Home({ searchParams }: Props) {
   const searchQuery = typeof params.busca === 'string' ? params.busca : '';
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="w-full flex flex-col">
       {/* Hero Banner Gallery */}
       <HeroBannerGallery />
 
@@ -82,12 +82,6 @@ export default async function Home({ searchParams }: Props) {
 
       {/* Why Choose Thai Quality */}
       <WhyChooseThaiQualitySection />
-
-      {/* Popular Teams */}
-      <PopularTeamsSection />
-
-      {/* Newsletter Section */}
-      <NewsletterSection />
     </div>
   );
 }
@@ -259,51 +253,6 @@ function WhyChooseThaiQualitySection() {
   );
 }
 
-// Popular Teams - Mantido mas com ajustes no texto
-function PopularTeamsSection() {
-  const teams = [
-    { name: 'Flamengo', logo: '/logos/flamengo.png', sales: '2.5k' },
-    { name: 'Corinthians', logo: '/logos/corinthians.png', sales: '2.1k' },
-    { name: 'Barcelona', logo: '/logos/barcelona.png', sales: '1.8k' },
-    { name: 'Real Madrid', logo: '/logos/real.png', sales: '1.7k' },
-    { name: 'PSG', logo: '/logos/psg.png', sales: '1.4k' },
-    { name: 'Manchester United', logo: '/logos/manu.png', sales: '1.3k' },
-  ];
-
-  return (
-    <div className="bg-primary-900 py-20">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Times Mais Vendidos
-          </h2>
-          <p className="text-primary-200 text-xl max-w-2xl mx-auto">
-            Os clubes favoritos dos nossos clientes em camisas tailandesas
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {teams.map((team, index) => (
-            <Link
-              key={index}
-              href={`/?busca=${team.name}`}
-              className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105"
-            >
-              <div className="w-16 h-16 bg-white rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary-800">
-                  {team.name.charAt(0)}
-                </span>
-              </div>
-              <h3 className="text-white font-bold mb-1">{team.name}</h3>
-              <p className="text-primary-200 text-sm">{team.sales} vendidas</p>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Resto dos componentes mantidos...
 function ProductGridSkeleton() {
   return (
@@ -313,53 +262,14 @@ function ProductGridSkeleton() {
           key={i}
           className="bg-white rounded-2xl shadow-sm p-6 animate-pulse"
         >
-          <div className="bg-gray-200 h-64 rounded-xl mb-4"></div>
           <div className="space-y-3">
+            <div className="bg-gray-200 h-64 rounded-xl mb-4"></div>
             <div className="bg-gray-200 h-4 rounded w-3/4"></div>
             <div className="bg-gray-200 h-4 rounded w-1/2"></div>
             <div className="bg-gray-200 h-6 rounded w-1/3"></div>
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function NewsletterSection() {
-  return (
-    <div className="bg-gradient-to-r from-primary-800 via-primary-700 to-primary-800 py-20">
-      <div className="container mx-auto px-4 text-center">
-        <div className="max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm font-medium mb-6">
-            <Star className="w-4 h-4" />
-            Newsletter Exclusiva
-          </div>
-
-          <h3 className="text-4xl font-bold text-white mb-4">
-            Não perca nenhum lançamento
-          </h3>
-          <p className="text-xl text-primary-200 mb-8">
-            Seja o primeiro a saber sobre novos produtos, ofertas exclusivas e
-            lançamentos de camisas tailandesas
-          </p>
-
-          <div className="max-w-md mx-auto">
-            <div className="flex gap-3 bg-white/10 backdrop-blur-sm p-2 rounded-2xl">
-              <input
-                type="email"
-                placeholder="Seu melhor e-mail"
-                className="flex-1 px-4 py-3 bg-transparent text-white placeholder-primary-200 border-0 focus:outline-none"
-              />
-              <button className="bg-accent-500 hover:bg-accent-600 text-white px-8 py-3 rounded-xl font-bold transition-colors shadow-lg hover:shadow-xl">
-                Inscrever
-              </button>
-            </div>
-            <p className="text-primary-300 text-sm mt-3">
-              Sem spam. Cancele quando quiser.
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
