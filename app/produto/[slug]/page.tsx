@@ -12,13 +12,13 @@ import { toast } from 'sonner';
 import { ArrowLeft, ShoppingCart, Star } from 'lucide-react';
 import Link from 'next/link';
 
+// Sua interface IProduct aqui...
 interface IProduct {
-  _id?: string;
-  slug?: string;
+  _id: string; // Garanta que o _id sempre exista
+  slug: string;
   title: string;
   description: string;
   price: number;
-
   images?: string[];
   league?: string;
   team?: string;
@@ -28,7 +28,8 @@ interface IProduct {
 export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
-  const { addItem } = useCart?.() || { addItem: () => {} };
+  const { addItem } = useCart(); // Chame o hook diretamente. Se o provider não estiver lá, isso dará um erro claro, o que é bom para debug.
+
   const [product, setProduct] = useState<IProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,32 +41,45 @@ export default function ProductPage() {
   });
 
   useEffect(() => {
+    const fetchProduct = async (slug: string) => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // A chamada à sua API para buscar o produto pelo slug
+        const response = await fetch(`/api/products/${slug}`);
+        if (!response.ok) {
+          throw new Error('Produto não encontrado');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          setProduct(data.data);
+          // Pré-seleciona o primeiro tamanho disponível, se houver
+          if (data.data.sizes && data.data.sizes.length > 0) {
+            setSelectedSize(data.data.sizes[0]);
+          }
+        } else {
+          setError(data.error || 'Produto não encontrado');
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Erro ao carregar produto',
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Verifica se o slug existe nos parâmetros da URL antes de buscar
     if (params.slug) {
       fetchProduct(params.slug as string);
     }
-  }, [params.slug]);
+  }, [params.slug]); // Roda essa lógica sempre que o slug na URL mudar
 
-  const fetchProduct = async (slug: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`/api/products/${slug}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setProduct(data.data);
-      } else {
-        setError(data.error || 'Produto não encontrado');
-      }
-    } catch (error) {
-      setError('Erro ao carregar produto');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddToCart = async () => {
+  // A MUDANÇA PRINCIPAL ESTÁ AQUI
+  const handleAddToCart = () => {
     if (!product) return;
 
     if (!selectedSize) {
@@ -73,46 +87,35 @@ export default function ProductPage() {
       return;
     }
 
-    try {
-      setAddingToCart(true);
+    setAddingToCart(true);
 
-      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    // 1. Prepare os dados para a função `addItem` do contexto
+    const productData = {
+      productId: product._id,
+      productSlug: product.slug,
+      title: product.title,
+      basePrice: product.price, // O contexto calculará o preço final
+      image: product.images?.[0] || '', // Envie apenas a primeira imagem
+      team: product.team,
+    };
 
-      const cartItem = {
-        id: `${product.slug || product._id}-${selectedSize}-${
-          customization.name
-        }-${customization.number}`,
-        title: product.title,
-        price: product.price,
-        image: product.images,
-        size: selectedSize,
-        customization,
-        quantity: 1,
-      };
+    const options = {
+      size: selectedSize,
+      quantity: 1, // Adiciona 1 de cada vez
+      customization:
+        customization.name || customization.number ? customization : null,
+      // Opcional: Se a personalização tiver um custo extra, calcule aqui
+      customizationFee: 0,
+    };
 
-      const existingItemIndex = existingCart.findIndex(
-        (item: any) => item.id === cartItem.id,
-      );
+    // 2. Chame a função do contexto. É só isso!
+    addItem(productData, options);
 
-      if (existingItemIndex > -1) {
-        existingCart[existingItemIndex].quantity += 1;
-      } else {
-        existingCart.push(cartItem);
-      }
-
-      localStorage.setItem('cart', JSON.stringify(existingCart));
-      window.dispatchEvent(new Event('cartUpdated'));
-
-      toast.success('Produto adicionado ao carrinho!');
-
-      setTimeout(() => {
-        router.push('/carrinho');
-      }, 1000);
-    } catch (error) {
-      toast.error('Erro ao adicionar produto ao carrinho');
-    } finally {
+    // 3. Redirecione o usuário (o timeout é bom para UX)
+    setTimeout(() => {
       setAddingToCart(false);
-    }
+      router.push('/carrinho');
+    }, 800); // 800ms é suficiente para o usuário ver o toast de sucesso
   };
 
   const formatPrice = (price: number) => {

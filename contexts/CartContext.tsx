@@ -1,22 +1,25 @@
 'use client';
 
-import {
+import React, {
   createContext,
-  useContext,
   useState,
+  useContext,
   useEffect,
+  useMemo,
   ReactNode,
 } from 'react';
 import { toast } from 'sonner';
+import { calculateShipping } from '@/lib/shipping'; // Assumindo que você tem essa função
 
-interface CartItem {
-  id: string;
+// 1. Tipagem (Usando sua interface e adicionando tipos para o contexto)
+export interface CartItem {
+  id: string; // ID único para a instância do item no carrinho
   productId: string;
   productSlug?: string;
   title: string;
-  price: number;
-  basePrice?: number;
-  customizationFee?: number;
+  price: number; // Preço final (base + personalização)
+  basePrice: number; // Preço base do produto
+  customizationFee: number; // Custo da personalização
   image: string;
   size: string;
   quantity: number;
@@ -24,139 +27,169 @@ interface CartItem {
     name?: string;
     number?: string;
   } | null;
-  category?: string;
   team?: string;
   brand?: string;
-  addedAt?: string;
+  category?: string; // Adicionei para corresponder ao seu código
+}
+
+interface ProductToAdd {
+  // Apenas as propriedades necessárias para criar um CartItem
+  productId: string;
+  productSlug?: string;
+  title: string;
+  basePrice: number;
+  image: string;
+  team?: string;
+  brand?: string;
+  category?: string;
+}
+
+interface AddOptions {
+  size: string;
+  quantity: number;
+  customization?: {
+    name?: string;
+    number?: string;
+  } | null;
+  customizationFee?: number;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (item: CartItem) => void;
+  addItem: (product: ProductToAdd, options: AddOptions) => void;
   removeItem: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
+  updateQuantity: (itemId: string, newQuantity: number) => void;
   clearCart: () => void;
-  getItemCount: () => number;
-  getTotal: () => number;
+  getItemCount: () => number; // Retorna a quantidade total de produtos
+  totalQuantity: number; // Valor direto da quantidade total
+  subtotal: number;
+  baseSubtotal: number;
+  totalCustomizationFee: number;
+  shippingPrice: number;
+  totalPrice: number;
 }
 
+// 2. Criação do Contexto
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [mounted, setMounted] = useState(false);
-
-  // Carregar itens do localStorage na inicialização
-  useEffect(() => {
-    const loadCart = () => {
-      try {
-        const savedCart = localStorage.getItem('cart');
-        if (savedCart) {
-          const parsedCart = JSON.parse(savedCart);
-          console.log('🛒 Carrinho carregado do localStorage:', parsedCart);
-          setItems(parsedCart);
-        }
-      } catch (error) {
-        console.error('❌ Erro ao carregar carrinho:', error);
-        setItems([]);
-      } finally {
-        setMounted(true);
-      }
-    };
-
-    loadCart();
-  }, []);
-
-  // Salvar no localStorage sempre que items mudar
-  useEffect(() => {
-    if (mounted) {
-      try {
-        localStorage.setItem('cart', JSON.stringify(items));
-        console.log('💾 Carrinho salvo no localStorage:', items);
-
-        // Disparar evento para atualizar contador no Header
-        window.dispatchEvent(new Event('cartUpdated'));
-      } catch (error) {
-        console.error('❌ Erro ao salvar carrinho:', error);
-      }
+// 3. Criação do Provedor
+export const CartProvider = ({ children }: { children: ReactNode }) => {
+  const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const localData = localStorage.getItem('cartItems');
+      return localData ? JSON.parse(localData) : [];
+    } catch (error) {
+      return [];
     }
-  }, [items, mounted]);
+  });
 
-  const addItem = (newItem: CartItem) => {
-    console.log('➕ Adicionando item ao carrinho:', newItem);
+  useEffect(() => {
+    localStorage.setItem('cartItems', JSON.stringify(items));
+  }, [items]);
 
+  /**
+   * Adiciona um item, verificando se um item idêntico (produto, tamanho, personalização) já existe.
+   */
+  const addItem = (product: ProductToAdd, options: AddOptions) => {
     setItems((prevItems) => {
-      // Verificar se já existe um item idêntico
-      const existingItemIndex = prevItems.findIndex(
+      // Verifica se um item com as mesmas características já existe
+      const existingItem = prevItems.find(
         (item) =>
-          item.productId === newItem.productId &&
-          item.size === newItem.size &&
+          item.productId === product.productId &&
+          item.size === options.size &&
           JSON.stringify(item.customization) ===
-            JSON.stringify(newItem.customization),
+            JSON.stringify(options.customization),
       );
 
-      if (existingItemIndex >= 0) {
-        // Se existe, atualizar quantidade
-        const updatedItems = [...prevItems];
-        updatedItems[existingItemIndex] = {
-          ...updatedItems[existingItemIndex],
-          quantity: updatedItems[existingItemIndex].quantity + newItem.quantity,
-        };
-
-        console.log(
-          '📝 Item atualizado (quantidade):',
-          updatedItems[existingItemIndex],
-        );
+      if (existingItem) {
+        // Se existe, apenas atualiza a quantidade
         toast.success('Quantidade atualizada no carrinho!');
-        return updatedItems;
+        return prevItems.map((item) =>
+          item.id === existingItem.id
+            ? { ...item, quantity: item.quantity + options.quantity }
+            : item,
+        );
       } else {
-        // Se não existe, adicionar novo
-        const updatedItems = [
-          ...prevItems,
-          { ...newItem, addedAt: new Date().toISOString() },
-        ];
-        console.log('✅ Novo item adicionado:', newItem);
-        toast.success('Produto adicionado ao carrinho!');
-        return updatedItems;
+        // Se não existe, cria um novo item
+        const customizationFee = options.customizationFee || 0;
+        const newItem: CartItem = {
+          ...product,
+          id: crypto.randomUUID(), // Gera um ID único para a instância do item
+          size: options.size,
+          quantity: options.quantity,
+          customization: options.customization,
+          customizationFee: customizationFee,
+          price: product.basePrice + customizationFee, // Preço final
+        };
+        toast.success(`${product.title} adicionado ao carrinho!`);
+        return [...prevItems, newItem];
       }
     });
   };
 
   const removeItem = (itemId: string) => {
-    console.log('🗑️ Removendo item do carrinho:', itemId);
-    setItems((prevItems) => {
-      const updatedItems = prevItems.filter((item) => item.id !== itemId);
-      toast.success('Produto removido do carrinho!');
-      return updatedItems;
-    });
+    setItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
+    toast.error('Produto removido do carrinho.');
   };
 
-  const updateQuantity = (itemId: string, quantity: number) => {
-    if (quantity < 1) return;
-
-    console.log('📝 Atualizando quantidade:', { itemId, quantity });
-    setItems((prevItems) => {
-      const updatedItems = prevItems.map((item) =>
-        item.id === itemId ? { ...item, quantity } : item,
+  const updateQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeItem(itemId);
+    } else {
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === itemId ? { ...item, quantity: newQuantity } : item,
+        ),
       );
-      toast.success('Quantidade atualizada!');
-      return updatedItems;
-    });
+    }
   };
 
   const clearCart = () => {
-    console.log('🧹 Limpando carrinho');
     setItems([]);
-    toast.success('Carrinho limpo!');
+    toast.info('Seu carrinho foi esvaziado.');
   };
 
-  const getItemCount = () => {
-    return items.reduce((total, item) => total + item.quantity, 0);
-  };
+  // 4. Cálculos Centralizados com useMemo para performance
+  const {
+    totalQuantity,
+    subtotal,
+    baseSubtotal,
+    totalCustomizationFee,
+    shippingPrice,
+    totalPrice,
+  } = useMemo(() => {
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const baseSubtotal = items.reduce(
+      (sum, item) => sum + item.basePrice * item.quantity,
+      0,
+    );
+    const totalCustomizationFee = items.reduce(
+      (sum, item) => sum + item.customizationFee * item.quantity,
+      0,
+    );
 
-  const getTotal = () => {
-    return items.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
+    const shippingInfo = calculateShipping(totalQuantity); // Reutiliza sua lógica de frete
+    const shippingPrice = shippingInfo.price;
+
+    const totalPrice = subtotal + shippingPrice;
+
+    return {
+      totalQuantity,
+      subtotal,
+      baseSubtotal,
+      totalCustomizationFee,
+      shippingPrice,
+      totalPrice,
+    };
+  }, [items]);
+
+  // Função compatível com a sua implementação original
+  const getItemCount = () => totalQuantity;
 
   const value: CartContextType = {
     items,
@@ -165,16 +198,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     updateQuantity,
     clearCart,
     getItemCount,
-    getTotal,
+    totalQuantity,
+    subtotal,
+    baseSubtotal,
+    totalCustomizationFee,
+    shippingPrice,
+    totalPrice,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-}
+};
 
-export function useCart() {
+// 5. Hook customizado
+export const useCart = (): CartContextType => {
   const context = useContext(CartContext);
   if (context === undefined) {
-    throw new Error('useCart deve ser usado dentro de um CartProvider');
+    throw new Error('useCart must be used within a CartProvider');
   }
   return context;
-}
+};

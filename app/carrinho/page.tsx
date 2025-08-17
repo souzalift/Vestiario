@@ -39,7 +39,6 @@ interface CartItem {
     name?: string;
     number?: string;
   } | null;
-  category?: string;
   team?: string;
   brand?: string;
   addedAt?: string;
@@ -52,7 +51,6 @@ export default function CartPage() {
     updateQuantity,
     clearCart,
     getItemCount,
-    getTotal,
   } = useCart();
 
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -435,26 +433,6 @@ export default function CartPage() {
                                 {formatPrice(item.price)} cada
                               </p>
                             )}
-                            {/* Breakdown de preço */}
-                            {item.customizationFee &&
-                              item.customizationFee > 0 && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  <div>
-                                    Base:{' '}
-                                    {formatPrice(
-                                      (item.basePrice ||
-                                        item.price - item.customizationFee) *
-                                        item.quantity,
-                                    )}
-                                  </div>
-                                  <div>
-                                    Personalização:{' '}
-                                    {formatPrice(
-                                      item.customizationFee * item.quantity,
-                                    )}
-                                  </div>
-                                </div>
-                              )}
                           </div>
                         </div>
                       </div>
