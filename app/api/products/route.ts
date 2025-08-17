@@ -57,8 +57,6 @@ export async function GET(request: Request) {
       filters.sortBy = sortBy as any;
     }
 
-    console.log('Filters:', filters);
-
     // Buscar produtos
     const result = await getProducts(filters, limit);
 
