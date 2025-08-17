@@ -77,8 +77,14 @@ export const getProducts = async (
         queryConstraints.push(orderBy('price', 'desc'));
         break;
       case 'newest':
-      default:
         queryConstraints.push(orderBy('createdAt', 'desc'));
+        break;
+      case 'popular':
+        // Adicione sua lógica de popularidade aqui se necessário
+        break;
+      default:
+        // Ordenação alfabética por título (padrão)
+        queryConstraints.push(orderBy('title', 'asc'));
     }
 
     // Paginação
@@ -122,6 +128,13 @@ export const getProducts = async (
     if (filters.sizes && filters.sizes.length > 0) {
       products = products.filter(product =>
         filters.sizes!.some(size => product.sizes.includes(size))
+      );
+    }
+
+    // Ordenação alfabética final caso o filtro seja feito no client
+    if (!filters.sortBy) {
+      products = products.sort((a, b) =>
+        a.title.localeCompare(b.title, 'pt-BR', { sensitivity: 'base' })
       );
     }
 
