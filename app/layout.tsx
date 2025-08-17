@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DynamicTitle from '@/components/DynamicTitle';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -14,7 +15,10 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: 'O Vestiário',
+  title: {
+    default: 'O Vestiário - Camisas Tailandesas',
+    template: '%s | O Vestiário',
+  },
   description: 'O Vestiário - Camisas Tailandesas',
   keywords: [
     'camisas tailandesas',
@@ -51,6 +55,8 @@ export const viewport: Viewport = {
   themeColor: '#2563eb',
 };
 
+// Componente para atualizar o título dinamicamente
+
 export default function RootLayout({
   children,
 }: {
@@ -61,10 +67,10 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} font-sans min-h-screen flex flex-col`}
       >
+        <DynamicTitle />
         <CartProvider>
           <AuthProvider>
             <Header />
-            {/* AVISO DE PRODUTO NÃO OFICIAL */}
             <div className="w-full bg-yellow-100 text-yellow-900 text-center py-2 text-sm font-medium border-b border-yellow-300">
               Atenção: Trabalhamos apenas com camisas tailandesas de alta
               qualidade. Não vendemos produtos oficiais/licenciados.
