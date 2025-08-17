@@ -17,6 +17,7 @@ import {
   signInWithPopup,
   User,
   updateProfile,
+  sendPasswordResetEmail, // ADICIONADO
 } from 'firebase/auth';
 import {
   doc,
@@ -69,6 +70,7 @@ interface AuthContextType {
   updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   isAuthenticated: boolean;
+  resetPassword: (email: string) => Promise<void>; // ADICIONADO
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -295,6 +297,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      setLoading(true);
+      await sendPasswordResetEmail(auth, email);
+      toast.success('E-mail de redefinição de senha enviado!');
+    } catch (error: any) {
+      console.error('Erro ao enviar e-mail de redefinição de senha:', error);
+      toast.error('Erro ao enviar e-mail de redefinição de senha');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     userProfile,
@@ -306,6 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateUserProfile,
     refreshUserProfile,
     isAuthenticated: !!user,
+    resetPassword, // ADICIONADO
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -320,7 +337,7 @@ export function useAuth() {
 }
 
 // Hook específico para acessar o perfil do usuário
-export function useUserProfile() {
+export function UserProfile() {
   const { userProfile, updateUserProfile, refreshUserProfile } = useAuth();
   return { userProfile, updateUserProfile, refreshUserProfile };
 }
