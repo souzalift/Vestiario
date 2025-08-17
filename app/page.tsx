@@ -10,7 +10,6 @@ import {
   Star,
   Users,
   Trophy,
-  ArrowRight,
   Check,
   Heart,
   TrendingUp,
@@ -18,7 +17,6 @@ import {
   Zap,
   DollarSign,
 } from 'lucide-react';
-import Link from 'next/link';
 
 interface Props {
   searchParams: Promise<{
