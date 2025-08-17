@@ -5,12 +5,17 @@ import {
   ProductFilters,
   Product
 } from '@/services/products';
+import { QueryDocumentSnapshot } from 'firebase/firestore';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Extrair parâmetros de busca
+    // Parâmetros de paginação
+    const page = parseInt(searchParams.get('page') || '1');
+    const perPage = parseInt(searchParams.get('perPage') || '20');
+
+    // Parâmetros de filtro
     const league = searchParams.get('league');
     const team = searchParams.get('team');
     const search = searchParams.get('search');
@@ -19,18 +24,16 @@ export async function GET(request: Request) {
     const maxPrice = searchParams.get('maxPrice');
     const sizes = searchParams.get('sizes');
     const sortBy = searchParams.get('sortBy');
-    const limit = parseInt(searchParams.get('limit') || '20');
 
     // Construir filtros
     const filters: ProductFilters = {};
 
-    if (league) {
+    if (league && league !== 'Todos') {
       filters.league = league;
     }
 
-    if (team) {
-      // Buscar por team nas tags
-      filters.search = team;
+    if (team && team !== 'Todos') {
+      filters.team = team; // Filtro direto por time
     }
 
     if (search) {
@@ -54,17 +57,37 @@ export async function GET(request: Request) {
     }
 
     if (sortBy) {
-      filters.sortBy = sortBy as any;
+      filters.sortBy = sortBy as 'price_asc' | 'price_desc' | 'newest' | 'popular';
     }
 
-    // Buscar produtos
-    const result = await getProducts(filters, limit);
+    // Lógica de paginação
+    let lastDoc: QueryDocumentSnapshot | undefined;
+    let products: Product[] = [];
+    let hasMore = true;
+    let currentPage = 1;
+
+    // Buscar produtos até chegar na página desejada
+    while (currentPage <= page && hasMore) {
+      const result = await getProducts(filters, perPage, lastDoc);
+
+      if (currentPage === page) {
+        products = result.products;
+      }
+
+      lastDoc = result.lastDoc;
+      hasMore = result.hasMore;
+      currentPage++;
+    }
 
     return NextResponse.json({
       success: true,
-      data: result.products,
-      hasMore: result.hasMore,
-      total: result.products.length,
+      data: products,
+      pagination: {
+        currentPage: page,
+        perPage,
+        hasMore,
+        totalItems: products.length
+      }
     });
 
   } catch (error) {
@@ -79,7 +102,6 @@ export async function GET(request: Request) {
     );
   }
 }
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();

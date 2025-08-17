@@ -246,7 +246,7 @@ export const deleteProduct = async (id: string) => {
 };
 
 // Buscar produtos por texto (busca avançada)
-export const searchProducts = async (searchTerm: string, limitCount: number = 20) => {
+export const searchProducts = async (searchTerm: string, limitCount: number = 99) => {
   try {
     const baseCollection = collection(db, 'products');
     const q = query(baseCollection, limit(limitCount * 2));
