@@ -191,7 +191,7 @@ export default function CartPage() {
                   Adicione algumas camisas incríveis ao seu carrinho para
                   continuar suas compras
                 </p>
-                <Link href="/">
+                <Link href="/#produtos">
                   <Button className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-3">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Continuar Comprando

@@ -38,6 +38,7 @@ interface UserProfile {
   lastName?: string;
   photoURL: string | null;
   phoneNumber?: string;
+  documentId?: string; // ADICIONADO
   address?: {
     street?: string;
     city?: string;
@@ -45,6 +46,8 @@ interface UserProfile {
     zipCode?: string;
     country?: string;
     number?: string; // ADICIONADO
+    complement?: string; // ADICIONADO
+    neighborhood?: string; // ADICIONADO
   };
   preferences?: {
     newsletter?: boolean;
