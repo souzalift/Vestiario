@@ -336,6 +336,12 @@ export default function ProductPage() {
                         <p className="text-xs text-gray-500 mt-1">De 1 a 99</p>
                       </div>
                     </div>
+                    {(customization.name || customization.number) && (
+                      <div className="mt-3 text-yellow-800 bg-yellow-100 border border-yellow-200 rounded px-3 py-2 text-sm font-semibold inline-block">
+                        +R$ 20,00 serão adicionados ao valor do produto pela
+                        personalização.
+                      </div>
+                    )}
                   </div>
 
                   <Button

@@ -102,8 +102,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             JSON.stringify(options.customization),
       );
 
+      // Custo fixo de personalização
+      const customizationFee =
+        options.customization &&
+        (options.customization.name || options.customization.number)
+          ? 20
+          : 0;
+
       if (existingItem) {
-        // Se existe, apenas atualiza a quantidade
         toast.success('Quantidade atualizada no carrinho!');
         return prevItems.map((item) =>
           item.id === existingItem.id
@@ -111,11 +117,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             : item,
         );
       } else {
-        // Se não existe, cria um novo item
-        const customizationFee = options.customizationFee || 0;
         const newItem: CartItem = {
           ...product,
-          id: crypto.randomUUID(), // Gera um ID único para a instância do item
+          id: crypto.randomUUID(),
           size: options.size,
           quantity: options.quantity,
           customization: options.customization,

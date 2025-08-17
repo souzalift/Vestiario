@@ -376,6 +376,13 @@ export default function CartPage() {
                                   <span className="font-medium">
                                     Personalização:
                                   </span>
+                                  {/* Mostra o custo da personalização */}
+                                  {item.customizationFee ? (
+                                    <span className="ml-2 bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded text-xs font-semibold">
+                                      +{formatPrice(item.customizationFee)} por
+                                      unidade
+                                    </span>
+                                  ) : null}
                                 </div>
                                 <div className="mt-1">
                                   {item.customization.name && (
