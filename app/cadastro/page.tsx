@@ -1,7 +1,7 @@
 // app/register/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -50,7 +50,7 @@ interface FormErrors {
   general?: string;
 }
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -655,5 +655,20 @@ export default function RegisterPage() {
 
       <Footer />
     </div>
+  );
+}
+
+// O export default agora só faz o suspense boundary
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <span>Carregando...</span>
+        </div>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
   );
 }
