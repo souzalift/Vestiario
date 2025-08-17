@@ -3,10 +3,7 @@ import { Poppins } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
-<<<<<<< HEAD
-=======
 
->>>>>>> e97f73a853fb7a2a9b818f76cbe4e65fc8a78128
 const poppins = Poppins({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
