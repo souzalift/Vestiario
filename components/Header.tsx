@@ -1,4 +1,3 @@
-// components/Header.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -36,7 +35,7 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
 
-  const { user, loading, logout, isAuthenticated } = useAuth();
+  const { userProfile, loading, logout, isAuthenticated } = useAuth();
   const { getItemCount } = useCart();
   const [cartCount, setCartCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -117,7 +116,7 @@ export default function Header() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/busca?q=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/?q=${encodeURIComponent(searchQuery.trim())}#produtos`);
       setSearchQuery('');
     }
   };
@@ -257,7 +256,7 @@ export default function Header() {
                       <User className="w-4 h-4 text-white" />
                     </div>
                     <span className="hidden md:block text-sm font-medium">
-                      {user?.email?.split('@')[0]}
+                      {userProfile?.displayName}
                     </span>
                     <ChevronDown className="w-4 h-4" />
                   </Button>
@@ -288,7 +287,7 @@ export default function Header() {
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900">
-                        {user?.email}
+                        {userProfile?.email}
                       </p>
                       <p className="text-xs text-gray-500">Minha conta</p>
                     </div>
@@ -391,6 +390,13 @@ export default function Header() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-12 pr-4 py-3 w-full border-gray-200 focus:border-gray-400 rounded-xl"
                 />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg px-4"
+                >
+                  Buscar
+                </Button>
               </form>
             </div>
 

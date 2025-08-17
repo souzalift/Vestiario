@@ -57,7 +57,6 @@ interface UserProfile {
 }
 
 interface AuthContextType {
-  user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -313,7 +312,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const value: AuthContextType = {
-    user,
     userProfile,
     loading,
     login,
