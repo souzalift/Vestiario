@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { ProductFilters as IProductFilters } from '@/services/products';
-import { getCategories } from '@/services/products';
+// Removido: import { getCategories } from '@/services/products';
 import { Search, Filter, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,27 +24,25 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'Melhor Avaliados' },
 ];
 
+// Ligas fixas (pode ajustar conforme seu sistema)
+const LEAGUES = [
+  'Todos',
+  'Brasileirão',
+  'Premier League',
+  'La Liga',
+  'Champions League',
+];
+
 export default function ProductFilters({
   filters,
   onFiltersChange,
   className = '',
 }: ProductFiltersProps) {
-  const [categories, setCategories] = useState<string[]>([]);
+  const [leagues] = useState<string[]>(LEAGUES);
   const [isOpen, setIsOpen] = useState(false);
   const [localFilters, setLocalFilters] = useState<IProductFilters>(filters);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const cats = await getCategories();
-        setCategories(['Todos', ...cats]);
-      } catch (error) {
-        console.error('Erro ao carregar categorias:', error);
-      }
-    };
-
-    fetchCategories();
-  }, []);
+  // Removido useEffect de categorias
 
   const updateFilter = (key: keyof IProductFilters, value: any) => {
     const newFilters = { ...localFilters, [key]: value };
@@ -71,12 +69,13 @@ export default function ProductFilters({
 
   const getActiveFiltersCount = () => {
     let count = 0;
-    if (filters.category && filters.category !== 'Todos') count++;
+
     if (filters.search) count++;
     if (filters.minPrice) count++;
     if (filters.maxPrice) count++;
     if (filters.sizes && filters.sizes.length > 0) count++;
     if (filters.featured) count++;
+    if (filters.league) count++;
     return count;
   };
 
@@ -139,31 +138,31 @@ export default function ProductFilters({
           </div>
         </div>
 
-        {/* Categories */}
+        {/* Leagues */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            Categorias
+            Ligas
           </label>
           <div className="space-y-2">
-            {categories.map((category) => (
-              <label key={category} className="flex items-center">
+            {leagues.map((league) => (
+              <label key={league} className="flex items-center">
                 <input
                   type="radio"
-                  name="category"
-                  value={category}
+                  name="league"
+                  value={league}
                   checked={
-                    localFilters.category === category ||
-                    (!localFilters.category && category === 'Todos')
+                    localFilters.league === league ||
+                    (!localFilters.league && league === 'Todos')
                   }
                   onChange={(e) =>
                     updateFilter(
-                      'category',
+                      'league',
                       e.target.value === 'Todos' ? undefined : e.target.value,
                     )
                   }
                   className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">{category}</span>
+                <span className="ml-2 text-sm text-gray-700">{league}</span>
               </label>
             ))}
           </div>
