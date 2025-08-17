@@ -5,9 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import Image from 'next/image';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -140,8 +138,6 @@ function LoginPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-
       <main className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           {/* Back Button */}
@@ -386,8 +382,6 @@ function LoginPageContent() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
