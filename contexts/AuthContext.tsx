@@ -43,6 +43,7 @@ interface UserProfile {
     state?: string;
     zipCode?: string;
     country?: string;
+    number?: string; // ADICIONADO
   };
   preferences?: {
     newsletter?: boolean;
