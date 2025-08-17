@@ -29,27 +29,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 
-const teams = [
-  { name: 'Flamengo', slug: 'flamengo', country: 'Brasil' },
-  { name: 'Corinthians', slug: 'corinthians', country: 'Brasil' },
-  { name: 'Real Madrid', slug: 'real-madrid', country: 'Espanha' },
-  { name: 'Barcelona', slug: 'barcelona', country: 'Espanha' },
-  {
-    name: 'Manchester United',
-    slug: 'manchester-united',
-    country: 'Inglaterra',
-  },
-  { name: 'Manchester City', slug: 'manchester-city', country: 'Inglaterra' },
-];
-
-const categories = [
-  { name: 'Lançamentos', icon: Star, href: '/categoria/lancamentos' },
-  { name: 'Mais Vendidas', icon: TrendingUp, href: '/categoria/mais-vendidas' },
-  { name: 'Brasileirão', icon: Trophy, href: '/categoria/brasileirao' },
-  { name: 'Europeus', icon: Globe, href: '/categoria/europeus' },
-  { name: 'Retrô', icon: Shirt, href: '/categoria/retro' },
-];
-
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -292,7 +271,6 @@ export default function Header() {
                     >
                       <Link href="/login">
                         <User className="w-4 h-4 mr-2" />
-                        Entrar
                       </Link>
                     </Button>
                     <Button
@@ -389,111 +367,12 @@ export default function Header() {
                   )}
                 </Link>
               </Button>
-
-              {/* Mobile Menu Toggle */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="lg:hidden text-gray-700 hover:bg-gray-100"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-              >
-                {isMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
-              </Button>
             </div>
           </div>
         </div>
 
         {/* Navigation Bar */}
-        <div className="hidden lg:block border-t border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <nav className="flex items-center justify-between h-12">
-              <div className="flex items-center space-x-8">
-                {categories.map((category) => (
-                  <Link
-                    key={category.name}
-                    href={category.href}
-                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-                  >
-                    <category.icon className="w-4 h-4" />
-                    {category.name}
-                  </Link>
-                ))}
-
-                {/* Teams Dropdown */}
-                <div className="relative" ref={teamsMenuRef}>
-                  <button
-                    onClick={() => setIsTeamsMenuOpen(!isTeamsMenuOpen)}
-                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-                  >
-                    <Trophy className="w-4 h-4" />
-                    Times
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-
-                  {isTeamsMenuOpen && (
-                    <div className="absolute left-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 py-4 z-50">
-                      <div className="px-4 mb-3">
-                        <h3 className="text-sm font-semibold text-gray-900">
-                          Times Populares
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1 px-2">
-                        {teams.map((team) => (
-                          <Link
-                            key={team.slug}
-                            href={`/time/${team.slug}`}
-                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"
-                            onClick={() => setIsTeamsMenuOpen(false)}
-                          >
-                            <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
-                              <Shirt className="w-3 h-3 text-gray-600" />
-                            </div>
-                            <div>
-                              <div className="font-medium">{team.name}</div>
-                              <div className="text-xs text-gray-500">
-                                {team.country}
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                      <Separator className="my-3" />
-                      <div className="px-4">
-                        <Link
-                          href="/times"
-                          className="text-sm font-medium text-gray-900 hover:text-gray-700"
-                          onClick={() => setIsTeamsMenuOpen(false)}
-                        >
-                          Ver todos os times →
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Right side nav */}
-              <div className="flex items-center gap-6">
-                <Link
-                  href="/outlet"
-                  className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
-                >
-                  🔥 Outlet
-                </Link>
-                <Link
-                  href="/personalizar"
-                  className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-                >
-                  Personalizar
-                </Link>
-              </div>
-            </nav>
-          </div>
-        </div>
+        <div className="hidden lg:block border-t border-gray-100"></div>
       </header>
 
       {/* Mobile Menu */}
@@ -513,98 +392,6 @@ export default function Header() {
                   className="pl-12 pr-4 py-3 w-full border-gray-200 focus:border-gray-400 rounded-xl"
                 />
               </form>
-            </div>
-
-            {/* Mobile Navigation */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="space-y-6">
-                {/* Categories */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Categorias
-                  </h3>
-                  <div className="space-y-3">
-                    {categories.map((category) => (
-                      <Link
-                        key={category.name}
-                        href={category.href}
-                        className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <category.icon className="w-5 h-5" />
-                        {category.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Teams */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Times
-                  </h3>
-                  <div className="space-y-3">
-                    {teams.slice(0, 4).map((team) => (
-                      <Link
-                        key={team.slug}
-                        href={`/time/${team.slug}`}
-                        className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
-                          <Shirt className="w-4 h-4 text-gray-600" />
-                        </div>
-                        {team.name}
-                      </Link>
-                    ))}
-                    <Link
-                      href="/times"
-                      className="text-gray-900 font-medium hover:text-gray-700"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Ver todos os times →
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Quick Links */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Links Rápidos
-                  </h3>
-                  <div className="space-y-3">
-                    <Link
-                      href="/favoritos"
-                      className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Heart className="w-5 h-5" />
-                      Favoritos
-                      {favoritesCount > 0 && (
-                        <Badge variant="secondary" className="ml-auto text-xs">
-                          {favoritesCount}
-                        </Badge>
-                      )}
-                    </Link>
-                    <Link
-                      href="/outlet"
-                      className="flex items-center gap-3 text-red-600 hover:text-red-700 transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <span className="text-lg">🔥</span>
-                      Outlet
-                    </Link>
-                    <Link
-                      href="/personalizar"
-                      className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Settings className="w-5 h-5" />
-                      Personalizar
-                    </Link>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Mobile Auth */}
