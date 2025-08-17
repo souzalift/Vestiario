@@ -49,23 +49,17 @@ import { toast } from 'sonner';
 interface Product {
   id: string;
   title: string;
+  slug: string;
   description: string;
   price: number;
-  league: string; // ALTERADO de category para league
+  league: string;
   brand?: string;
-  team?: string;
-  season?: string;
+  team: string;
   size?: string[];
-  color?: string;
-  material?: string;
   images: string[];
   tags: string[];
-  features: string[];
-  views: number;
-  rating: number;
-  reviewCount: number;
   isActive: boolean;
-  isFeatured: boolean;
+  featured: boolean;
   createdAt: any;
   updatedAt?: any;
 }
@@ -86,18 +80,15 @@ export default function EditProductPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [slug, setSlug] = useState('');
   const [league, setLeague] = useState('');
   const [brand, setBrand] = useState('');
   const [team, setTeam] = useState('');
-  const [season, setSeason] = useState('');
-  const [color, setColor] = useState('');
-  const [material, setMaterial] = useState('');
   const [sizes, setSizes] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [features, setFeatures] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
-  const [isFeatured, setIsFeatured] = useState(false);
+  const [featured, setIsFeatured] = useState(false);
 
   // Estados auxiliares
   const [newTag, setNewTag] = useState('');
@@ -134,15 +125,14 @@ export default function EditProductPage() {
 
       // Preencher o formulário
       setTitle(productData.title || '');
+      setSlug(productData.slug || '');
       setDescription(productData.description || '');
       setPrice(productData.price?.toString() || '');
       setLeague(productData.league || ''); // Troque category por league
       setBrand(productData.brand || '');
       setTeam(productData.team || '');
-      setSeason(productData.season || '');
-      setColor(productData.color || '');
-      setMaterial(productData.material || '');
-      setSizes(productData.size || []);
+
+      setSizes(productData.size || ['P', 'M', 'G', 'GG', 'XGG']);
       setImages(
         Array.isArray(productData.images)
           ? productData.images.filter(
@@ -151,9 +141,9 @@ export default function EditProductPage() {
           : [],
       );
       setTags(productData.tags || []);
-      setFeatures(productData.features || []);
+
       setIsActive(productData.isActive ?? true);
-      setIsFeatured(productData.isFeatured ?? false);
+      setIsFeatured(productData.featured ?? false);
     } catch (error) {
       console.error('Erro ao carregar produto:', error);
       toast.error('Erro ao carregar produto');
@@ -208,18 +198,15 @@ export default function EditProductPage() {
         title: title.trim(),
         description: description.trim(),
         price: Number(price),
-        league: league.trim(), // Troque category por league
+        league: league.trim(),
         brand: brand.trim() || null,
         team: team.trim() || null,
-        season: season.trim() || null,
-        color: color.trim() || null,
-        material: material.trim() || null,
-        size: sizes.length > 0 ? sizes : null,
+        sizes: sizes.length > 0 ? sizes : null,
         images,
         tags: tags.filter((tag) => tag.trim()),
-        features: features.filter((feature) => feature.trim()),
         isActive,
-        isFeatured,
+        featured,
+        slug: slug.trim(),
         updatedAt: serverTimestamp(),
       };
 
@@ -245,17 +232,6 @@ export default function EditProductPage() {
 
   const removeTag = (index: number) => {
     setTags(tags.filter((_, i) => i !== index));
-  };
-
-  const addFeature = () => {
-    if (newFeature.trim() && !features.includes(newFeature.trim())) {
-      setFeatures([...features, newFeature.trim()]);
-      setNewFeature('');
-    }
-  };
-
-  const removeFeature = (index: number) => {
-    setFeatures(features.filter((_, i) => i !== index));
   };
 
   const toggleSize = (size: string) => {
@@ -361,6 +337,24 @@ export default function EditProductPage() {
                         {errors.title}
                       </p>
                     )}
+                  </div>
+
+                  {/* CAMPO DE SLUG */}
+                  <div>
+                    <Label htmlFor="slug" className="text-gray-700 font-medium">
+                      Slug (URL)
+                    </Label>
+                    <Input
+                      id="slug"
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                      placeholder="exemplo-camisa-2025"
+                      className="mt-1 border-gray-200 focus:border-gray-400"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      O slug é usado na URL do produto. Use apenas letras,
+                      números e hífens.
+                    </p>
                   </div>
 
                   <div>
@@ -505,55 +499,7 @@ export default function EditProductPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label
-                        htmlFor="season"
-                        className="text-gray-700 font-medium"
-                      >
-                        Temporada
-                      </Label>
-                      <Input
-                        id="season"
-                        value={season}
-                        onChange={(e) => setSeason(e.target.value)}
-                        placeholder="Ex: 2024/25"
-                        className="mt-1 border-gray-200 focus:border-gray-400"
-                      />
-                    </div>
-
-                    <div>
-                      <Label
-                        htmlFor="color"
-                        className="text-gray-700 font-medium"
-                      >
-                        Cor
-                      </Label>
-                      <Input
-                        id="color"
-                        value={color}
-                        onChange={(e) => setColor(e.target.value)}
-                        placeholder="Ex: Azul, Verde"
-                        className="mt-1 border-gray-200 focus:border-gray-400"
-                      />
-                    </div>
-
-                    <div>
-                      <Label
-                        htmlFor="material"
-                        className="text-gray-700 font-medium"
-                      >
-                        Material
-                      </Label>
-                      <Input
-                        id="material"
-                        value={material}
-                        onChange={(e) => setMaterial(e.target.value)}
-                        placeholder="Ex: Poliéster, Algodão"
-                        className="mt-1 border-gray-200 focus:border-gray-400"
-                      />
-                    </div>
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
                 </CardContent>
               </Card>
 
@@ -566,7 +512,7 @@ export default function EditProductPage() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="flex flex-wrap gap-2">
-                    {['PP', 'P', 'M', 'G', 'GG', 'XG', 'XXG'].map((size) => (
+                    {['P', 'M', 'G', 'GG', 'XGG'].map((size) => (
                       <Button
                         key={size}
                         variant={sizes.includes(size) ? 'default' : 'outline'}
@@ -628,51 +574,6 @@ export default function EditProductPage() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Features */}
-              <Card className="border-gray-200 shadow-sm">
-                <CardHeader className="border-b border-gray-100">
-                  <CardTitle className="text-gray-900">
-                    Características
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex gap-2">
-                    <Input
-                      value={newFeature}
-                      onChange={(e) => setNewFeature(e.target.value)}
-                      placeholder="Adicionar característica"
-                      onKeyPress={(e) => e.key === 'Enter' && addFeature()}
-                      className="border-gray-200 focus:border-gray-400"
-                    />
-                    <Button
-                      onClick={addFeature}
-                      size="sm"
-                      className="bg-gray-900 hover:bg-gray-800 text-white"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {features.map((feature, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        <span className="text-sm text-gray-700">{feature}</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeFeature(index)}
-                          className="hover:bg-gray-200"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Sidebar */}
@@ -688,7 +589,7 @@ export default function EditProductPage() {
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <Label
-                      htmlFor="isActive"
+                      htmlFor="active"
                       className="text-gray-700 font-medium"
                     >
                       Produto Ativo
@@ -709,22 +610,22 @@ export default function EditProductPage() {
 
                   <div className="flex items-center justify-between">
                     <Label
-                      htmlFor="isFeatured"
+                      htmlFor="isfeatured"
                       className="text-gray-700 font-medium"
                     >
                       Produto em Destaque
                     </Label>
                     <Button
-                      variant={isFeatured ? 'default' : 'outline'}
+                      variant={featured ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setIsFeatured(!isFeatured)}
+                      onClick={() => setIsFeatured(!featured)}
                       className={
-                        isFeatured
+                        featured
                           ? 'bg-gray-900 hover:bg-gray-800 text-white'
                           : 'border-gray-300 hover:bg-gray-100'
                       }
                     >
-                      {isFeatured ? (
+                      {featured ? (
                         <>
                           <Star className="w-4 h-4 mr-1" />
                           Destaque
@@ -734,28 +635,6 @@ export default function EditProductPage() {
                       )}
                     </Button>
                   </div>
-
-                  {/* Estatísticas */}
-                  {product && (
-                    <div className="space-y-2 pt-4 border-t border-gray-200">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Visualizações:</span>
-                        <span className="font-medium text-gray-900">
-                          {product.views}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Avaliação:</span>
-                        <span className="font-medium text-gray-900"></span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Avaliações:</span>
-                        <span className="font-medium text-gray-900">
-                          {product.reviewCount}
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
