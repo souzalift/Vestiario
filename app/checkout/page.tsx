@@ -843,7 +843,7 @@ export default function CheckoutPage() {
                     <Button
                       onClick={processPayment}
                       disabled={processingPayment || cartItems.length === 0}
-                      className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 text-lg font-semibold disabled:opacity-50"
+                      className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 text-sm font-semibold disabled:opacity-50"
                     >
                       {processingPayment ? (
                         <>
