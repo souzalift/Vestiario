@@ -26,6 +26,7 @@ import {
   Tag,
   Calendar,
   Clock,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '@/contexts/CartContext';
@@ -116,6 +117,8 @@ export default function CheckoutPage() {
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  // Novo estado para exibir alertas de validação
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   // Efeito para evitar hydration mismatch e proteger a rota
   useEffect(() => {
@@ -170,11 +173,19 @@ export default function CheckoutPage() {
   };
 
   const validateForm = () => {
-    // Sua função de validação está ótima, nenhuma mudança necessária.
     const errors: string[] = [];
     if (!customerData.firstName.trim()) errors.push('Nome é obrigatório');
     if (!customerData.lastName.trim()) errors.push('Sobrenome é obrigatório');
-    // ... resto da sua lógica de validação
+    if (!customerData.email.trim()) errors.push('Email é obrigatório');
+    if (!customerData.phone.trim()) errors.push('Telefone é obrigatório');
+    if (!customerData.document.trim()) errors.push('CPF é obrigatório');
+    if (!deliveryAddress.zipCode.trim()) errors.push('CEP é obrigatório');
+    if (!deliveryAddress.street.trim()) errors.push('Rua é obrigatório');
+    if (!deliveryAddress.number.trim()) errors.push('Número é obrigatório');
+    if (!deliveryAddress.neighborhood.trim())
+      errors.push('Bairro é obrigatório');
+    if (!deliveryAddress.city.trim()) errors.push('Cidade é obrigatório');
+    if (!deliveryAddress.state.trim()) errors.push('Estado é obrigatório');
     if (!acceptedTerms) errors.push('Aceite os termos de uso');
     if (!acceptedPrivacy) errors.push('Aceite a política de privacidade');
     return errors;
@@ -182,6 +193,7 @@ export default function CheckoutPage() {
 
   const processPayment = async () => {
     const errors = validateForm();
+    setFormErrors(errors); // Atualiza os alertas visuais
     if (errors.length > 0) {
       errors.forEach((error) => toast.error(error));
       return;
@@ -292,6 +304,23 @@ export default function CheckoutPage() {
               </Button>
             </Link>
           </div>
+
+          {/* ALERTA DE ERROS DE VALIDAÇÃO */}
+          {formErrors.length > 0 && (
+            <div className="mb-6">
+              <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 flex items-start gap-3 shadow-sm animate-fade-in">
+                <AlertTriangle className="w-5 h-5 mt-0.5 text-red-500" />
+                <div>
+                  <span className="font-semibold">Atenção:</span>
+                  <ul className="list-disc ml-5 mt-1 text-sm space-y-0.5">
+                    {formErrors.map((err, idx) => (
+                      <li key={idx}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Formulário */}
