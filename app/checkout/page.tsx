@@ -181,7 +181,6 @@ export default function CheckoutPage() {
   };
 
   const processPayment = async () => {
-    // ... sua validação ...
     const errors = validateForm();
     if (errors.length > 0) {
       errors.forEach((error) => toast.error(error));
@@ -192,11 +191,29 @@ export default function CheckoutPage() {
 
     try {
       const orderData = {
-        customer: customerData,
-        address: deliveryAddress,
+        payer: {
+          name: customerData.firstName,
+          surname: customerData.lastName,
+          email: customerData.email,
+          phone: customerData.phone,
+          identification: {
+            type: 'CPF',
+            number: customerData.document,
+          },
+          address: {
+            zip_code: deliveryAddress.zipCode,
+            street_name: deliveryAddress.street,
+            street_number: deliveryAddress.number,
+            neighborhood: deliveryAddress.neighborhood,
+            city: deliveryAddress.city,
+            federal_unit: deliveryAddress.state,
+          },
+        },
         items: cartItems.map((item) => ({
-          id: item.productId,
           title: item.title,
+          quantity: item.quantity,
+          currency_id: 'BRL',
+          unit_price: item.price,
           description: `Tamanho: ${item.size}${
             item.customization?.name || item.customization?.number
               ? ` - Personalização: ${item.customization.name || ''} ${
@@ -206,22 +223,15 @@ export default function CheckoutPage() {
                 }`.trim()
               : ''
           }`,
-          quantity: item.quantity,
-          unit_price: item.price,
           picture_url: item.image,
           category_id: item.category || 'sports',
         })),
-        shipping: {
-          // Usando o valor do contexto
-          cost: shippingPrice,
-          mode: shippingPrice === 0 ? 'free' : 'standard',
-        },
-        notes: orderNotes,
-        // Usando o valor do contexto
-        total: totalPrice,
+
+        // outros campos opcionais...
       };
 
       const response = await fetch('/api/mercadopago/create-preference', {
+        // <-- Verifique esta linha
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData),
@@ -229,7 +239,7 @@ export default function CheckoutPage() {
 
       const data = await response.json();
 
-      if (data.success && data.preferenceId) {
+      if (data.success && data.init_point) {
         localStorage.setItem(
           'pendingOrder',
           JSON.stringify({
@@ -238,7 +248,7 @@ export default function CheckoutPage() {
             createdAt: new Date().toISOString(),
           }),
         );
-        window.location.href = data.paymentUrl;
+        window.location.href = data.init_point; // Redireciona para o Checkout Pro
       } else {
         throw new Error(data.error || 'Erro ao processar pagamento');
       }
