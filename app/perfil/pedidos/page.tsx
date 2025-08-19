@@ -7,6 +7,7 @@ import { getAuth } from 'firebase/auth';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Order } from '@/services/orders';
+import { useRouter } from 'next/navigation';
 
 function formatCurrency(value: number | undefined | null) {
   if (typeof value !== 'number' || isNaN(value)) return 'R$ 0,00';
@@ -36,6 +37,7 @@ function formatDate(
 }
 
 export default function PedidosClientePage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -82,6 +84,13 @@ export default function PedidosClientePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="mb-6 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium"
+      >
+        ← Voltar
+      </button>
       <h1 className="text-2xl font-bold mb-8">Meus Pedidos</h1>
       {orders.length === 0 ? (
         <div className="text-center text-gray-500">

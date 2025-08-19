@@ -38,7 +38,7 @@ interface UserProfile {
   lastName?: string;
   photoURL: string | null;
   phoneNumber?: string;
-  documentId?: string; // ADICIONADO
+  cpf: string; // ADICIONADO
   address?: {
     street?: string;
     city?: string;

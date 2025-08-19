@@ -19,6 +19,25 @@ import { toast } from 'sonner';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
+// Função para máscara de CPF
+function maskCpf(value: string) {
+  return value
+    .replace(/\D/g, '')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+    .slice(0, 14);
+}
+
+// Função para máscara de telefone (celular brasileiro)
+function maskPhone(value: string) {
+  return value
+    .replace(/\D/g, '')
+    .replace(/^(\d{2})(\d)/g, '($1) $2')
+    .replace(/(\d{5})(\d{1,4})$/, '$1-$2')
+    .slice(0, 15);
+}
+
 export default function EditProfilePage() {
   const { userProfile, loading, isAuthenticated, updateUserProfile } =
     useAuth();
@@ -29,9 +48,11 @@ export default function EditProfilePage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [cpf, setCpf] = useState(''); // NOVO
   const [photoURL, setPhotoURL] = useState('');
   const [street, setStreet] = useState('');
-  const [streetNumber, setStreetNumber] = useState(''); // ADICIONADO
+  const [streetNumber, setStreetNumber] = useState('');
+  const [neighborhood, setNeighborhood] = useState(''); // NOVO
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
@@ -62,6 +83,7 @@ export default function EditProfilePage() {
       setFirstName(userProfile.firstName || '');
       setLastName(userProfile.lastName || '');
       setPhoneNumber(userProfile.phoneNumber || '');
+      setCpf(userProfile.cpf || '');
       setPhotoURL(userProfile.photoURL || '');
       setStreet(userProfile.address?.street || '');
       setStreetNumber(
@@ -70,6 +92,7 @@ export default function EditProfilePage() {
           ? String(userProfile.address.number)
           : '',
       );
+      setNeighborhood(userProfile.address?.neighborhood || ''); // NOVO
       setCity(userProfile.address?.city || '');
       setState(userProfile.address?.state || '');
       setZipCode(userProfile.address?.zipCode || '');
@@ -89,7 +112,6 @@ export default function EditProfilePage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 2 * 1024 * 1024) {
-        // 2MB limit
         toast.error('A imagem deve ter no máximo 2MB.');
         return;
       }
@@ -112,6 +134,7 @@ export default function EditProfilePage() {
         setErrors((prev) => ({ ...prev, zipCode: 'CEP inválido.' }));
       } else {
         setStreet(data.logradouro || '');
+        setNeighborhood(data.bairro || ''); // NOVO
         setCity(data.localidade || '');
         setState(data.uf || '');
         setCountry('Brasil');
@@ -134,6 +157,7 @@ export default function EditProfilePage() {
     if (!displayName.trim())
       newErrors.displayName = 'Nome de exibição é obrigatório.';
     if (!firstName.trim()) newErrors.firstName = 'Primeiro nome é obrigatório.';
+    if (!cpf.trim()) newErrors.cpf = 'CPF é obrigatório.'; // NOVO
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -161,10 +185,12 @@ export default function EditProfilePage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phoneNumber: phoneNumber.trim(),
+        cpf: cpf.trim(), // NOVO
         photoURL: newPhotoURL,
         address: {
           street: street.trim(),
           number: streetNumber.trim(),
+          neighborhood: neighborhood.trim(), // NOVO
           city: city.trim(),
           state: state.trim(),
           zipCode: zipCode.trim(),
@@ -286,12 +312,26 @@ export default function EditProfilePage() {
                 </div>
 
                 <div>
+                  <Label htmlFor="cpf">CPF *</Label>
+                  <Input
+                    id="cpf"
+                    value={cpf}
+                    onChange={(e) => setCpf(maskCpf(e.target.value))}
+                    placeholder="000.000.000-00"
+                    className={errors.cpf ? 'border-red-500' : ''}
+                  />
+                  {errors.cpf && (
+                    <p className="text-red-500 text-sm mt-1">{errors.cpf}</p>
+                  )}
+                </div>
+
+                <div>
                   <Label htmlFor="phoneNumber">Telefone</Label>
                   <Input
                     id="phoneNumber"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="(XX) XXXXX-XXXX"
+                    onChange={(e) => setPhoneNumber(maskPhone(e.target.value))}
+                    placeholder="(00) 00000-0000"
                   />
                 </div>
               </CardContent>
@@ -336,13 +376,22 @@ export default function EditProfilePage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                   <div className="md:col-span-2">
                     <Label htmlFor="street">Rua</Label>
                     <Input
                       id="street"
                       value={street}
                       onChange={(e) => setStreet(e.target.value)}
+                      placeholder="Preenchido automaticamente"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="neighborhood">Bairro</Label>
+                    <Input
+                      id="neighborhood"
+                      value={neighborhood}
+                      onChange={(e) => setNeighborhood(e.target.value)}
                       placeholder="Preenchido automaticamente"
                     />
                   </div>

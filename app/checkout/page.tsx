@@ -92,7 +92,7 @@ export default function CheckoutPage() {
         lastName: userProfile.lastName || '',
         email: userProfile.email || '',
         phone: userProfile.phoneNumber || '',
-        document: userProfile.documentId || '',
+        document: userProfile.cpf || '',
       });
 
       if (userProfile.address) {
