@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '@/contexts/CartContext';
+import { generateOrderNumber } from '@/services/orders'; // Importa a função de geração de número do pedido
 
 // Interfaces (mantidas como no seu código original)
 interface DeliveryAddress {
@@ -130,15 +131,6 @@ export default function CheckoutPage() {
     }
   }, [totalQuantity, router]);
 
-  // ==================================================================
-  // 2. BLOCO DE CÁLCULO REMOVIDO
-  // Todas as linhas abaixo foram removidas pois os valores já vêm do useCart()
-  // const totalItems = getItemCount();
-  // const shippingInfo = calculateShipping(totalItems);
-  // const subtotal = cartItems.reduce(...);
-  // ... etc
-  // ==================================================================
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -193,7 +185,7 @@ export default function CheckoutPage() {
 
   const processPayment = async () => {
     const errors = validateForm();
-    setFormErrors(errors); // Atualiza os alertas visuais
+    setFormErrors(errors);
     if (errors.length > 0) {
       errors.forEach((error) => toast.error(error));
       return;
@@ -202,6 +194,30 @@ export default function CheckoutPage() {
     setProcessingPayment(true);
 
     try {
+      // 1. Crie o pedido no backend
+      const pedidoResponse = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: customerData,
+          address: deliveryAddress,
+          notes: orderNotes,
+          items: cartItems,
+          subtotal,
+          totalCustomizationFee,
+          shippingPrice,
+          totalPrice,
+          status: 'pending',
+          orderNumber: generateOrderNumber(), // <-- Gera o número do pedido
+        }),
+      });
+
+      const pedidoData = await pedidoResponse.json();
+      if (!pedidoResponse.ok) {
+        throw new Error(pedidoData.error || 'Erro ao criar pedido');
+      }
+
+      // 2. Crie a preferência do Mercado Pago normalmente
       const orderData = {
         payer: {
           name: customerData.firstName,
@@ -238,12 +254,11 @@ export default function CheckoutPage() {
           picture_url: item.image,
           category_id: item.category || 'sports',
         })),
-
+        orderNumber: generateOrderNumber(),
         // outros campos opcionais...
       };
 
       const response = await fetch('/api/mercadopago/create-preference', {
-        // <-- Verifique esta linha
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData),
@@ -260,7 +275,7 @@ export default function CheckoutPage() {
             createdAt: new Date().toISOString(),
           }),
         );
-        window.location.href = data.init_point; // Redireciona para o Checkout Pro
+        window.location.href = data.init_point;
       } else {
         throw new Error(data.error || 'Erro ao processar pagamento');
       }

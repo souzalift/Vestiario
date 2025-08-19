@@ -12,8 +12,6 @@ import {
 } from 'firebase/firestore';
 import { Users, ShoppingBag, Heart, Shirt, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 
 interface StatCardProps {
   title: string;
@@ -91,7 +89,6 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
       <main className="flex-1 py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold mb-8 text-gray-900">
@@ -125,7 +122,7 @@ export default function AdminDashboardPage() {
                   value={stats.orders}
                   icon={<ShoppingBag className="w-6 h-6 text-yellow-600" />}
                   color="border-yellow-600"
-                  link="/admin/orders"
+                  link="/admin/pedidos"
                 />
                 <StatCard
                   title="Favoritos"
@@ -162,11 +159,11 @@ export default function AdminDashboardPage() {
                               {order.orderNumber || order.id}
                             </td>
                             <td className="py-2 px-4">
-                              {order.customerName || order.userId || '-'}
+                              {` ${order.customer?.firstName} ${order.customer?.lastName}`}
                             </td>
                             <td className="py-2 px-4 font-bold">
                               R${' '}
-                              {order.total?.toFixed(2).replace('.', ',') ||
+                              {order.totalPrice?.toFixed(2).replace('.', ',') ||
                                 '0,00'}
                             </td>
                             <td className="py-2 px-4">
@@ -204,7 +201,6 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

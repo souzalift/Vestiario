@@ -12,45 +12,75 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-export interface OrderItem {
-  productId: string;
-  title: string;
-  price: number;
-  quantity: number;
-  size: string;
-  image: string;
-  customization?: {
-    name?: string;
-    number?: string;
-  };
+export interface FirestoreTimestamp {
+  seconds: number;
+  nanoseconds: number;
 }
 
+// Tipo para cada item dentro do pedido
+export interface OrderItem {
+  id: string;
+  title: string;
+  quantity: number;
+  price: number;
+  basePrice: number;
+  image: string;
+  size: string;
+  team: string;
+  productSlug: string;
+  customization: { name?: string; number?: string } | null;
+  customizationFee: number;
+}
+
+// Tipo para o cliente
+export interface Customer {
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  document: string;
+}
+
+// Tipo para o endereço
+export interface Address {
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
+
+// Tipo principal para o Pedido completo
 export interface Order {
-  id?: string;
-  orderNumber: string;
-  userId: string;
-  userEmail: string;
-  items: OrderItem[];
-  subtotal: number;
-  shipping: number;
   total: number;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  paymentStatus: 'pending' | 'paid' | 'failed';
-  paymentMethod: string;
-  shippingAddress: {
-    name: string;
-    email: string;
-    phone: string;
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  createdAt: Date;
-  updatedAt: Date;
+  id: string; // ID do documento do Firestore
+  orderNumber: string;
+  status: 'pendente' | 'pago' | 'enviado' | 'entregue' | 'cancelado'; // Ajuste os status conforme necessário
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded'; // Adicionado para suportar o campo paymentStatus
+  totalPrice: number;
+  subtotal: number;
+  shippingPrice: number;
+  totalCustomizationFee: number;
+  notes: string;
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
+  customer: Customer;
+  address: Address;
+  items: OrderItem[];
+}
+
+// Gera um ID do pedido no padrão PED-YYYYMMDD-XXXXXX
+export function generateOrderNumber() {
+  const date = new Date();
+  const ddmmyyyy = date
+    .toISOString()
+    .slice(0, 10)
+    .replace(/-/g, '');
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `V-${ddmmyyyy}-${random}`;
 }
 
 // Criar pedido
@@ -113,3 +143,65 @@ export const updateOrderStatus = async (
     throw error;
   }
 };
+
+// Buscar todos os pedidos (admin)
+export const getAllOrders = async () => {
+  try {
+    const q = query(
+      collection(db, 'orders'),
+      orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate(),
+      updatedAt: doc.data().updatedAt?.toDate(),
+    })) as Order[];
+  } catch (error) {
+    console.error('Erro ao buscar todos os pedidos:', error);
+    throw error;
+  }
+};
+
+
+export const getOrderById = async (id: string): Promise<Order | null> => {
+  const docRef = doc(db, 'orders', id);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  const data = docSnap.data();
+
+  // Retorne todos os campos obrigatórios da interface Order
+  return {
+    id: docSnap.id,
+    orderNumber: data.orderNumber ?? '',
+    status: data.status ?? 'pending',
+    total: data.total ?? 0,
+    totalPrice: data.totalPrice ?? 0,
+    subtotal: data.subtotal ?? 0,
+    shippingPrice: data.shippingPrice ?? 0,
+    totalCustomizationFee: data.totalCustomizationFee ?? 0,
+    notes: data.notes ?? '',
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    customer: data.customer ?? {
+      name: '',
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      document: '',
+    },
+    address: data.address ?? {
+      street: '',
+      number: '',
+      complement: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      zipCode: '',
+    },
+    items: data.items ?? [],
+  };
+};
+
