@@ -121,7 +121,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ searchQuery }) => {
   // Estado de esqueleto de layout: apenas no carregamento inicial.
   if (loading && products.length === 0) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
         {[...Array(8)].map((_, i) => (
           <div
             key={i}
@@ -162,7 +162,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ searchQuery }) => {
   // Estado de sucesso: renderiza a grade e o botão "Carregar Mais".
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
         {products.map((product) => (
           <ProductCard
             key={`${product.id}-${product.slug}`}

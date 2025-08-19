@@ -102,17 +102,12 @@ function TrustSection() {
       title: 'Frete Grátis',
       description: 'A partir de 4 camisas',
     },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: '15k+ Clientes',
-      description: 'Satisfeitos',
-    },
   ];
 
   return (
     <div className="bg-white py-16 border-b border-gray-100">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <div key={index} className="text-center group">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 text-primary-800 rounded-2xl mb-4 group-hover:bg-primary-800 group-hover:text-white transition-all duration-300">

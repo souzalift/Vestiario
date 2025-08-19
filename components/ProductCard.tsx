@@ -151,21 +151,21 @@ export default function ProductCard({
           </div>
         </div>
       </div>
-
       {/* Product Info */}
+
       <div className="p-4 flex flex-col h-44">
         {' '}
         {/* <-- altura fixa para alinhar conteúdo */}
         <Link
-          href={`/produto/${product.slug || product.id}`}
+          href={`/produto/${product.slug}`}
           className="flex-1 flex flex-col"
         >
-          {/* Title */}
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-primary-600 transition-colors">
+          {/* Title - Tamanho de fonte menor em mobile (text-xs) e maior em desktop (sm:text-sm) */}
+          <h3 className="text-xs sm:text-lg font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-primary-600 transition-colors">
             {product.title}
           </h3>
 
-          {/* Player Info */}
+          {/* Player Info (sem alteração) */}
           {(product.playerName || product.playerNumber) && (
             <div className="flex items-center text-sm text-gray-600 mb-2">
               {product.playerName && <span>{product.playerName}</span>}
@@ -189,13 +189,15 @@ export default function ProductCard({
                 </span>
               </div>
               <div className="text-xs">
-                <span className="text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
+                {/* Badge - Escondido em mobile (hidden) e visível em desktop (sm:block) */}
+                <span className="hidden sm:block text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
                   Disponível
                 </span>
               </div>
             </div>
             {product.sizes && product.sizes.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
+              // Tamanhos - Ficam em uma única linha com scroll horizontal em mobile
+              <div className="flex gap-1 mt-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {product.sizes.slice(0, 6).map((size) => (
                   <span
                     key={size}
