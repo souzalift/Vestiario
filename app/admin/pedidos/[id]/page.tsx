@@ -41,10 +41,8 @@ const statusOptions = [
   { value: 'cancelado', label: 'Cancelado' },
 ];
 
-export default async function AdminPedidoPage(props: {
-  params: { id: string };
-}) {
-  const { id } = await props.params;
+export default async function AdminPedidoPage({ params }: { params: any }) {
+  const { id } = await params;
   const order: Order | null = await getOrderById(id);
 
   if (!order) {
