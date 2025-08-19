@@ -11,13 +11,11 @@
     "import:products:file": "npx ts-node scripts/importProducts.ts"
   },
   "dependencies": {
-    "@clerk/localizations": "^3.20.7",
     "@firebase/auth": "^1.11.0",
     "@firebase/firestore": "^4.9.0",
     "@firebase/storage": "^0.14.0",
     "@headlessui/react": "^2.2.7",
     "@hookform/resolvers": "^3.9.0",
-    "@mercadopago/sdk-react": "^1.0.4",
     "@next/swc-wasm-nodejs": "13.5.1",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -65,7 +63,6 @@
     "jose": "^6.0.12",
     "lucide-react": "^0.446.0",
     "mercadopago": "^2.8.0",
-    "mongoose": "^8.17.0",
     "next": "15.4.5",
     "next-themes": "^0.3.0",
     "postcss": "^8.5.6",
@@ -81,11 +78,9 @@
     "tailwindcss": "3.3.3",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "5.2.2",
-    "vaul": "^0.9.9",
-    "zod": "^3.23.8"
+    "vaul": "^0.9.9"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^24.2.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3"
