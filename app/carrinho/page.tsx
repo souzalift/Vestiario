@@ -45,13 +45,7 @@ interface CartItem {
 }
 
 export default function CartPage() {
-  const {
-    items: cartItems,
-    removeItem,
-    updateQuantity,
-    clearCart,
-    getItemCount,
-  } = useCart();
+  const { items: cartItems, removeItem, updateQuantity, clearCart } = useCart();
 
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,11 +86,11 @@ export default function CartPage() {
   };
 
   // Calcular totais
-  const totalItems = getItemCount();
+  // Calcular totais
+  const totalItems = cartItems.length;
   const totalQuantity = totalItems;
   const shippingInfo = calculateShipping(totalQuantity);
   const nextDiscount = getNextShippingDiscount(totalQuantity);
-
   // Calcular totais
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
