@@ -42,7 +42,6 @@ import {
   Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Label } from '@/components/ui/label';
 
 interface Product {
   id: string;
@@ -310,7 +309,7 @@ export default function AdminProductsPage() {
             </div>
             <div className="flex gap-2">
               <Button
-                onClick={() => router.push('/admin/products/new')}
+                onClick={() => router.push('/admin/produtos/new')}
                 className="bg-gray-900 hover:bg-gray-800 text-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -541,7 +540,7 @@ export default function AdminProductsPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() =>
-                                  router.push(`/products/${product.id}`)
+                                  router.push(`/produtos/${product.id}`)
                                 }
                                 title="Visualizar"
                                 className="border-gray-300 hover:bg-gray-100"
@@ -553,7 +552,7 @@ export default function AdminProductsPage() {
                                 variant="outline"
                                 onClick={() =>
                                   router.push(
-                                    `/admin/products/${product.id}/edit`,
+                                    `/admin/produtos/${product.id}/edit`,
                                   )
                                 }
                                 title="Editar"

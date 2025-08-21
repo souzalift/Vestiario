@@ -113,7 +113,7 @@ export default function EditProductPage() {
 
       if (!productSnap.exists()) {
         toast.error('Produto não encontrado');
-        router.push('/admin/products');
+        router.push('/admin/produtos');
         return;
       }
 
@@ -147,7 +147,7 @@ export default function EditProductPage() {
     } catch (error) {
       console.error('Erro ao carregar produto:', error);
       toast.error('Erro ao carregar produto');
-      router.push('/admin/products');
+      router.push('/admin/produtos');
     } finally {
       setLoading(false);
     }
@@ -213,7 +213,7 @@ export default function EditProductPage() {
       await updateDoc(doc(db, 'products', productId), updatedProduct);
 
       toast.success('Produto atualizado com sucesso!');
-      router.push('/admin/products');
+      router.push('/admin/produtos');
     } catch (error) {
       console.error('Erro ao atualizar produto:', error);
       toast.error('Erro ao atualizar produto');
@@ -276,7 +276,7 @@ export default function EditProductPage() {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => router.push(`/products/${productId}`)}
+                onClick={() => router.push(`/produtos/${productId}`)}
                 className="flex items-center gap-2 border-gray-300 hover:bg-gray-100"
               >
                 <Eye className="w-4 h-4" />
