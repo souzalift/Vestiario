@@ -1,15 +1,22 @@
+// app/login/page.tsx
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 import Link from 'next/link';
 
+// Libs de formulário
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+// Contexto, UI, e ícones
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
   Eye,
@@ -24,24 +31,42 @@ import {
   Loader2,
   Chrome,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+
+// 1. Esquema de validação com Zod para o login.
+const loginSchema = z.object({
+  email: z.string().email('Por favor, insira um email válido'),
+  password: z.string().min(1, 'Senha é obrigatória'),
+  rememberMe: z.boolean().optional(),
+});
+
+// Gera o tipo TypeScript a partir do esquema
+type LoginFormData = z.infer<typeof loginSchema>;
 
 function LoginPageContent() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{
-    email?: string;
-    password?: string;
-    general?: string;
-  }>({});
+  // Estado de loading para ações fora do formulário principal (ex: Google)
+  const [isExternalLoading, setIsExternalLoading] = useState(false);
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Pegar URL de retorno ou usar página inicial
   const returnUrl = searchParams.get('returnUrl') || '/';
+
+  // 2. Hook de Formulário: Centraliza estado, validação e submissão.
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
+  });
 
   // Se já estiver logado, redirecionar
   useEffect(() => {
@@ -50,97 +75,80 @@ function LoginPageContent() {
     }
   }, [isAuthenticated, router, returnUrl]);
 
-  // Validação básica
-  const validateForm = () => {
-    const newErrors: typeof errors = {};
-
-    if (!email.trim()) {
-      newErrors.email = 'Email é obrigatório';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email inválido';
-    }
-
-    if (!password) {
-      newErrors.password = 'Senha é obrigatória';
-    } else if (password.length < 6) {
-      newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleAuthSuccess = () => {
+    toast.success('Login realizado com sucesso!', {
+      description: 'Redirecionando...',
+      duration: 2000,
+    });
+    setTimeout(() => {
+      router.push(returnUrl);
+    }, 500);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    setLoading(true);
-    setErrors({});
-
+  // 3. Função de Submissão: Recebe os dados já validados.
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(email, password);
-
-      toast.success('Login realizado com sucesso!', {
-        description: 'Redirecionando...',
-        duration: 2000,
-      });
-
-      // Pequeno delay para mostrar o toast
-      setTimeout(() => {
-        router.push(returnUrl);
-      }, 500);
+      await login(data.email, data.password);
+      handleAuthSuccess();
     } catch (error: any) {
       console.error('Erro no login:', error);
-
       let errorMessage = 'Erro ao fazer login';
       let errorDescription = 'Tente novamente';
 
       if (
         error.code === 'auth/user-not-found' ||
-        error.code === 'auth/wrong-password'
+        error.code === 'auth/wrong-password' ||
+        error.code === 'auth/invalid-credential'
       ) {
         errorMessage = 'Credenciais incorretas';
-        errorDescription = 'Email ou senha incorretos';
-        setErrors({ general: 'Email ou senha incorretos' });
+        errorDescription = 'Verifique seu email e senha.';
+        // Seta um erro geral para ser exibido no topo do formulário
+        setError('root.serverError', {
+          type: 'manual',
+          message: 'Email ou senha incorretos. Por favor, tente novamente.',
+        });
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = 'Muitas tentativas';
-        errorDescription = 'Aguarde alguns minutos';
-        setErrors({ general: 'Muitas tentativas. Aguarde alguns minutos.' });
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = 'Conta desabilitada';
-        errorDescription = 'Entre em contato com o suporte';
-        setErrors({ general: 'Esta conta foi desabilitada' });
+        errorDescription = 'Aguarde alguns minutos e tente novamente.';
+        setError('root.serverError', {
+          type: 'manual',
+          message: 'Acesso bloqueado temporariamente por muitas tentativas.',
+        });
       } else {
-        setErrors({ general: error.message || 'Erro inesperado' });
+        setError('root.serverError', {
+          type: 'manual',
+          message: 'Ocorreu um erro inesperado. Tente novamente mais tarde.',
+        });
       }
-
       toast.error(errorMessage, { description: errorDescription });
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setLoading(true);
-    setErrors({});
-
+    setIsExternalLoading(true);
     try {
-      // Implementar login com Google aqui se necessário
-      toast.info('Login com Google em breve!');
+      await loginWithGoogle();
+      handleAuthSuccess();
     } catch (error: any) {
       console.error('Erro no login com Google:', error);
-      toast.error('Erro no login com Google');
+      if (error.code !== 'auth/popup-closed-by-user') {
+        toast.error('Erro no login com Google', {
+          description: 'Por favor, tente novamente.',
+        });
+      }
     } finally {
-      setLoading(false);
+      setIsExternalLoading(false);
     }
   };
 
+  // Estado de loading unificado para desabilitar botões
+  const isLoading = isSubmitting || isExternalLoading;
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <main className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
-          {/* Back Button */}
+          {/* Header e botão de voltar (sem alterações) */}
           <div className="flex items-center">
             <Button
               variant="ghost"
@@ -152,8 +160,6 @@ function LoginPageContent() {
               Voltar
             </Button>
           </div>
-
-          {/* Header */}
           <div className="text-center">
             <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
               <span className="text-white font-bold text-xl">OV</span>
@@ -162,15 +168,14 @@ function LoginPageContent() {
               Entrar na sua conta
             </h2>
             <p className="text-gray-600">
-              Bem-vindo de volta! Faça login para continuar
+              Bem-vindo de volta! Faça login para continuar.
             </p>
           </div>
 
-          {/* Login Card */}
           <Card className="shadow-xl border-0 bg-white">
             <CardContent className="p-8">
-              {/* Error Message */}
-              {errors.general && (
+              {/* Exibe erros gerais retornados pelo servidor */}
+              {errors.root?.serverError && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
                   <div>
@@ -178,15 +183,13 @@ function LoginPageContent() {
                       Erro no login
                     </p>
                     <p className="text-sm text-red-600 mt-1">
-                      {errors.general}
+                      {errors.root.serverError.message}
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Email */}
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div>
                   <Label htmlFor="email" className="text-gray-700 font-medium">
                     Email
@@ -196,27 +199,23 @@ function LoginPageContent() {
                     <Input
                       id="email"
                       type="email"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (errors.email)
-                          setErrors({ ...errors, email: undefined });
-                      }}
-                      className={`pl-10 h-12 border-gray-200 focus:border-gray-400 ${
+                      {...register('email')}
+                      className={`pl-10 h-12 border-gray-200 ${
                         errors.email
                           ? 'border-red-300 focus:border-red-400'
                           : ''
                       }`}
                       placeholder="seu@email.com"
-                      disabled={loading}
+                      disabled={isLoading}
                     />
                   </div>
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.email.message}
+                    </p>
                   )}
                 </div>
 
-                {/* Password */}
                 <div>
                   <Label
                     htmlFor="password"
@@ -229,19 +228,14 @@ function LoginPageContent() {
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (errors.password)
-                          setErrors({ ...errors, password: undefined });
-                      }}
-                      className={`pl-10 pr-10 h-12 border-gray-200 focus:border-gray-400 ${
+                      {...register('password')}
+                      className={`pl-10 pr-10 h-12 border-gray-200 ${
                         errors.password
                           ? 'border-red-300 focus:border-red-400'
                           : ''
                       }`}
                       placeholder="Sua senha"
-                      disabled={loading}
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
@@ -257,26 +251,20 @@ function LoginPageContent() {
                   </div>
                   {errors.password && (
                     <p className="mt-1 text-sm text-red-600">
-                      {errors.password}
+                      {errors.password.message}
                     </p>
                   )}
                 </div>
 
-                {/* Forgot Password */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <input
-                      id="remember-me"
-                      name="remember-me"
-                      type="checkbox"
-                      className="h-4 w-4 text-gray-900 focus:ring-gray-900 border-gray-300 rounded"
-                    />
-                    <label
+                    <Checkbox id="remember-me" {...register('rememberMe')} />
+                    <Label
                       htmlFor="remember-me"
-                      className="ml-2 block text-sm text-gray-700"
+                      className="ml-2 block text-sm text-gray-700 cursor-pointer"
                     >
                       Lembrar de mim
-                    </label>
+                    </Label>
                   </div>
                   <Link
                     href="/recuperar-senha"
@@ -286,15 +274,14 @@ function LoginPageContent() {
                   </Link>
                 </div>
 
-                {/* Submit Button */}
                 <Button
                   type="submit"
-                  disabled={loading}
-                  className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold text-base disabled:opacity-50"
+                  disabled={isLoading}
+                  className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold text-base"
                 >
-                  {loading ? (
+                  {isSubmitting ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />{' '}
                       Entrando...
                     </>
                   ) : (
@@ -303,7 +290,7 @@ function LoginPageContent() {
                 </Button>
               </form>
 
-              {/* Divider */}
+              {/* Separador e botão Google */}
               <div className="mt-6">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -317,19 +304,22 @@ function LoginPageContent() {
                 </div>
               </div>
 
-              {/* Google Login */}
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleGoogleLogin}
-                disabled={loading}
+                disabled={isLoading}
                 className="w-full h-12 mt-4 border-gray-200 hover:bg-gray-50 text-gray-700 font-medium"
               >
-                <Chrome className="w-5 h-5 mr-3" />
+                {isExternalLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin mr-3" />
+                ) : (
+                  <Chrome className="w-5 h-5 mr-3" />
+                )}
                 Entrar com Google
               </Button>
 
-              {/* Sign Up Link */}
+              {/* Link para Criar Conta */}
               <div className="mt-6 text-center">
                 <p className="text-gray-600">
                   Não tem uma conta?{' '}
@@ -348,7 +338,7 @@ function LoginPageContent() {
             </CardContent>
           </Card>
 
-          {/* Benefits */}
+          {/* Card de vantagens (sem alterações) */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
               Vantagens de ter uma conta
@@ -386,13 +376,12 @@ function LoginPageContent() {
   );
 }
 
-// O export default agora só faz o suspense boundary
 export default function LoginPage() {
   return (
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center">
-          Carregando...
+          <Loader2 className="w-8 h-8 animate-spin text-gray-700" />
         </div>
       }
     >
