@@ -16,6 +16,7 @@ import {
   Award,
   Zap,
   DollarSign,
+  Plane,
 } from 'lucide-react';
 
 interface Props {
@@ -135,8 +136,8 @@ function QualityFeaturesSection() {
             Por que Camisas Tailandesas?
           </h2>
           <p className="text-gray-600 max-w-3xl mx-auto text-lg">
-            A Tailândia é reconhecida mundialmente pela excelência em confecção
-            têxtil esportiva
+            Se refere a réplicas de alta qualidade de uniformes esportivos,
+            especialmente de futebol.
           </p>
         </div>
 
@@ -169,14 +170,14 @@ function QualityFeaturesSection() {
 
           <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
             <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-6">
-              <Star className="w-6 h-6" />
+              <Plane className="w-6 h-6" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-3">
-              Aprovação Garantida
+              Camisas Importadas
             </h3>
             <p className="text-gray-600">
-              Milhares de clientes satisfeitos. Se não gostar, devolvemos seu
-              dinheiro em até 7 dias.
+              Nossas camisas são importadas, com entrega rápida, segura e com
+              agilidade em todo o Brasil.
             </p>
           </div>
         </div>
