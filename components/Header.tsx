@@ -211,7 +211,7 @@ export default function Header() {
                         <User className="w-4 h-4" /> Meu Perfil
                       </Link>
                       <Link
-                        href="/pedidos"
+                        href="/perfil/pedidos"
                         className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
