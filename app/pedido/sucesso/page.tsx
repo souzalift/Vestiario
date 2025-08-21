@@ -3,8 +3,7 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+
 import {
   CheckCircle,
   Package,
@@ -140,8 +139,6 @@ function SuccessPageLoading() {
 export default function SucessoPedidoPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
-
       <main className="pt-20 pb-16">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Suspense fallback={<SuccessPageLoading />}>
@@ -149,8 +146,6 @@ export default function SucessoPedidoPage() {
           </Suspense>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
