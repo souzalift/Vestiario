@@ -57,7 +57,7 @@ export default function CheckoutPage() {
   const {
     items: cartItems,
     clearCart,
-    totalQuantity,
+    cartCount,
     subtotal,
     baseSubtotal,
     totalCustomizationFee,
@@ -124,12 +124,12 @@ export default function CheckoutPage() {
   // Efeito para evitar hydration mismatch e proteger a rota
   useEffect(() => {
     setIsClient(true);
-    // Usamos totalQuantity do contexto para a verificação
-    if (totalQuantity === 0) {
+    // Usamos cartCount do contexto para a verificação
+    if (cartCount === 0) {
       toast.error('Seu carrinho está vazio!');
       router.push('/');
     }
-  }, [totalQuantity, router]);
+  }, [cartCount, router]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -286,7 +286,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (!isClient || totalQuantity === 0) {
+  if (!isClient || cartCount === 0) {
     // Mostra um loader enquanto hidrata ou se estiver prestes a redirecionar
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
@@ -723,8 +723,8 @@ export default function CheckoutPage() {
                   {/* Produtos */}
                   <div className="space-y-4">
                     <h4 className="font-semibold text-gray-900">
-                      Produtos ({totalQuantity}{' '}
-                      {totalQuantity === 1 ? 'item' : 'itens'})
+                      Produtos ({cartCount} {cartCount === 1 ? 'item' : 'itens'}
+                      )
                     </h4>
                     <div className="space-y-3 max-h-60 overflow-y-auto">
                       {cartItems.map((item) => (
