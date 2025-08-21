@@ -1,25 +1,14 @@
+// app/admin/pedidos/page.tsx
+
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getAllOrders, Order } from '@/services/orders';
 
-// Função para buscar os dados no servidor
-async function getPedidos(): Promise<Order[]> {
-  const rawOrders = await getAllOrders();
-  // Map and ensure all required properties exist
-  return rawOrders.map((order: any) => ({
-    ...order,
-    totalPrice: order.totalPrice ?? 0,
-    shippingPrice: order.shippingPrice ?? 0,
-    totalCustomizationFee: order.totalCustomizationFee ?? 0,
-    notes: order.notes ?? '',
-    items: order.items ?? [],
-    // Add other required fields with defaults if needed
-  }));
-}
-
+// Componente de Servidor para a página de administração de pedidos
 export default async function AdminPedidosPage() {
-  const orders = await getPedidos();
+  // A chamada agora é direta. A função de serviço já retorna os dados limpos e formatados.
+  const orders = await getAllOrders();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -28,15 +17,13 @@ export default async function AdminPedidosPage() {
     }).format(value);
   };
 
-  const statusMap = {
-    pending: { text: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
+  // Mapeamento de status para estilização na tabela
+  const statusMap: { [key: string]: { text: string; className: string } } = {
     pendente: { text: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
-    approved: { text: 'Pago', className: 'bg-green-100 text-green-800' },
     pago: { text: 'Pago', className: 'bg-green-100 text-green-800' },
     enviado: { text: 'Enviado', className: 'bg-blue-100 text-blue-800' },
     entregue: { text: 'Entregue', className: 'bg-gray-100 text-gray-800' },
     cancelado: { text: 'Cancelado', className: 'bg-red-100 text-red-800' },
-    // Adicione outros status se necessário
   };
 
   return (
@@ -81,43 +68,28 @@ export default async function AdminPedidosPage() {
                   className: 'bg-gray-100 text-gray-800',
                 };
 
-                // Corrige datas Firestore Timestamp ou string
-                let dataPedido = '-';
-                if (order.createdAt) {
-                  try {
-                    const dateObj =
-                      typeof order.createdAt === 'object' &&
-                      'seconds' in order.createdAt
-                        ? new Date(order.createdAt.seconds * 1000)
-                        : new Date(order.createdAt);
-                    dataPedido = format(dateObj, "dd/MM/yyyy 'às' HH:mm", {
-                      locale: ptBR,
-                    });
-                  } catch {
-                    dataPedido = '-';
-                  }
-                }
-
-                // Corrige nome do cliente
                 const nomeCliente =
-                  order.customer?.firstName || order.customer?.name
-                    ? `${order.customer?.firstName || order.customer?.name} ${
-                        order.customer?.lastName || ''
-                      }`.trim()
-                    : '-';
+                  `${order.customer?.firstName || ''} ${
+                    order.customer?.lastName || ''
+                  }`.trim() ||
+                  order.customer?.name ||
+                  'N/A';
 
                 return (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-800">
-                      {order.orderNumber || order.id}
+                      {order.orderNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {dataPedido}
+                      {/* A data já é um objeto Date, a formatação fica mais simples */}
+                      {format(order.createdAt, "dd/MM/yyyy 'às' HH:mm", {
+                        locale: ptBR,
+                      })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="font-medium">{nomeCliente}</div>
                       <div className="text-xs text-gray-500">
-                        {order.customer?.email || '-'}
+                        {order.customer?.email || 'N/A'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -128,7 +100,7 @@ export default async function AdminPedidosPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {formatCurrency(order.totalPrice || order.total || 0)}
+                      {formatCurrency(order.totalPrice)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link

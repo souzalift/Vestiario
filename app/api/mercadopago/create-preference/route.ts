@@ -1,3 +1,5 @@
+//api/mercadopago/create-preference/route.ts
+// Este arquivo define a rota para criar uma preferência de pagamento no Mercado Pago
 import { NextResponse } from 'next/server';
 
 // 1. Importe as configurações e a classe de Preferência do SDK
