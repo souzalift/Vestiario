@@ -1,69 +1,127 @@
 // app/api/orders/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
+import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { createOrder, generateOrderNumber } from '@/services/orders';
-import type { Order } from '@/services/orders';
+import type { Order, OrderItem, Customer, Address } from '@/services/orders';
+
+// Inicialize o cliente do Mercado Pago com sua chave de acesso
+const client = new MercadoPagoConfig({
+  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
+});
 
 /**
  * Lida com requisições POST para /api/orders
- * Cria um novo pedido no sistema.
+ * Cria uma PREFERÊNCIA DE PAGAMENTO no Mercado Pago e um pedido inicial no Firestore.
  */
 export async function POST(request: NextRequest) {
   try {
     // 1. Extrai os dados do corpo da requisição
     const body = await request.json();
-    const { items, customer, address, subtotal, shippingPrice, totalCustomizationFee, totalPrice, notes } = body;
+    const { items, customer, address, subtotal, shippingPrice, totalCustomizationFee, totalPrice, notes, userId } = body;
 
     // 2. Validação dos dados recebidos
-    // Garante que as informações essenciais para criar um pedido estão presentes.
-    if (!items || !customer || !address || !totalPrice) {
+    if (!items || items.length === 0 || !customer || !address || !totalPrice) {
       return NextResponse.json(
-        { error: 'Dados do pedido incompletos. Faltam itens, informações do cliente ou endereço.' },
-        { status: 400 } // Bad Request
+        { error: 'Dados do pedido incompletos.' },
+        { status: 400 }
       );
     }
 
     // 3. Prepara os dados do pedido para salvar no banco de dados
-    const orderData: Omit<Order, 'id'> = {
+    // REMOVEMOS createdAt e updatedAt daqui, pois o serviço 'createOrder' já os adiciona.
+    const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
       orderNumber: generateOrderNumber(),
+      userId,
       items,
       customer,
       address,
       subtotal,
       shippingPrice,
       totalCustomizationFee,
-      total: totalPrice, // O campo 'total' na Order deve ser o preço final
+      total: totalPrice,
       totalPrice,
       notes: notes || '',
-      status: 'pendente', // Status inicial do pedido
+      status: 'pendente',
       paymentStatus: 'pending',
-      createdAt: (await import('firebase/firestore')).Timestamp.now(),
-      updatedAt: (await import('firebase/firestore')).Timestamp.now()
     };
 
-    // 4. Lógica de Negócio: Chama a função de serviço para criar o pedido no Firestore
+    // Salva o pedido no Firestore e obtém o ID
     const newOrderId = await createOrder(orderData);
 
-    // 5. Retorna uma resposta de sucesso com o pedido completo
-    const newOrder = {
-      id: newOrderId,
-      ...orderData,
+    // 4. Prepara os dados para a preferência do Mercado Pago
+    const preferenceItems = items.map((item: OrderItem) => ({
+      id: item.id,
+      title: item.title,
+      description: `Tamanho: ${item.size}${item.customization?.name ? `, Nome: ${item.customization.name}` : ''}${item.customization?.number ? `, Nº: ${item.customization.number}` : ''}`,
+      quantity: Number(item.quantity),
+      unit_price: Number(item.price),
+      currency_id: 'BRL',
+      picture_url: item.image,
+    }));
+
+    // Adiciona o custo do frete como um item separado na preferência
+    if (shippingPrice > 0) {
+      preferenceItems.push({
+        id: 'shipping',
+        title: 'Custo de Envio',
+        description: 'Frete para o seu endereço',
+        quantity: 1,
+        unit_price: Number(shippingPrice),
+        currency_id: 'BRL',
+      });
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+    const preferenceBody = {
+      items: preferenceItems,
+      payer: {
+        name: customer.firstName,
+        surname: customer.lastName,
+        email: customer.email,
+        phone: {
+          area_code: customer.phone.replace(/\D/g, '').substring(0, 2),
+          number: customer.phone.replace(/\D/g, '').substring(2),
+        },
+        identification: {
+          type: 'CPF',
+          number: customer.document.replace(/\D/g, ''),
+        },
+        address: {
+          zip_code: address.zipCode.replace(/\D/g, ''),
+          street_name: address.street,
+          street_number: String(address.number),
+          neighborhood: address.neighborhood,
+          city: address.city,
+          federal_unit: address.state,
+        },
+      },
+      back_urls: {
+        success: `${baseUrl}/pedido/sucesso?order_id=${newOrderId}`,
+        failure: `${baseUrl}/pedido/erro?order_id=${newOrderId}`,
+        pending: `${baseUrl}/pedido/pendente?order_id=${newOrderId}`,
+      },
+      auto_return: 'approved',
+      external_reference: newOrderId,
+      notification_url: `${baseUrl}/api/mercadopago/webhook`,
     };
 
-    return NextResponse.json(
-      {
-        message: 'Pedido criado com sucesso!',
-        order: newOrder,
-      },
-      { status: 201 } // 201 Created
-    );
+    // 5. Cria a preferência de pagamento
+    const preference = new Preference(client);
+    const result = await preference.create({ body: preferenceBody });
+
+    // 6. Retorna a URL de pagamento para o frontend
+    return NextResponse.json({
+      preferenceId: result.id,
+      init_point: result.init_point,
+    });
 
   } catch (error: any) {
-    console.error('Erro ao criar o pedido:', error);
-    // Retorna uma resposta de erro genérica se algo der errado no servidor
+    console.error('Erro ao criar preferência de pagamento:', error);
     return NextResponse.json(
-      { error: 'Não foi possível processar o pedido. Tente novamente mais tarde.' },
-      { status: 500 } // Internal Server Error
+      { error: 'Não foi possível processar o pagamento.' },
+      { status: 500 }
     );
   }
 }
