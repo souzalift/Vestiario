@@ -66,6 +66,7 @@ export interface Order {
   address: Address;
   items: OrderItem[];
   userId?: string; // Adicionado para a busca de pedidos do usuário
+  trackingCode?: string;
 }
 
 // Tipo para os dados que vêm do frontend para criar um pedido
@@ -102,6 +103,7 @@ const transformOrderDocument = (doc: DocumentSnapshot): Order => {
     address: data.address || {},
     items: data.items || [],
     userId: data.userId || '',
+    trackingCode: data.trackingCode || '',
     createdAt,
     updatedAt,
   };
@@ -198,5 +200,27 @@ export const updateOrder = async (orderId: string, data: Partial<Omit<Order, 'id
   } catch (error) {
     console.error('Erro ao atualizar pedido:', error);
     throw new Error('Não foi possível atualizar o pedido.');
+  }
+};
+
+export const getOrderByNumber = async (orderNumber: string): Promise<Order | null> => {
+  try {
+    const q = query(
+      collection(db, 'orders'),
+      where('orderNumber', '==', orderNumber)
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return null; // Nenhum pedido encontrado com este número
+    }
+
+    // Retorna o primeiro documento encontrado (deve ser único)
+    const orderDoc = querySnapshot.docs[0];
+    return transformOrderDocument(orderDoc); // Reutiliza sua função de transformação
+
+  } catch (error) {
+    console.error('Erro ao buscar pedido por número:', error);
+    throw new Error('Não foi possível buscar o pedido.');
   }
 };

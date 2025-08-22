@@ -1,191 +1,147 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserOrders, Order } from '@/services/orders';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getAuth } from 'firebase/auth';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { Order } from '@/services/orders';
-import { useRouter } from 'next/navigation';
 
-function formatCurrency(value: number | undefined | null) {
-  if (typeof value !== 'number' || isNaN(value)) return 'R$ 0,00';
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-}
+// UI e Ícones
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Package, ArrowRight, FileText, Truck } from 'lucide-react';
 
-function formatDate(
-  date: Date | { seconds: number; nanoseconds: number } | string | undefined,
-) {
-  if (!date) return '-';
-  try {
-    let d: Date;
-    if (typeof date === 'object' && 'seconds' in date) {
-      d = new Date(date.seconds * 1000);
-    } else if (typeof date === 'string') {
-      d = new Date(date);
-    } else {
-      d = date as Date;
-    }
-    return format(d, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-  } catch {
-    return '-';
-  }
-}
-
-export default function PedidosClientePage() {
-  const router = useRouter();
+export default function MeusPedidosPage() {
+  const { userProfile, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user?.email) {
-        setUserEmail(user.email);
-
-        // Busca pedidos do usuário autenticado
-        const q = query(
-          collection(db, 'orders'),
-          where('customer.email', '==', user.email),
-          orderBy('createdAt', 'desc'),
-        );
-        const querySnapshot = await getDocs(q);
-        const pedidos: Order[] = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Order[];
-        setOrders(pedidos);
-      }
+    if (authLoading) return;
+    if (userProfile?.uid) {
+      const fetchOrders = async () => {
+        try {
+          const userOrders = await getUserOrders(userProfile.uid);
+          setOrders(userOrders);
+        } catch (error) {
+          console.error('Erro ao buscar pedidos:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchOrders();
+    } else {
       setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    }
+  }, [userProfile, authLoading]);
 
-  if (loading) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 text-center text-gray-500">
-        Carregando pedidos...
-      </div>
-    );
-  }
+  const formatCurrency = (value: number = 0) =>
+    new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  const formatDate = (date: Date) =>
+    format(date, 'dd/MM/yyyy', { locale: ptBR });
 
-  if (!userEmail) {
+  const statusMap: { [key: string]: { text: string; className: string } } = {
+    pendente: { text: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
+    pago: { text: 'Pago', className: 'bg-green-100 text-green-800' },
+    enviado: { text: 'Enviado', className: 'bg-blue-100 text-blue-800' },
+    entregue: { text: 'Entregue', className: 'bg-gray-100 text-gray-800' },
+    cancelado: { text: 'Cancelado', className: 'bg-red-100 text-red-800' },
+  };
+
+  if (loading || authLoading) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center text-gray-500">
-        Faça login para visualizar seus pedidos.
+      <div className="flex justify-center items-center h-96">
+        <Loader2 className="w-12 h-12 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
-      <button
-        type="button"
-        onClick={() => router.back()}
-        className="mb-6 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium"
-      >
-        ← Voltar
-      </button>
-      <h1 className="text-2xl font-bold mb-8">Meus Pedidos</h1>
+    <div className="max-w-4xl mx-auto py-10 px-4">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Meus Pedidos</h1>
       {orders.length === 0 ? (
-        <div className="text-center text-gray-500">
-          Você ainda não fez nenhum pedido.
-        </div>
+        <Card className="text-center py-12">
+          <CardContent>
+            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold">Nenhum pedido encontrado</h3>
+            <Button asChild className="mt-6">
+              <Link href="/">Ver produtos</Link>
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="space-y-8">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className="border border-gray-200 rounded-xl shadow-sm bg-white p-6"
-            >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-                <div>
-                  <span className="font-semibold text-gray-700">Pedido:</span>{' '}
-                  <span className="text-gray-900">
-                    {order.orderNumber || order.id}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-700">Data:</span>{' '}
-                  <span className="text-gray-900">
-                    {formatDate(order.createdAt)}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-700">Status:</span>{' '}
-                  <span
-                    className={`inline-block px-2 py-1 rounded text-xs font-bold ${
-                      order.status === 'entregue'
-                        ? 'bg-green-100 text-green-700'
-                        : order.status === 'pendente'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : order.status === 'cancelado'
-                        ? 'bg-red-100 text-red-700'
-                        : order.status === 'enviado'
-                        ? 'bg-blue-100 text-blue-700'
-                        : order.status === 'pago'
-                        ? 'bg-green-50 text-green-800'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    {order.status.charAt(0).toUpperCase() +
-                      order.status.slice(1)}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-700">Total:</span>{' '}
-                  <span className="text-gray-900">
-                    {formatCurrency(order.totalPrice ?? order.total)}
-                  </span>
-                </div>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {order.items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4 py-3">
-                    {item.image && (
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">
-                        {item.title}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Quantidade: {item.quantity}
-                        {item.size && <span> | Tamanho: {item.size}</span>}
-                        {item.customization &&
-                          (item.customization.name ||
-                            item.customization.number) && (
-                            <span>
-                              {' '}
-                              | Personalização: {item.customization.name}{' '}
-                              {item.customization.number &&
-                                `#${item.customization.number}`}
-                            </span>
-                          )}
-                      </div>
-                    </div>
-                    <div className="font-semibold text-gray-800">
-                      {formatCurrency(item.price * item.quantity)}
-                    </div>
+        <div className="space-y-6">
+          {orders.map((order) => {
+            const statusInfo = statusMap[order.status] || {
+              text: order.status,
+              className: 'bg-gray-100 text-gray-800',
+            };
+            return (
+              <Card
+                key={order.id}
+                className="hover:shadow-md transition-shadow"
+              >
+                <CardHeader className="flex flex-row items-start justify-between pb-4">
+                  <div>
+                    <CardTitle className="text-lg font-bold">
+                      Pedido #{order.orderNumber}
+                    </CardTitle>
+                    <p className="text-sm text-gray-500">
+                      Realizado em {formatDate(order.createdAt)}
+                    </p>
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 text-sm text-gray-500">
-                <span className="font-semibold text-gray-700">Endereço:</span>{' '}
-                {order.address?.street}, {order.address?.number} -{' '}
-                {order.address?.city}
-              </div>
-            </div>
-          ))}
+                  <span
+                    className={`px-3 py-1 text-xs font-semibold rounded-full ${statusInfo.className}`}
+                  >
+                    {statusInfo.text}
+                  </span>
+                </CardHeader>
+                <CardContent>
+                  {/* NOVO: Secção de Rastreio */}
+                  {order.trackingCode && (
+                    <div className="border-t border-b py-4 my-4">
+                      <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                        Rastreio
+                      </h4>
+                      <div className="flex items-center justify-between">
+                        <p className="font-mono text-gray-600 bg-gray-100 px-3 py-1 rounded">
+                          {order.trackingCode}
+                        </p>
+                        <Button asChild size="sm">
+                          <a
+                            className="text-white"
+                            href={`https://t.17track.net/pt#nums=${order.trackingCode}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Truck className="w-4 h-4 mr-2" /> Rastrear Pedido
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-4">
+                    <div>
+                      <span className="text-gray-600">Total:</span>
+                      <span className="font-bold text-lg text-gray-900 ml-2">
+                        {formatCurrency(order.totalPrice)}
+                      </span>
+                    </div>
+                    <Button asChild variant="outline">
+                      <Link href={`/perfil/pedidos/${order.id}`}>
+                        Ver Detalhes <ArrowRight className="w-4 h-4 ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

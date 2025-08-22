@@ -20,7 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Loader2, User, MapPin, Package, Save } from 'lucide-react';
+import {
+  ArrowLeft,
+  Loader2,
+  User,
+  MapPin,
+  Package,
+  Save,
+  Truck,
+} from 'lucide-react';
 
 export default function AdminEditOrderPage() {
   const { isAdmin, isLoaded } = useAdmin();
@@ -275,36 +283,50 @@ export default function AdminEditOrderPage() {
               </CardContent>
             </Card>
 
-            {/* Status do Pedido */}
+            {/* Status e Rastreio */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Package /> Status do Pedido
+                  <Truck /> Envio e Status
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Label>Status</Label>
-                <Select
-                  value={order.status}
-                  onValueChange={(value) =>
-                    setOrder((prev) =>
-                      prev
-                        ? { ...prev, status: value as Order['status'] }
-                        : null,
-                    )
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="pago">Pago</SelectItem>
-                    <SelectItem value="enviado">Enviado</SelectItem>
-                    <SelectItem value="entregue">Entregue</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>Status do Pedido</Label>
+                  <Select
+                    value={order.status}
+                    onValueChange={(value) =>
+                      setOrder((prev) =>
+                        prev
+                          ? { ...prev, status: value as Order['status'] }
+                          : null,
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="pago">Pago</SelectItem>
+                      <SelectItem value="enviado">Enviado</SelectItem>
+                      <SelectItem value="entregue">Entregue</SelectItem>
+                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Código de Rastreio</Label>
+                  <Input
+                    value={order.trackingCode || ''}
+                    onChange={(e) =>
+                      setOrder((prev) =>
+                        prev ? { ...prev, trackingCode: e.target.value } : null,
+                      )
+                    }
+                    placeholder="Ex: QB123456789BR"
+                  />
+                </div>
               </CardContent>
             </Card>
 
