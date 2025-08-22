@@ -81,6 +81,15 @@ export async function POST(request: NextRequest) {
           type: 'CPF',
           number: customer.document.replace(/\D/g, ''),
         },
+        // MELHORIA: Adicionado o endereço do pagador para análise de fraude
+        address: {
+          zip_code: address.zipCode.replace(/\D/g, ''),
+          street_name: address.street,
+          street_number: String(address.number),
+          neighborhood: address.neighborhood,
+          city: address.city,
+          federal_unit: address.state,
+        },
       },
       back_urls: {
         success: `${baseUrl}/pedido/sucesso?order_id=${newOrderId}`,
@@ -88,7 +97,6 @@ export async function POST(request: NextRequest) {
         pending: `${baseUrl}/pedido/pendente?order_id=${newOrderId}`,
       },
       auto_return: 'approved',
-      // CRÍTICO: Vincula o pagamento do Mercado Pago ao ID do nosso pedido no Firestore
       external_reference: newOrderId,
       notification_url: `${baseUrl}/api/mercadopago/webhook`,
     };
