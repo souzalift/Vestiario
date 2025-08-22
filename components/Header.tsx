@@ -271,7 +271,7 @@ export default function Header() {
                 <Link href="/carrinho">
                   <ShoppingCart className="h-5 w-5" />
                   {hasMounted && cartCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white size-5 text-xs p-0 flex items-center justify-center">
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 text-white text-sm p-0 flex items-center justify-center">
                       {cartCount}
                     </Badge>
                   )}
