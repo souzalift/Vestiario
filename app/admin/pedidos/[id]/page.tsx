@@ -127,7 +127,7 @@ export default async function AdminPedidoDetailPage({
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                 <div>
                   <p className="font-semibold text-gray-600">Nome Completo</p>
-                  <p className="text-gray-900">{order.customer.name}</p>
+                  <p className="text-gray-900">{`${order.customer.firstName} ${order.customer.lastName}`}</p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-600">Email</p>
