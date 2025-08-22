@@ -69,6 +69,14 @@ export interface Order {
   trackingCode?: string;
 }
 
+export interface DashboardData {
+  totalRevenue: number;
+  totalOrders: number;
+  paidOrdersCount: number;
+  averageTicket: number;
+  recentOrders: Order[];
+}
+
 // Tipo para os dados que vêm do frontend para criar um pedido
 type CreateOrderData = Omit<Order, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -222,5 +230,43 @@ export const getOrderByNumber = async (orderNumber: string): Promise<Order | nul
   } catch (error) {
     console.error('Erro ao buscar pedido por número:', error);
     throw new Error('Não foi possível buscar o pedido.');
+  }
+};
+
+// Busca e calcula os dados para o painel de administração
+export const getDashboardData = async (): Promise<DashboardData> => {
+  try {
+    // Reutilizamos a sua função que já busca e formata todos os pedidos
+    const allOrders = await getAllOrders();
+
+    // Filtramos apenas os pedidos com status 'pago' para calcular o faturamento
+    const paidOrders = allOrders.filter(order => order.status === 'pago');
+
+    // Calculamos as métricas
+    const totalRevenue = paidOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+    const totalOrders = allOrders.length;
+    const paidOrdersCount = paidOrders.length;
+    const averageTicket = paidOrdersCount > 0 ? totalRevenue / paidOrdersCount : 0;
+
+    // Pegamos os 5 pedidos mais recentes para exibir na lista
+    const recentOrders = allOrders.slice(0, 5);
+
+    return {
+      totalRevenue,
+      totalOrders,
+      paidOrdersCount,
+      averageTicket,
+      recentOrders,
+    };
+  } catch (error) {
+    console.error("Erro ao buscar dados do dashboard:", error);
+    // Retorna dados vazios em caso de erro
+    return {
+      totalRevenue: 0,
+      totalOrders: 0,
+      paidOrdersCount: 0,
+      averageTicket: 0,
+      recentOrders: [],
+    };
   }
 };

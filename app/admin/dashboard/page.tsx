@@ -1,282 +1,139 @@
-import { db } from '@/lib/firebase'; // Verifique o caminho
-import {
-  collection,
-  getCountFromServer,
-  query,
-  orderBy,
-  limit,
-  getDocs,
-  where,
-  Timestamp,
-} from 'firebase/firestore';
-import { Users, ShoppingBag, DollarSign, Shirt, Activity } from 'lucide-react';
+// app/admin/dashboard/page.tsx
+
 import Link from 'next/link';
+import { getDashboardData, Order } from '@/services/orders';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+// UI e Ícones
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { SalesChart } from './_components/SalesChart'; // Criaremos este componente de cliente separado
-import type { Order } from '@/services/orders';
+import { DollarSign, Package, CreditCard, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-// --- FUNÇÕES DE BUSCA DE DADOS (NO SERVIDOR) ---
-
-async function getDashboardStats() {
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const sevenDaysAgoTimestamp = Timestamp.fromDate(sevenDaysAgo);
-
-  const totalSalesQuery = query(
-    collection(db, 'orders'),
-    where('createdAt', '>=', sevenDaysAgoTimestamp),
+// Funções de formatação
+const formatCurrency = (value: number = 0) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+    value,
   );
-
-  const [usersSnap, productsSnap, ordersSnap, totalSalesSnap] =
-    await Promise.all([
-      getCountFromServer(collection(db, 'users')),
-      getCountFromServer(collection(db, 'products')),
-      getCountFromServer(collection(db, 'orders')),
-      getDocs(totalSalesQuery),
-    ]);
-
-  const totalSales = totalSalesSnap.docs.reduce(
-    (sum, doc) => sum + doc.data().totalPrice,
-    0,
-  );
-
-  return {
-    users: usersSnap.data().count,
-    products: productsSnap.data().count,
-    orders: ordersSnap.data().count,
-    totalSales: totalSales,
-  };
-}
-
-async function getRecentOrders() {
-  const ordersQuery = query(
-    collection(db, 'orders'),
-    orderBy('createdAt', 'desc'),
-    limit(5),
-  );
-  const snapshot = await getDocs(ordersQuery);
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Order[];
-}
-
-async function getChartData() {
-  const chartData: { date: string; Faturamento: number }[] = [];
-  const dateToTotal: { [key: string]: number } = {};
-  const today = new Date();
-
-  // Inicializa os últimos 7 dias com faturamento 0
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const key = d.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-    });
-    dateToTotal[key] = 0;
-  }
-
-  const sevenDaysAgo = new Date(today);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
-  const sevenDaysAgoTimestamp = Timestamp.fromDate(sevenDaysAgo);
-
-  const salesQuery = query(
-    collection(db, 'orders'),
-    where('createdAt', '>=', sevenDaysAgoTimestamp),
-  );
-  const snapshot = await getDocs(salesQuery);
-
-  snapshot.docs.forEach((doc) => {
-    const orderData = doc.data();
-    const orderDate = (orderData.createdAt as Timestamp)
-      .toDate()
-      .toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-    if (dateToTotal[orderDate] !== undefined) {
-      dateToTotal[orderDate] += orderData.totalPrice;
-    }
-  });
-
-  for (const [date, total] of Object.entries(dateToTotal)) {
-    chartData.push({ date, Faturamento: total });
-  }
-
-  return chartData;
-}
-
-// --- COMPONENTES DE UI ---
-
-function DashboardStatCard({
-  title,
-  value,
-  icon: Icon,
-  details,
-  href,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  details: string;
-  href?: string;
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <Icon className="h-5 w-5 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{details}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function RecentOrdersTable({ orders }: { orders: Order[] }) {
-  const statusMap: {
-    [key: string]: {
-      text: string;
-      variant: 'default' | 'outline' | 'secondary' | 'destructive';
-    };
-  } = {
-    pago: { text: 'Pago', variant: 'default' },
-    pending: { text: 'Pendente', variant: 'secondary' },
-    enviado: { text: 'Enviado', variant: 'outline' },
-    cancelado: { text: 'Cancelado', variant: 'destructive' },
-  };
-
-  return (
-    <Card className="col-span-12 lg:col-span-4">
-      <CardHeader>
-        <CardTitle>Últimos Pedidos</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src="/path-to-avatar.png" alt="Avatar" />
-                      <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                        {order.customer.firstName[0]}
-                        {order.customer.lastName[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">
-                        {order.customer.firstName} {order.customer.lastName}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {order.customer.email}
-                      </div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={statusMap[order.status]?.variant || 'secondary'}
-                  >
-                    {statusMap[order.status]?.text || order.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(order.totalPrice)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}
-
-// --- O DASHBOARD PRINCIPAL (SERVER COMPONENT) ---
+const formatDate = (date: Date) => format(date, 'dd/MM/yyyy', { locale: ptBR });
 
 export default async function AdminDashboardPage() {
-  const stats = await getDashboardStats();
-  const recentOrders = await getRecentOrders();
-  const chartData = await getChartData();
+  const data = await getDashboardData();
+
+  const statusMap: { [key: string]: { text: string; className: string } } = {
+    pendente: { text: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
+    pago: { text: 'Pago', className: 'bg-green-100 text-green-800' },
+    enviado: { text: 'Enviado', className: 'bg-blue-100 text-blue-800' },
+    entregue: { text: 'Entregue', className: 'bg-gray-100 text-gray-800' },
+    cancelado: { text: 'Cancelado', className: 'bg-red-100 text-red-800' },
+  };
 
   return (
-    <div className="flex-1 space-y-8 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-      </div>
+    <div className="pt-20 pb-12">
+      <div className="max-w-7xl mx-auto px-4">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <DashboardStatCard
-          title="Faturamento (últimos 7 dias)"
-          value={new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-          }).format(stats.totalSales)}
-          icon={DollarSign}
-          details={`${stats.orders} pedidos nesse período`}
-        />
+        {/* Cartões de Métricas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Faturamento Total (Pago)
+              </CardTitle>
+              <DollarSign className="w-4 h-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(data.totalRevenue)}
+              </div>
+              <p className="text-xs text-gray-500">
+                de {data.paidOrdersCount} pedidos pagos
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total de Pedidos
+              </CardTitle>
+              <Package className="w-4 h-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data.totalOrders}</div>
+              <p className="text-xs text-gray-500">desde o início</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Ticket Médio (Pago)
+              </CardTitle>
+              <CreditCard className="w-4 h-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(data.averageTicket)}
+              </div>
+              <p className="text-xs text-gray-500">
+                valor médio por pedido pago
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <DashboardStatCard
-          title="Total de Pedidos"
-          value={`+${stats.orders}`}
-          icon={ShoppingBag}
-          details="Todos os pedidos registrados"
-          href="/admin/pedidos"
-        />
-
-        <DashboardStatCard
-          title="Total de Clientes"
-          value={`+${stats.users}`}
-          icon={Users}
-          details="Todos os clientes cadastrados"
-        />
-        <Link href="/admin/produtos">
-          <DashboardStatCard
-            title="Total de Produtos"
-            value={stats.products}
-            icon={Shirt}
-            details="Produtos ativos na loja"
-          />
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-12 gap-4">
-        <Card className="col-span-12 lg:col-span-12">
+        {/* Tabela de Pedidos Recentes */}
+        <Card>
           <CardHeader>
-            <CardTitle>Visão Geral do Faturamento</CardTitle>
+            <CardTitle>Pedidos Recentes</CardTitle>
           </CardHeader>
-          <CardContent className="pl-2">
-            <SalesChart data={chartData} />
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-sm text-gray-500">
+                    <th className="pb-2 font-normal">Pedido</th>
+                    <th className="pb-2 font-normal">Cliente</th>
+                    <th className="pb-2 font-normal">Status</th>
+                    <th className="pb-2 font-normal text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recentOrders.map((order) => {
+                    const statusInfo = statusMap[order.status] || {
+                      text: order.status,
+                      className: 'bg-gray-100 text-gray-800',
+                    };
+                    return (
+                      <tr key={order.id} className="border-t">
+                        <td className="py-3 font-mono text-sm">
+                          {order.orderNumber}
+                        </td>
+                        <td>{order.customer.name}</td>
+                        <td>
+                          <span
+                            className={`px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.className}`}
+                          >
+                            {statusInfo.text}
+                          </span>
+                        </td>
+                        <td className="text-right font-medium">
+                          {formatCurrency(order.totalPrice)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 text-center">
+              <Button variant="ghost" asChild>
+                <Link href="/admin/pedidos">
+                  Ver todos os pedidos <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
-      </div>
-      <div>
-        <RecentOrdersTable orders={recentOrders} />
       </div>
     </div>
   );
