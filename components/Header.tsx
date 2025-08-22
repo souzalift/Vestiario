@@ -24,6 +24,7 @@ import {
   Package,
   Settings,
   Star,
+  Shield, // Ícone de Admin adicionado
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -166,6 +167,20 @@ export default function Header() {
                 <Search className="h-5 w-5" />
               </Button>
 
+              {/* ÍCONE DE ADMIN CONDICIONAL */}
+              {isAuthenticated && userProfile?.role === 'admin' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-700 hidden sm:flex"
+                  asChild
+                >
+                  <Link href="/admin/dashboard" title="Painel Admin">
+                    <Shield className="h-5 w-5" />
+                  </Link>
+                </Button>
+              )}
+
               <div className="relative" ref={userMenuRef}>
                 {isAuthenticated ? (
                   <Button
@@ -286,7 +301,7 @@ export default function Header() {
                 <Link href="/carrinho">
                   <ShoppingCart className="h-5 w-5" />
                   {hasMounted && cartCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 text-xs p-0 flex items-center justify-center">
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white size-5 text-xs p-0 flex items-center justify-center">
                       {cartCount}
                     </Badge>
                   )}
@@ -334,7 +349,7 @@ export default function Header() {
                   </Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/register" onClick={() => setIsMenuOpen(false)}>
+                  <Link href="/cadastro" onClick={() => setIsMenuOpen(false)}>
                     Cadastro
                   </Link>
                 </Button>
