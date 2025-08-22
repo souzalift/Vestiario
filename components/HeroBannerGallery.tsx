@@ -7,43 +7,13 @@ import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 const banners = [
   {
     id: 1,
-    title: 'Camisas Tailandesas Premium',
+    title: 'Lançamento Vasco 2025',
     subtitle: 'Qualidade de Primeira Linha',
     description: 'A mesma qualidade dos originais com preços acessíveis',
-    image: '/banners/banner1.jpg',
+    image: '/banners/banner1.png',
     cta: 'Ver Coleção',
-    link: '/?categoria=Premier League',
-    gradient: 'from-blue-900/80 to-purple-900/80',
-  },
-  {
-    id: 2,
-    title: 'Lançamentos 2024/25',
-    subtitle: 'Últimas Temporadas',
-    description: 'Todas as novas camisas dos seus times favoritos',
-    image: '/banners/banner2.jpg',
-    cta: 'Explorar Novidades',
-    link: '/?categoria=La Liga',
-    gradient: 'from-red-900/80 to-orange-900/80',
-  },
-  {
-    id: 3,
-    title: 'Brasileirão 2024',
-    subtitle: 'Times Nacionais',
-    description: 'Flamengo, Corinthians, Palmeiras e muito mais',
-    image: '/banners/banner3.jpg',
-    cta: 'Ver Times',
-    link: '/?categoria=Brasileirão',
-    gradient: 'from-green-900/80 to-yellow-900/80',
-  },
-  {
-    id: 4,
-    title: 'Champions League',
-    subtitle: 'Elite Europeia',
-    description: 'Camisas dos maiores clubes da Europa',
-    image: '/banners/banner4.jpg',
-    cta: 'Ver Champions',
-    link: '/?categoria=Champions League',
-    gradient: 'from-indigo-900/80 to-blue-900/80',
+    link: '/?team=Vasco+da+Gama#produtos',
+    gradient: 'from-black/70 via-black/40 to-transparent',
   },
 ];
 
@@ -125,13 +95,6 @@ export default function HeroBannerGallery() {
                     className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
                   >
                     {banner.cta}
-                  </a>
-
-                  <a
-                    href="#produtos"
-                    className="inline-flex items-center justify-center bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/30 px-8 py-4 rounded-xl font-medium text-lg transition-all duration-300"
-                  >
-                    Ver Mais
                   </a>
                 </div>
               </div>
