@@ -186,3 +186,17 @@ export const updateOrderStatus = async (
     throw new Error('Não foi possível atualizar o status do pedido.');
   }
 };
+
+// NOVA FUNÇÃO: Atualizar dados de um pedido
+export const updateOrder = async (orderId: string, data: Partial<Omit<Order, 'id' | 'createdAt'>>): Promise<void> => {
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+    await updateDoc(orderRef, {
+      ...data,
+      updatedAt: Timestamp.now(), // Atualiza sempre a data de modificação
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar pedido:', error);
+    throw new Error('Não foi possível atualizar o pedido.');
+  }
+};
