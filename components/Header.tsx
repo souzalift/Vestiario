@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -34,9 +35,8 @@ export default function Header() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
-
-  // SOLUÇÃO: Estado para controlar a montagem do componente no cliente
   const [hasMounted, setHasMounted] = useState(false);
+  const [profileImgError, setProfileImgError] = useState(false);
 
   const { userProfile, logout, isAuthenticated } = useAuth();
   const { cartCount } = useCart();
@@ -47,10 +47,13 @@ export default function Header() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   useClickOutside(userMenuRef, () => setIsUserMenuOpen(false));
 
-  // SOLUÇÃO: Efeito que roda apenas uma vez no cliente, após a montagem
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  useEffect(() => {
+    setProfileImgError(false);
+  }, [userProfile?.uid]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -170,9 +173,21 @@ export default function Header() {
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className="flex items-center gap-2 text-gray-700 px-2 h-10"
                   >
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-gray-600" />
-                    </div>
+                    {userProfile?.photoURL && !profileImgError ? (
+                      <Image
+                        src={userProfile.photoURL}
+                        alt="Foto do perfil"
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full object-cover"
+                        onError={() => setProfileImgError(true)}
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-gray-600" />
+                      </div>
+                    )}
+
                     <span className="hidden md:block text-sm font-medium">
                       {userProfile?.displayName?.split(' ')[0]}
                     </span>
@@ -271,7 +286,7 @@ export default function Header() {
                 <Link href="/carrinho">
                   <ShoppingCart className="h-5 w-5" />
                   {hasMounted && cartCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 text-white text-sm p-0 flex items-center justify-center">
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 text-xs p-0 flex items-center justify-center">
                       {cartCount}
                     </Badge>
                   )}

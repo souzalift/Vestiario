@@ -1,81 +1,145 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAdmin } from '@/hooks/useAdmin';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-// Importações do Firebase para escuta em tempo real
+// Firebase e Serviços
 import {
   collection,
   query,
   orderBy,
   onSnapshot,
   Timestamp,
+  deleteDoc,
+  doc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Order } from '@/services/orders'; // Reutilizamos a interface de Order
+import { Order } from '@/services/orders';
+
+// UI e Ícones
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Package,
+  Search,
+  Edit,
+  Trash2,
+  Eye,
+  Loader2,
+  List,
+  FileText,
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AdminPedidosPage() {
-  // Estados para guardar os pedidos, o carregamento e possíveis erros
+  const { isAdmin, isLoaded } = useAdmin();
+  const router = useRouter();
+
+  // Estados
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Efeito que corre quando o componente é montado para "ouvir" as alterações no Firestore
+  // Efeito para proteger a rota e buscar os dados em tempo real
   useEffect(() => {
-    setLoading(true);
+    if (isLoaded) {
+      if (!isAdmin) {
+        router.push('/');
+        return;
+      }
 
-    // Cria uma consulta para a coleção 'orders', ordenada pela data de criação
-    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
 
-    // onSnapshot cria o "ouvinte" em tempo real.
-    // Esta função será chamada imediatamente com os dados atuais e, depois,
-    // sempre que houver qualquer alteração na coleção 'orders'.
-    const unsubscribe = onSnapshot(
-      q,
-      (querySnapshot) => {
-        const ordersData = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          // Converte os Timestamps do Firebase para objetos Date do JavaScript
-          const createdAt =
-            (data.createdAt as Timestamp)?.toDate() || new Date();
-          const updatedAt =
-            (data.updatedAt as Timestamp)?.toDate() || new Date();
+      const unsubscribe = onSnapshot(
+        q,
+        (querySnapshot) => {
+          const ordersData = querySnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+              updatedAt: (data.updatedAt as Timestamp)?.toDate() || new Date(),
+            } as Order;
+          });
+          setOrders(ordersData);
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Erro ao carregar pedidos:', err);
+          toast.error('Não foi possível carregar os pedidos.');
+          setLoading(false);
+        },
+      );
 
-          return {
-            id: doc.id,
-            ...data,
-            createdAt,
-            updatedAt,
-          } as Order;
-        });
+      return () => unsubscribe();
+    }
+  }, [isLoaded, isAdmin, router]);
 
-        setOrders(ordersData);
-        setLoading(false);
-      },
-      (err) => {
-        // Lida com erros de permissão ou outros problemas do Firestore
-        console.error('Erro ao ouvir os pedidos:', err);
-        setError(
-          'Não foi possível carregar os pedidos. Verifique as permissões do banco de dados.',
-        );
-        setLoading(false);
-      },
-    );
+  // Lógica de filtragem e ordenação usando useMemo para performance
+  const filteredOrders = useMemo(() => {
+    let filtered = [...orders];
 
-    // Função de limpeza: Quando o componente é desmontado, o "ouvinte" é cancelado
-    // para evitar consumo desnecessário de recursos.
-    return () => unsubscribe();
-  }, []); // O array vazio [] garante que este efeito corre apenas uma vez
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (order) =>
+          order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.customer.name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          order.customer.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((order) => order.status === statusFilter);
+    }
+
+    switch (sortBy) {
+      case 'oldest':
+        filtered.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        break;
+      case 'total-high':
+        filtered.sort((a, b) => b.totalPrice - a.totalPrice);
+        break;
+      case 'total-low':
+        filtered.sort((a, b) => a.totalPrice - b.totalPrice);
+        break;
+      case 'newest':
+      default:
+        // O padrão já é o mais novo, então não precisa fazer nada
+        break;
+    }
+
+    return filtered;
+  }, [orders, searchTerm, statusFilter, sortBy]);
+
+  // Funções de formatação
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
-  };
+  const formatDate = (date: Date) =>
+    format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
 
+  // Mapeamento de status
   const statusMap: { [key: string]: { text: string; className: string } } = {
     pendente: { text: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
     pago: { text: 'Pago', className: 'bg-green-100 text-green-800' },
@@ -84,107 +148,223 @@ export default function AdminPedidosPage() {
     cancelado: { text: 'Cancelado', className: 'bg-red-100 text-red-800' },
   };
 
-  // Renderiza um estado de carregamento
-  if (loading) {
+  // Funções de seleção e exclusão
+  const handleSelect = (id: string) =>
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((_id) => _id !== id) : [...prev, id],
+    );
+  const handleSelectAll = () =>
+    setSelectedIds(
+      selectedIds.length === filteredOrders.length
+        ? []
+        : filteredOrders.map((o) => o.id),
+    );
+
+  const deleteSelectedOrders = async () => {
+    if (
+      selectedIds.length === 0 ||
+      !confirm(
+        `Excluir ${selectedIds.length} pedidos selecionados? Esta ação não pode ser desfeita.`,
+      )
+    )
+      return;
+    try {
+      await Promise.all(
+        selectedIds.map((id) => deleteDoc(doc(db, 'orders', id))),
+      );
+      toast.success('Pedidos excluídos com sucesso!');
+      setSelectedIds([]);
+    } catch (error) {
+      toast.error('Erro ao excluir pedidos.');
+    }
+  };
+
+  if (!isLoaded || loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-gray-600" />
       </div>
     );
   }
 
-  // Renderiza uma mensagem de erro
-  if (error) {
-    return <div className="text-center py-12 text-red-600">{error}</div>;
-  }
-
   return (
-    <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">
-        Painel de Pedidos
-      </h1>
-      {orders.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-          <p className="text-gray-500">Nenhum pedido encontrado.</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Gerenciar Pedidos
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {filteredOrders.length} de {orders.length} pedidos
+              </p>
+            </div>
+          </div>
+
+          <Card className="mb-6 border-gray-200 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Buscar por nº, cliente ou email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full lg:w-48">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Status</SelectItem>
+                    {Object.keys(statusMap).map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {statusMap[status].text}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-full lg:w-48">
+                    <SelectValue placeholder="Ordenar por" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Mais recentes</SelectItem>
+                    <SelectItem value="oldest">Mais antigos</SelectItem>
+                    <SelectItem value="total-high">Maior total</SelectItem>
+                    <SelectItem value="total-low">Menor total</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {selectedIds.length > 0 && (
+            <div className="mb-4">
+              <Button variant="destructive" onClick={deleteSelectedOrders}>
+                <Trash2 className="w-4 h-4 mr-2" /> Excluir Selecionados (
+                {selectedIds.length})
+              </Button>
+            </div>
+          )}
+
+          <Card className="border-gray-200 shadow-sm">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="py-4 px-6">
+                        <input
+                          type="checkbox"
+                          checked={
+                            selectedIds.length === filteredOrders.length &&
+                            filteredOrders.length > 0
+                          }
+                          onChange={handleSelectAll}
+                        />
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-gray-900">
+                        Pedido
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-gray-900">
+                        Data
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-gray-900">
+                        Cliente
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-gray-900">
+                        Status
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-gray-900">
+                        Total
+                      </th>
+                      <th className="text-right py-4 px-6 font-medium text-gray-900">
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((order) => {
+                      const statusInfo = statusMap[order.status] || {
+                        text: order.status,
+                        className: 'bg-gray-100 text-gray-800',
+                      };
+                      const nomeCliente =
+                        `${order.customer?.firstName || ''} ${
+                          order.customer?.lastName || ''
+                        }`.trim() ||
+                        order.customer?.name ||
+                        'N/A';
+                      return (
+                        <tr
+                          key={order.id}
+                          className="border-t border-gray-100 hover:bg-gray-50"
+                        >
+                          <td className="py-4 px-6">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(order.id)}
+                              onChange={() => handleSelect(order.id)}
+                            />
+                          </td>
+                          <td className="py-4 px-6 font-mono text-gray-800">
+                            {order.orderNumber}
+                          </td>
+                          <td className="py-4 px-6 text-sm text-gray-600">
+                            {formatDate(order.createdAt)}
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="font-medium text-gray-900">
+                              {nomeCliente}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {order.customer?.email || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.className}`}
+                            >
+                              {statusInfo.text}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 font-medium text-gray-900">
+                            {formatCurrency(order.totalPrice)}
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-2 justify-end">
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href={`/admin/pedidos/${order.id}`}>
+                                  <Eye className="w-4 h-4" />
+                                </Link>
+                              </Button>
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href={`/admin/pedidos/${order.id}/edit`}>
+                                  <Edit className="w-4 h-4" />
+                                </Link>
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {filteredOrders.length === 0 && (
+                  <div className="text-center py-12">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">Nenhum pedido encontrado</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      ) : (
-        <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pedido
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Data
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cliente
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="relative px-6 py-3">
-                  <span className="sr-only">Ações</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((order) => {
-                const statusInfo = statusMap[order.status] || {
-                  text: order.status,
-                  className: 'bg-gray-100 text-gray-800',
-                };
-                const nomeCliente =
-                  `${order.customer?.firstName || ''} ${
-                    order.customer?.lastName || ''
-                  }`.trim() ||
-                  order.customer?.name ||
-                  'N/A';
-                return (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-800">
-                      {order.orderNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(order.createdAt, "dd/MM/yyyy 'às' HH:mm", {
-                        locale: ptBR,
-                      })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="font-medium">{nomeCliente}</div>
-                      <div className="text-xs text-gray-500">
-                        {order.customer?.email || 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.className}`}
-                      >
-                        {statusInfo.text}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {formatCurrency(order.totalPrice)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link
-                        href={`/admin/pedidos/${order.id}`}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        Ver Detalhes
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
