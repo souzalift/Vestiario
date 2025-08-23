@@ -16,11 +16,8 @@ export default function AdminSidebar() {
 
   return (
     <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
-      <div className="h-20 flex items-center px-6 border-b border-gray-200">
+      <div className="h-16 flex items-center justify-center border-b border-gray-200">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold">OV</span>
-          </div>
           <span className="text-xl font-bold text-gray-900">Administração</span>
         </Link>
       </div>
