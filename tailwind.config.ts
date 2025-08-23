@@ -1,3 +1,5 @@
+import { Oswald } from "next/font/google";
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
@@ -106,6 +108,12 @@ module.exports = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      fontFamily: {
+        oswald: ['var(--font-oswald)'],
+        righteous: ['Righteous', 'sans-serif'],
+        montserrat: ['Montserrat', 'sans-serif'],
+        wdxl: ['WDXL Lubrifont TC', 'sans-serif'],
       },
     },
   },

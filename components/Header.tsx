@@ -122,22 +122,19 @@ export default function Header() {
           <div className="flex items-center justify-between h-20">
             <Link href="/" className="flex items-center gap-3 group">
               {/* Logo */}
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow bg-transparent">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-shadow bg-transparent">
                 <Image
                   src="/logo.png"
                   alt="Logo O Vestiário"
                   width={120}
                   height={120}
-                  className="object-contain w-10 h-10"
+                  className=" w-10 h-10"
                   priority
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-bold text-gray-900">
+                <span className="text-4xl font-bold text-gray-900 font-oswald">
                   O Vestiário
-                </span>
-                <span className="text-xs text-gray-500 -mt-1">
-                  Paixão em forma de camisa
                 </span>
               </div>
             </Link>
