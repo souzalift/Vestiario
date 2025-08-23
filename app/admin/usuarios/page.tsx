@@ -264,18 +264,16 @@ export default function AdminUsersPage() {
                         }
                         className={
                           user.role === 'admin'
-                            ? 'bg-indigo-600 hover:bg-indigo-700'
-                            : ''
+                            ? 'bg-amber-400 hover:bg-amber-500'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white'
                         }
                       >
                         {user.role === 'admin' ? (
-                          <Crown className="w-3 h-3 mr-1 text-amber-400" />
+                          <Crown className="w-3 h-3 mr-1 text-black" />
                         ) : (
-                          <User className="w-3 h-3 mr-1" />
+                          <User className="w-3 h-3 mr-1 text-white" />
                         )}
-                        <p className="text-ambar">
-                          {user.role === 'admin' ? 'ADM' : 'Usuário'}
-                        </p>
+                        <p>{user.role === 'admin' ? 'ADM' : 'Cliente'}</p>
                       </Badge>
                     </td>
                     <td className="py-4 px-6">

@@ -295,397 +295,392 @@ export default function AdminProductsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-12">
-        <div className="max-w-7xl mx-auto px-4">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Gerenciar Produtos
-              </h1>
-              <p className="text-gray-600 mt-1">
-                {filteredProducts.length} de {products.length} produtos
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => router.push('/admin/produtos/new')}
-                className="bg-gray-900 hover:bg-gray-800 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Produto
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="flex items-center gap-2"
-                disabled={importing}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="w-4 h-4" />
-                {importing ? 'Importando...' : 'Importar JSON'}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/json"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setImporting(true);
-                    await importProductsFromJson(file);
-                    setImporting(false);
-                    e.target.value = '';
-                    await loadProducts();
-                  }
-                }}
-              />
-            </div>
+      <div className="pb-12">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Gerenciar Produtos
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {filteredProducts.length} de {products.length} produtos
+            </p>
           </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => router.push('/admin/produtos/new')}
+              className="bg-gray-900 hover:bg-gray-800 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Produto
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex items-center gap-2"
+              disabled={importing}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="w-4 h-4" />
+              {importing ? 'Importando...' : 'Importar JSON'}
+            </Button>
+            <Input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setImporting(true);
+                  await importProductsFromJson(file);
+                  setImporting(false);
+                  e.target.value = '';
+                  await loadProducts();
+                }
+              }}
+            />
+          </div>
+        </div>
 
-          {/* Filtros */}
-          <Card className="mb-6 border-gray-200 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col lg:flex-row gap-4">
-                {/* Busca */}
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder="Buscar produtos..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 border-gray-200 focus:border-gray-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Liga */}
-                <Select
-                  value={selectedLeague}
-                  onValueChange={setSelectedLeague}
-                >
-                  <SelectTrigger className="w-full lg:w-48 border-gray-200 focus:border-gray-400">
-                    <SelectValue placeholder="Liga" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as ligas</SelectItem>
-                    {leagues.map((league) => (
-                      <SelectItem key={league} value={league}>
-                        {league}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Ordenação */}
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full lg:w-48 border-gray-200 focus:border-gray-400">
-                    <SelectValue placeholder="Ordenar por" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Mais recentes</SelectItem>
-                    <SelectItem value="oldest">Mais antigos</SelectItem>
-                    <SelectItem value="price-high">Maior preço</SelectItem>
-                    <SelectItem value="price-low">Menor preço</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Modo de visualização */}
-                <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className={`rounded-none ${
-                      viewMode === 'list'
-                        ? 'bg-gray-900 hover:bg-gray-800 text-white'
-                        : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    <List className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className={`rounded-none ${
-                      viewMode === 'grid'
-                        ? 'bg-gray-900 hover:bg-gray-800 text-white'
-                        : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                  </Button>
+        {/* Filtros */}
+        <Card className="mb-6 border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Busca */}
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Buscar produtos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 border-gray-200 focus:border-gray-400"
+                  />
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Botão de ação em massa */}
-          {viewMode === 'list' && (
-            <div className="mb-4 flex items-center gap-2">
-              <Button
-                variant="destructive"
-                disabled={selectedIds.length === 0}
-                onClick={deleteSelectedProducts}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Excluir Selecionados ({selectedIds.length})
-              </Button>
-            </div>
-          )}
+              {/* Liga */}
+              <Select value={selectedLeague} onValueChange={setSelectedLeague}>
+                <SelectTrigger className="w-full lg:w-48 border-gray-200 focus:border-gray-400">
+                  <SelectValue placeholder="Liga" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as ligas</SelectItem>
+                  {leagues.map((league) => (
+                    <SelectItem key={league} value={league}>
+                      {league}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          {/* Lista/Grid de Produtos */}
-          {viewMode === 'list' ? (
-            <Card className="border-gray-200 shadow-sm">
-              <CardHeader className="border-b border-gray-100">
-                <CardTitle className="flex items-center gap-2 text-gray-900">
-                  <Package className="w-5 h-5 text-gray-600" />
-                  Lista de Produtos
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="py-4 px-6">
-                          <input
-                            type="checkbox"
-                            checked={
-                              selectedIds.length === filteredProducts.length &&
-                              filteredProducts.length > 0
-                            }
-                            onChange={handleSelectAll}
-                          />
-                        </th>
-                        <th className="text-left py-4 px-6 font-medium text-gray-900">
-                          Produto
-                        </th>
-                        <th className="text-left py-4 px-6 font-medium text-gray-900">
-                          Liga
-                        </th>
-                        <th className="text-left py-4 px-6 font-medium text-gray-900">
-                          Preço
-                        </th>
-                        <th className="text-left py-4 px-6 font-medium text-gray-900">
-                          Criado
-                        </th>
-                        <th className="text-right py-4 px-6 font-medium text-gray-900">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredProducts.map((product) => (
-                        <tr
-                          key={product.id}
-                          className="border-t border-gray-100 hover:bg-gray-50"
-                        >
-                          <td className="py-4 px-6">
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.includes(product.id)}
-                              onChange={() => handleSelect(product.id)}
-                            />
-                          </td>
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-4">
-                              {product.images?.[0] ? (
-                                <Image
-                                  src={product.images[0]}
-                                  alt={product.title}
-                                  width={64}
-                                  height={64}
-                                  className="w-16 h-16 object-cover rounded-lg border border-gray-200"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src =
-                                      '/placeholder-image.jpg';
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center border border-gray-200">
-                                  <Package className="w-8 h-8 text-gray-400" />
-                                </div>
-                              )}
-                              <div>
-                                <h3 className="font-medium text-gray-900 line-clamp-2 max-w-[300px]">
-                                  {product.title}
-                                </h3>
-                                <p className="text-sm text-gray-600 line-clamp-1 max-w-[300px]">
-                                  {product.description}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-4 px-6">
-                            <Badge
-                              variant="secondary"
-                              className="bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            >
-                              {product.league}
-                            </Badge>
-                          </td>
-                          <td className="py-4 px-6 font-medium text-gray-900">
-                            {formatPrice(product.price)}
-                          </td>
-                          <td className="py-4 px-6 text-sm text-gray-600">
-                            {formatDate(product.createdAt)}
-                          </td>
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-2 justify-end">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  router.push(`/produtos/${product.id}`)
-                                }
-                                title="Visualizar"
-                                className="border-gray-300 hover:bg-gray-100"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  router.push(
-                                    `/admin/produtos/${product.id}/edit`,
-                                  )
-                                }
-                                title="Editar"
-                                className="border-gray-300 hover:bg-gray-100"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  deleteProduct(product.id, product.title)
-                                }
-                                className="text-red-600 hover:text-red-700 border-red-300 hover:bg-red-50"
-                                title="Excluir"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              {/* Ordenação */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full lg:w-48 border-gray-200 focus:border-gray-400">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Mais recentes</SelectItem>
+                  <SelectItem value="oldest">Mais antigos</SelectItem>
+                  <SelectItem value="price-high">Maior preço</SelectItem>
+                  <SelectItem value="price-low">Menor preço</SelectItem>
+                </SelectContent>
+              </Select>
 
-                {filteredProducts.length === 0 && (
-                  <div className="text-center py-12">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">Nenhum produto encontrado</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            /* Grid View */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
-                <Card
-                  key={product.id}
-                  className="group hover:shadow-lg transition-shadow border-gray-200"
+              {/* Modo de visualização */}
+              <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className={`rounded-none ${
+                    viewMode === 'list'
+                      ? 'bg-gray-900 hover:bg-gray-800 text-white'
+                      : 'hover:bg-gray-100'
+                  }`}
                 >
-                  <CardContent className="p-0">
-                    {/* Imagem */}
-                    <div className="relative aspect-square overflow-hidden rounded-t-lg">
-                      {product.images?.[0] ? (
-                        <Image
-                          src={product.images[0]}
-                          alt={product.title}
-                          width={400}
-                          height={400}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              '/placeholder-image.jpg';
-                          }}
+                  <List className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className={`rounded-none ${
+                    viewMode === 'grid'
+                      ? 'bg-gray-900 hover:bg-gray-800 text-white'
+                      : 'hover:bg-gray-100'
+                  }`}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Botão de ação em massa */}
+        {viewMode === 'list' && (
+          <div className="mb-4 flex items-center gap-2">
+            <Button
+              variant="destructive"
+              disabled={selectedIds.length === 0}
+              onClick={deleteSelectedProducts}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir Selecionados ({selectedIds.length})
+            </Button>
+          </div>
+        )}
+
+        {/* Lista/Grid de Produtos */}
+        {viewMode === 'list' ? (
+          <Card className="border-gray-200 shadow-sm">
+            <CardHeader className="border-b border-gray-100">
+              <CardTitle className="flex items-center gap-2 text-gray-900">
+                <Package className="w-5 h-5 text-gray-600" />
+                Lista de Produtos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="py-4 px-6">
+                        <Input
+                          className="h-4 w-4"
+                          type="checkbox"
+                          checked={
+                            selectedIds.length === filteredProducts.length &&
+                            filteredProducts.length > 0
+                          }
+                          onChange={handleSelectAll}
                         />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                          <Package className="w-16 h-16 text-gray-400" />
-                        </div>
-                      )}
-
-                      {/* Badge de liga */}
-                      <Badge
-                        variant="secondary"
-                        className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm border border-gray-200"
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-gray-900">
+                        Produto
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-gray-900">
+                        Liga
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-gray-900">
+                        Preço
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-gray-900">
+                        Criado
+                      </th>
+                      <th className="text-right py-4 px-6 font-medium text-gray-900">
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((product) => (
+                      <tr
+                        key={product.id}
+                        className="border-t border-gray-100 hover:bg-gray-50"
                       >
-                        {product.league}
-                      </Badge>
-
-                      {/* Ações flutuantes */}
-                      <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => router.push(`/products/${product.id}`)}
-                          className="w-8 h-8 p-0 bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-gray-100"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            router.push(`/admin/products/${product.id}/edit`)
-                          }
-                          className="w-8 h-8 p-0 bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-gray-100"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            deleteProduct(product.id, product.title)
-                          }
-                          className="w-8 h-8 p-0 bg-white/90 backdrop-blur-sm border border-gray-200 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Conteúdo */}
-                    <div className="p-4">
-                      <h3 className="font-medium text-gray-900 line-clamp-2 mb-2">
-                        {product.title}
-                      </h3>
-
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-lg font-bold text-gray-900">
+                        <td className="py-4 px-6">
+                          <Input
+                            className="h-4 w-4"
+                            type="checkbox"
+                            checked={selectedIds.includes(product.id)}
+                            onChange={() => handleSelect(product.id)}
+                          />
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-4">
+                            {product.images?.[0] ? (
+                              <Image
+                                src={product.images[0]}
+                                alt={product.title}
+                                width={64}
+                                height={64}
+                                className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src =
+                                    '/placeholder-image.jpg';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center border border-gray-200">
+                                <Package className="w-8 h-8 text-gray-400" />
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-medium text-gray-900 line-clamp-2 max-w-[300px]">
+                                {product.title}
+                              </h3>
+                              <p className="text-sm text-gray-600 line-clamp-1 max-w-[300px]">
+                                {product.description}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <Badge
+                            variant="secondary"
+                            className="bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          >
+                            {product.league}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-6 font-medium text-gray-900">
                           {formatPrice(product.price)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm text-gray-600">
-                        <span>{formatDate(product.createdAt)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        </td>
+                        <td className="py-4 px-6 text-sm text-gray-600">
+                          {formatDate(product.createdAt)}
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                router.push(`/produtos/${product.id}`)
+                              }
+                              title="Visualizar"
+                              className="border-gray-300 hover:bg-gray-100"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                router.push(
+                                  `/admin/produtos/${product.id}/edit`,
+                                )
+                              }
+                              title="Editar"
+                              className="border-gray-300 hover:bg-gray-100"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                deleteProduct(product.id, product.title)
+                              }
+                              className="text-red-600 hover:text-red-700 border-red-300 hover:bg-red-50"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               {filteredProducts.length === 0 && (
-                <div className="col-span-full text-center py-12">
+                <div className="text-center py-12">
                   <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">Nenhum produto encontrado</p>
                 </div>
               )}
-            </div>
-          )}
-        </div>
+            </CardContent>
+          </Card>
+        ) : (
+          /* Grid View */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <Card
+                key={product.id}
+                className="group hover:shadow-lg transition-shadow border-gray-200"
+              >
+                <CardContent className="p-0">
+                  {/* Imagem */}
+                  <div className="relative aspect-square overflow-hidden rounded-t-lg">
+                    {product.images?.[0] ? (
+                      <Image
+                        src={product.images[0]}
+                        alt={product.title}
+                        width={400}
+                        height={400}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            '/placeholder-image.jpg';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                        <Package className="w-16 h-16 text-gray-400" />
+                      </div>
+                    )}
+
+                    {/* Badge de liga */}
+                    <Badge
+                      variant="secondary"
+                      className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm border border-gray-200"
+                    >
+                      {product.league}
+                    </Badge>
+
+                    {/* Ações flutuantes */}
+                    <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => router.push(`/products/${product.id}`)}
+                        className="w-8 h-8 p-0 bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-gray-100"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          router.push(`/admin/products/${product.id}/edit`)
+                        }
+                        className="w-8 h-8 p-0 bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-gray-100"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => deleteProduct(product.id, product.title)}
+                        className="w-8 h-8 p-0 bg-white/90 backdrop-blur-sm border border-gray-200 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Conteúdo */}
+                  <div className="p-4">
+                    <h3 className="font-medium text-gray-900 line-clamp-2 mb-2">
+                      {product.title}
+                    </h3>
+
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-lg font-bold text-gray-900">
+                        {formatPrice(product.price)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <span>{formatDate(product.createdAt)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {filteredProducts.length === 0 && (
+              <div className="col-span-full text-center py-12">
+                <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Nenhum produto encontrado</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

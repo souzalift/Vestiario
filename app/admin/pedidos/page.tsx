@@ -189,181 +189,181 @@ export default function AdminPedidosPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Gerenciar Pedidos
-              </h1>
-              <p className="text-gray-600 mt-1">
-                {filteredOrders.length} de {orders.length} pedidos
-              </p>
-            </div>
+      <div className="pb-12">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Gerenciar Pedidos
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {filteredOrders.length} de {orders.length} pedidos
+            </p>
           </div>
-
-          <Card className="mb-6 border-gray-200 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col lg:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Buscar por nº, cliente ou email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full lg:w-48">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os Status</SelectItem>
-                    {Object.keys(statusMap).map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {statusMap[status].text}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full lg:w-48">
-                    <SelectValue placeholder="Ordenar por" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Mais recentes</SelectItem>
-                    <SelectItem value="oldest">Mais antigos</SelectItem>
-                    <SelectItem value="total-high">Maior total</SelectItem>
-                    <SelectItem value="total-low">Menor total</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {selectedIds.length > 0 && (
-            <div className="mb-4">
-              <Button variant="destructive" onClick={deleteSelectedOrders}>
-                <Trash2 className="w-4 h-4 mr-2" /> Excluir Selecionados (
-                {selectedIds.length})
-              </Button>
-            </div>
-          )}
-
-          <Card className="border-gray-200 shadow-sm">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="py-4 px-6">
-                        <input
-                          type="checkbox"
-                          checked={
-                            selectedIds.length === filteredOrders.length &&
-                            filteredOrders.length > 0
-                          }
-                          onChange={handleSelectAll}
-                        />
-                      </th>
-                      <th className="text-left py-4 px-6 font-medium text-gray-900">
-                        Pedido
-                      </th>
-                      <th className="text-left py-4 px-6 font-medium text-gray-900">
-                        Data
-                      </th>
-                      <th className="text-left py-4 px-6 font-medium text-gray-900">
-                        Cliente
-                      </th>
-                      <th className="text-left py-4 px-6 font-medium text-gray-900">
-                        Status
-                      </th>
-                      <th className="text-left py-4 px-6 font-medium text-gray-900">
-                        Total
-                      </th>
-                      <th className="text-right py-4 px-6 font-medium text-gray-900">
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOrders.map((order) => {
-                      const statusInfo = statusMap[order.status] || {
-                        text: order.status,
-                        className: 'bg-gray-100 text-gray-800',
-                      };
-                      const nomeCliente =
-                        `${order.customer?.firstName || ''} ${
-                          order.customer?.lastName || ''
-                        }`.trim() ||
-                        order.customer?.name ||
-                        'N/A';
-                      return (
-                        <tr
-                          key={order.id}
-                          className="border-t border-gray-100 hover:bg-gray-50"
-                        >
-                          <td className="py-4 px-6">
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.includes(order.id)}
-                              onChange={() => handleSelect(order.id)}
-                            />
-                          </td>
-                          <td className="py-4 px-6 font-mono text-gray-800">
-                            {order.orderNumber}
-                          </td>
-                          <td className="py-4 px-6 text-sm text-gray-600">
-                            {formatDate(order.createdAt)}
-                          </td>
-                          <td className="py-4 px-6">
-                            <div className="font-medium text-gray-900">
-                              {nomeCliente}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {order.customer?.email || 'N/A'}
-                            </div>
-                          </td>
-                          <td className="py-4 px-6">
-                            <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.className}`}
-                            >
-                              {statusInfo.text}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 font-medium text-gray-900">
-                            {formatCurrency(order.totalPrice)}
-                          </td>
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-2 justify-end">
-                              <Button size="sm" variant="outline" asChild>
-                                <Link href={`/admin/pedidos/${order.id}`}>
-                                  <Eye className="w-4 h-4" />
-                                </Link>
-                              </Button>
-                              <Button size="sm" variant="outline" asChild>
-                                <Link href={`/admin/pedidos/${order.id}/edit`}>
-                                  <Edit className="w-4 h-4" />
-                                </Link>
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {filteredOrders.length === 0 && (
-                  <div className="text-center py-12">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">Nenhum pedido encontrado</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
         </div>
+
+        <Card className="mb-6 border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  className="pl-10"
+                  placeholder="Buscar por nº, cliente ou email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full lg:w-48">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Status</SelectItem>
+                  {Object.keys(statusMap).map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {statusMap[status].text}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full lg:w-48">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Mais recentes</SelectItem>
+                  <SelectItem value="oldest">Mais antigos</SelectItem>
+                  <SelectItem value="total-high">Maior total</SelectItem>
+                  <SelectItem value="total-low">Menor total</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {selectedIds.length > 0 && (
+          <div className="mb-4">
+            <Button variant="destructive" onClick={deleteSelectedOrders}>
+              <Trash2 className="w-4 h-4 mr-2" /> Excluir Selecionados (
+              {selectedIds.length})
+            </Button>
+          </div>
+        )}
+
+        <Card className="border-gray-200 shadow-sm">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="py-4 px-6">
+                      <Input
+                        className="w-4 h-4"
+                        type="checkbox"
+                        checked={
+                          selectedIds.length === filteredOrders.length &&
+                          filteredOrders.length > 0
+                        }
+                        onChange={handleSelectAll}
+                      />
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-900">
+                      Pedido
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-900">
+                      Data
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-900">
+                      Cliente
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-900">
+                      Status
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-900">
+                      Total
+                    </th>
+                    <th className="text-right py-4 px-6 font-medium text-gray-900">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOrders.map((order) => {
+                    const statusInfo = statusMap[order.status] || {
+                      text: order.status,
+                      className: 'bg-gray-100 text-gray-800',
+                    };
+                    const nomeCliente =
+                      `${order.customer?.firstName || ''} ${
+                        order.customer?.lastName || ''
+                      }`.trim() ||
+                      order.customer?.name ||
+                      'N/A';
+                    return (
+                      <tr
+                        key={order.id}
+                        className="border-t border-gray-100 hover:bg-gray-50"
+                      >
+                        <td className="py-4 px-6">
+                          <Input
+                            className="w-4 h-4"
+                            type="checkbox"
+                            checked={selectedIds.includes(order.id)}
+                            onChange={() => handleSelect(order.id)}
+                          />
+                        </td>
+                        <td className="py-4 px-6 font-mono text-gray-800">
+                          {order.orderNumber}
+                        </td>
+                        <td className="py-4 px-6 text-sm text-gray-600">
+                          {formatDate(order.createdAt)}
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="font-medium text-gray-900">
+                            {nomeCliente}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {order.customer?.email || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.className}`}
+                          >
+                            {statusInfo.text}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 font-medium text-gray-900">
+                          {formatCurrency(order.totalPrice)}
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-2 justify-end">
+                            <Button size="sm" variant="outline" asChild>
+                              <Link href={`/admin/pedidos/${order.id}`}>
+                                <Eye className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                            <Button size="sm" variant="outline" asChild>
+                              <Link href={`/admin/pedidos/${order.id}/edit`}>
+                                <Edit className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {filteredOrders.length === 0 && (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Nenhum pedido encontrado</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
