@@ -3,6 +3,10 @@ import { Poppins } from 'next/font/google';
 import { Toaster } from 'sonner'; // Importar o Toaster
 import './globals.css';
 
+// Vercel
+import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/next';
+
 // Context Providers
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
@@ -71,6 +75,8 @@ export default function RootLayout({
         className={`${poppins.variable} font-sans bg-gray-50 text-gray-800 min-h-screen flex flex-col`}
       >
         {/* Ordem de providers otimizada: Auth > Favorites > Cart */}
+        <SpeedInsights />
+        <Analytics />
         <AuthProvider>
           <FavoritesProvider>
             <CartProvider>
