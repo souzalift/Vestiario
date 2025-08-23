@@ -121,8 +121,16 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-12 h-12 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-                <span className="text-white font-bold text-lg">OV</span>
+              {/* Logo */}
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow bg-transparent">
+                <Image
+                  src="/logo.png"
+                  alt="Logo O Vestiário"
+                  width={120}
+                  height={120}
+                  className="object-contain w-10 h-10"
+                  priority
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-bold text-gray-900">
