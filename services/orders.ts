@@ -80,12 +80,10 @@ export interface DashboardData {
 // Tipo para os dados que vêm do frontend para criar um pedido
 type CreateOrderData = Omit<Order, 'id' | 'createdAt' | 'updatedAt'>;
 
-// Gera um ID do pedido no padrão V-YYYYMMDD-XXXXXX
+// Gera um ID do pedido no padrão V-XXXXXX
 export function generateOrderNumber() {
-  const date = new Date();
-  const yyyymmdd = date.toISOString().slice(0, 10).replace(/-/g, '');
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `V-${yyyymmdd}-${random}`;
+  return `V-${random}`;
 }
 
 // --- MELHORIA: Função centralizada para transformar dados do Firestore ---
