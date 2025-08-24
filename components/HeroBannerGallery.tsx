@@ -81,7 +81,7 @@ export default function HeroBannerGallery() {
                   </span>
                 </div>
 
-                <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 leading-tight">
+                <h1 className="text-5xl md:text-6xl md:line- font-bold text-white mb-4 leading-tight md:leading-snug">
                   {banner.title}
                 </h1>
 
