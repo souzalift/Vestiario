@@ -176,10 +176,11 @@ export default function EditProductPage() {
   };
 
   const onSave = async (data: ProductFormData) => {
-    if (images.length === 0) {
-      toast.error('O produto deve ter pelo menos uma imagem.');
-      return;
-    }
+    // Remova a obrigatoriedade de imagem:
+    // if (images.length === 0) {
+    //   toast.error('O produto deve ter pelo menos uma imagem.');
+    //   return;
+    // }
     try {
       const productRef = doc(db, 'products', productId);
       await updateDoc(productRef, {
