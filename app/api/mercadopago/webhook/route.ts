@@ -5,7 +5,7 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { updateOrderStatus } from '@/services/orders';
 import type { Order } from '@/services/orders';
 
-// Inicialize o cliente do Mercado Pago com sua chave de acesso
+// Inicialize o cliente do Mercado Pago com a sua chave de acesso
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
 });
@@ -31,10 +31,8 @@ export async function POST(request: NextRequest) {
       const paymentStatus = paymentInfo.status; // ex: "approved", "rejected", "in_process"
 
       if (!orderId) {
-        // Se não houver external_reference, não podemos associar a um pedido.
-        // Isso pode acontecer em testes ou pagamentos não iniciados pelo seu site.
         console.warn('⚠️ Webhook recebido sem external_reference (ID do pedido). Ignorando.');
-        return NextResponse.json({ status: 'ok', message: 'Webhook received but no order ID found.' });
+        return NextResponse.json({ status: 'ok' });
       }
 
       // 4. Mapeia o status do Mercado Pago para o status do seu sistema
@@ -51,13 +49,10 @@ export async function POST(request: NextRequest) {
           newOrderStatus = 'cancelado';
           newPaymentStatus = 'failed';
           break;
-        // Você pode adicionar outros casos se quiser, como 'in_process' para 'pendente'
-        default:
-          // Mantém o status como pendente para outros casos
-          break;
+        // Adicione outros casos se necessário
       }
 
-      console.log(`🔄 Atualizando pedido ${orderId} para status: ${newOrderStatus} e paymentStatus: ${newPaymentStatus}`);
+      console.log(`🔄 A atualizar pedido ${orderId} para status: ${newOrderStatus}`);
 
       // 5. Atualiza o pedido no seu banco de dados (Firestore)
       await updateOrderStatus(orderId, newOrderStatus, newPaymentStatus);
@@ -70,12 +65,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('❌ Erro no webhook do Mercado Pago:', error);
-    // Retorna um erro, mas para o Mercado Pago, é melhor ainda responder 200
-    // para evitar que ele continue tentando enviar a mesma notificação.
-    // O erro já foi logado no seu servidor para análise.
-    return NextResponse.json(
-      { status: 'error', message: error.message },
-      { status: 500 }
-    );
+    // CORREÇÃO: Responde 200 OK mesmo em caso de erro.
+    // Isto confirma ao Mercado Pago que a notificação foi recebida.
+    // O erro já foi registado nos seus logs de servidor para análise.
+    return NextResponse.json({ status: 'error', message: error.message }, { status: 200 });
   }
 }
