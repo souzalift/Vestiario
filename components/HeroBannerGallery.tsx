@@ -92,7 +92,7 @@ export default function HeroBannerGallery() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <a
                     href={banner.link}
-                    className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+                    className="inline-flex items-center justify-center bg-accent hover:bg-accent text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
                   >
                     {banner.cta}
                   </a>
