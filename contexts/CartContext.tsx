@@ -11,7 +11,6 @@ import React, {
 import { toast } from 'sonner';
 import { calculateShipping } from '@/lib/shipping';
 
-// 1. Tipagem atualizada
 export interface CartItem {
   id: string;
   productId: string;
@@ -20,6 +19,7 @@ export interface CartItem {
   price: number;
   basePrice: number;
   customizationFee: number;
+  sizeFee: number;
   image: string;
   size: string;
   quantity: number;
@@ -58,18 +58,17 @@ interface CartContextType {
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, newQuantity: number) => void;
   clearCart: () => void;
-  cartCount: number; // <-- Alterado de totalQuantity para cartCount
+  cartCount: number;
   subtotal: number;
   baseSubtotal: number;
   totalCustomizationFee: number;
+  totalSizeFee: number;
   shippingPrice: number;
   totalPrice: number;
 }
 
-// 2. Criação do Contexto
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// 3. Criação do Provedor
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -84,7 +83,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     localStorage.setItem('cartItems', JSON.stringify(items));
-    // Dispara um evento customizado para que outros componentes (como o Header antigo) possam ouvir
     window.dispatchEvent(new Event('cartUpdated'));
   }, [items]);
 
@@ -103,6 +101,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         (options.customization.name || options.customization.number)
           ? 20
           : 0;
+      const sizeFee = options.size === 'XGG' ? 15 : 0;
+      const finalPrice = product.basePrice + customizationFee + sizeFee;
 
       if (existingItem) {
         toast.success('Quantidade atualizada no carrinho!');
@@ -119,7 +119,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           quantity: options.quantity,
           customization: options.customization,
           customizationFee: customizationFee,
-          price: product.basePrice + customizationFee,
+          sizeFee: sizeFee,
+          price: finalPrice,
         };
         toast.success(`${product.title} adicionado ao carrinho!`);
         return [...prevItems, newItem];
@@ -149,12 +150,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     toast.info('Seu carrinho foi esvaziado.');
   };
 
-  // 4. Cálculos Centralizados com useMemo
   const {
-    cartCount, // <-- Alterado de totalQuantity para cartCount
+    cartCount,
     subtotal,
     baseSubtotal,
     totalCustomizationFee,
+    totalSizeFee,
     shippingPrice,
     totalPrice,
   } = useMemo(() => {
@@ -174,6 +175,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       (sum, item) => sum + item.customizationFee * item.quantity,
       0,
     );
+    const calculatedTotalSizeFee = items.reduce(
+      (sum, item) => sum + (item.sizeFee || 0) * item.quantity,
+      0,
+    );
 
     const shippingInfo = calculateShipping(calculatedCartCount);
     const calculatedShippingPrice = shippingInfo.price;
@@ -184,6 +189,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       subtotal: calculatedSubtotal,
       baseSubtotal: calculatedBaseSubtotal,
       totalCustomizationFee: calculatedTotalCustomizationFee,
+      totalSizeFee: calculatedTotalSizeFee,
       shippingPrice: calculatedShippingPrice,
       totalPrice: calculatedTotalPrice,
     };
@@ -195,10 +201,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     removeItem,
     updateQuantity,
     clearCart,
-    cartCount, // <-- Exposto diretamente
+    cartCount,
     subtotal,
     baseSubtotal,
     totalCustomizationFee,
+    totalSizeFee,
     shippingPrice,
     totalPrice,
   };
@@ -206,7 +213,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
 
-// 5. Hook customizado
 export const useCart = (): CartContextType => {
   const context = useContext(CartContext);
   if (context === undefined) {
