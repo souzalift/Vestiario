@@ -14,17 +14,14 @@ import { useClickOutside } from '@/hooks/useClickOutside';
 // UI e Ícones
 import {
   ShoppingCart,
-  Menu,
-  X,
   Search,
   User,
   Heart,
   ChevronDown,
   LogOut,
   Package,
-  Settings,
   Star,
-  Shield, // Ícone de Admin adicionado
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +29,6 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 
 export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
@@ -44,7 +40,6 @@ export default function Header() {
   const { favoritesCount } = useFavorites();
 
   const router = useRouter();
-
   const userMenuRef = useRef<HTMLDivElement>(null);
   useClickOutside(userMenuRef, () => setIsUserMenuOpen(false));
 
@@ -67,7 +62,6 @@ export default function Header() {
     if (searchQuery.trim()) {
       router.push(`/?q=${encodeURIComponent(searchQuery.trim())}#produtos`);
       setSearchQuery('');
-      setIsMenuOpen(false);
     }
   };
 
@@ -87,7 +81,7 @@ export default function Header() {
       <div className="bg-gray-900 text-white py-2 text-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 text-xs sm:text-sm">
               <Package className="w-4 h-4" />
               Frete grátis acima de 4 produtos
             </span>
@@ -97,13 +91,10 @@ export default function Header() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="hidden sm:block">
-              Atendimento: (71) 99999-9999
-            </span>
             <Button
               variant="link"
               size="sm"
-              className="text-white p-0 h-auto"
+              className="text-white p-0 h-auto text-xs sm:text-sm"
               asChild
             >
               <Link href="/rastreio">Rastrear Pedido</Link>
@@ -120,20 +111,21 @@ export default function Header() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            <Link href="/" className="flex items-center gap-3 group">
-              {/* Logo */}
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-shadow bg-transparent">
+            <Link
+              href="/"
+              className="flex items-center gap-2 group flex-shrink-0"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-shadow bg-transparent">
                 <Image
                   src="/logo.png"
                   alt="Logo O Vestiário"
-                  width={120}
-                  height={120}
-                  className=" w-10 h-10"
+                  width={48}
+                  height={48}
                   priority
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-4xl font-bold text-gray-900 font-oswald">
+                <span className="text-2xl sm:text-3xl font-bold text-gray-900 font-oswald whitespace-nowrap">
                   O Vestiário
                 </span>
               </div>
@@ -141,13 +133,13 @@ export default function Header() {
 
             <form
               onSubmit={handleSearch}
-              className="hidden lg:flex flex-1 max-w-xl mx-8"
+              className="hidden md:flex flex-1 max-w-xl mx-8"
             >
               <div className="relative w-full">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   type="text"
-                  placeholder="Buscar camisas, times, jogadores..."
+                  placeholder="Buscar camisas, times..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-12 pr-28 py-3 h-12 w-full border-gray-300 focus:border-gray-900 rounded-xl"
@@ -162,17 +154,7 @@ export default function Header() {
               </div>
             </form>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden text-gray-700"
-                onClick={() => setIsMenuOpen(true)}
-              >
-                <Search className="h-5 w-5" />
-              </Button>
-
-              {/* ÍCONE DE ADMIN CONDICIONAL */}
+            <div className="flex items-center gap-1 sm:gap-2">
               {isAuthenticated && userProfile?.role === 'admin' && (
                 <Button
                   variant="ghost"
@@ -218,12 +200,10 @@ export default function Header() {
                     />
                   </Button>
                 ) : (
-                  <Button
-                    variant="ghost"
-                    asChild
-                    className="hidden sm:flex h-10"
-                  >
-                    <Link href="/login">Entrar</Link>
+                  <Button variant="ghost" asChild className="flex h-10">
+                    <Link href="/login">
+                      <User className="w-5 h-5" />
+                    </Link>
                   </Button>
                 )}
 
@@ -252,16 +232,6 @@ export default function Header() {
                       >
                         <Package className="w-4 h-4" /> Meus Pedidos
                       </Link>
-                      <Link
-                        href="/favoritos"
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        <Heart className="w-4 h-4" /> Favoritos{' '}
-                        <Badge variant="secondary" className="ml-auto">
-                          {favoritesCount}
-                        </Badge>
-                      </Link>
                     </div>
                     <Separator />
                     <div className="py-2">
@@ -284,7 +254,7 @@ export default function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative text-gray-700 hidden sm:flex"
+                className="relative text-gray-700"
                 asChild
               >
                 <Link href="/favoritos">
@@ -306,63 +276,16 @@ export default function Header() {
                 <Link href="/carrinho">
                   <ShoppingCart className="h-5 w-5" />
                   {hasMounted && cartCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white size-5 text-xs p-0 flex items-center justify-center w-4 h-4">
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white size-5 text-xs p-0 flex items-center justify-center">
                       {cartCount}
                     </Badge>
                   )}
                 </Link>
               </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden text-gray-700"
-                onClick={() => setIsMenuOpen(true)}
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
             </div>
           </div>
         </div>
       </header>
-
-      {isMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-[100]">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setIsMenuOpen(false)}
-          ></div>
-          <div className="relative flex flex-col h-full w-4/5 max-w-sm bg-white shadow-xl">
-            <div className="flex items-center justify-between p-4 border-b">
-              <span className="font-semibold">Menu</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Adicione seus links de navegação mobile aqui */}
-            </div>
-            {!isAuthenticated && (
-              <div className="p-4 border-t grid grid-cols-2 gap-3">
-                <Button variant="outline" asChild>
-                  <Link href="/login" onClick={() => setIsMenuOpen(false)}>
-                    Entrar
-                  </Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/cadastro" onClick={() => setIsMenuOpen(false)}>
-                    Cadastro
-                  </Link>
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 }
