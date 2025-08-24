@@ -201,14 +201,14 @@ function WhyChooseThaiQualitySection() {
       title: 'Preço Acessível',
       description:
         'A mesma qualidade premium por um preço justo. Sem taxa de marca, só qualidade pura.',
-      color: 'bg-secondary-100 text-secondary-800',
+      color: 'bg-red-100 text-red-800',
     },
     {
       icon: <TrendingUp className="w-8 h-8" />,
       title: 'Sempre Atualizado',
       description:
         'Lançamentos rápidos e estoque sempre renovado com as últimas temporadas dos seus times.',
-      color: 'bg-accent-100 text-accent-800',
+      color: 'bg-amber-100 text-amber-800',
     },
   ];
 
