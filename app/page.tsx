@@ -49,11 +49,11 @@ export default async function Home({ searchParams }: Props) {
         <div className="container mx-auto px-4">
           {/* Section Header */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 bg-neutral-200 text-primary-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
               <Trophy className="w-4 h-4" />
               Qualidade Tailandesa Premium
             </div>
-            <h2 className="text-4xl font-bold text-primary-900 mb-4">
+            <h2 className="text-4xl font-bold text-neutral-900 mb-4">
               {searchQuery
                 ? `Resultados para "${searchQuery}"`
                 : 'Camisas de Primeira Linha'}
@@ -111,10 +111,10 @@ function TrustSection() {
         <div className="grid grid-cols-3 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <div key={index} className="text-center group">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 text-primary-800 rounded-2xl mb-4 group-hover:bg-primary-800 group-hover:text-white transition-all duration-300">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-neutral-200 text-primary-800 rounded-2xl mb-4 group-hover:bg-neutral-800 group-hover:text-white transition-all duration-300">
                 {feature.icon}
               </div>
-              <h3 className="font-bold text-primary-900 mb-1">
+              <h3 className="font-bold text-neutral-900 mb-1">
                 {feature.title}
               </h3>
               <p className="text-gray-600 text-sm">{feature.description}</p>
