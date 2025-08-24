@@ -88,7 +88,12 @@ export default function RootLayout({
           <FavoritesProvider>
             <CartProvider>
               <DynamicTitle />
-              <Toaster position="top-right" richColors />
+              <Toaster
+                position="top-right"
+                richColors
+                closeButton
+                expand={false}
+              />
               <Header />
               <div className="w-full bg-yellow-100 text-yellow-900 text-center py-2 text-sm font-medium border-b border-yellow-300">
                 Atenção: Trabalhamos apenas com camisas tailandesas de alta
