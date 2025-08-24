@@ -9,37 +9,37 @@
   }
 }
 
-/* Cores principais */
+/* Cores principais em HSL */
 :root {
-  --primary: #1f2937;        /* Preto elegante */
-  --primary-dark: #111827;   /* Preto mais escuro */
-  --primary-light: #374151;  /* Cinza escuro */
+  --primary: 215 25% 17%;       /* Preto elegante */
+  --primary-dark: 222 47% 11%;  /* Preto mais escuro */
+  --primary-light: 220 17% 27%; /* Cinza escuro */
   
-  --secondary: #ef4444;      /* Vermelho energia */
-  --secondary-dark: #dc2626;
-  --secondary-light: #f87171;
+  --secondary: 0 84% 60%;      /* Vermelho energia */
+  --secondary-dark: 0 72% 51%;
+  --secondary-light: 0 91% 71%;
   
-  --accent: #f59e0b;         /* Dourado luxury */
-  --accent-dark: #d97706;
-  --accent-light: #fbbf24;
+  --accent: 38 92% 50%;         /* Dourado luxury */
+  --accent-dark: 31 96% 44%;
+  --accent-light: 45 96% 57%;
   
-  --success: #10b981;        /* Verde para preços */
-  --warning: #f59e0b;
-  --error: #ef4444;
+  --success: 160 82% 40%;       /* Verde para preços */
+  --warning: 38 92% 50%;
+  --error: 0 84% 60%;
   
-  --neutral-50: #f9fafb;
-  --neutral-100: #f3f4f6;
-  --neutral-200: #e5e7eb;
-  --neutral-300: #d1d5db;
-  --neutral-400: #9ca3af;
-  --neutral-500: #6b7280;
-  --neutral-600: #4b5563;
-  --neutral-700: #374151;
-  --neutral-800: #1f2937;
-  --neutral-900: #111827;
+  --neutral-50: 210 17% 98%;
+  --neutral-100: 220 13% 95%;
+  --neutral-200: 220 14% 91%;
+  --neutral-300: 220 13% 85%;
+  --neutral-400: 220 9% 64%;
+  --neutral-500: 215 9% 47%;
+  --neutral-600: 216 15% 35%;
+  --neutral-700: 220 17% 27%;
+  --neutral-800: 215 25% 17%;
+  --neutral-900: 222 47% 11%;
   
-  --background: #ffffff;
-  --surface: #f9fafb;
+  --background: 0 0% 100%;
+  --surface: 210 17% 98%;
 }
 
 @media (prefers-color-scheme: dark) {
