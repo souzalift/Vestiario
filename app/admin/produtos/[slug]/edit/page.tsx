@@ -566,9 +566,9 @@ export default function EditProductPage() {
                         className="flex items-center gap-1 bg-gray-100 text-gray-700 hover:bg-gray-200"
                       >
                         {tag}
-                        <button onClick={() => removeTag(index)}>
+                        <Button onClick={() => removeTag(index)}>
                           <X className="w-3 h-3" />
-                        </button>
+                        </Button>
                       </Badge>
                     ))}
                   </div>

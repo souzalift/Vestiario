@@ -222,7 +222,7 @@ export default function ImageUpload({
           Importação em Lote
         </Button>
 
-        <input
+        <Input
           ref={fileInputRef}
           type="file"
           accept="image/*"

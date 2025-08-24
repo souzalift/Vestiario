@@ -308,7 +308,7 @@ export default function AdminProductsPage() {
           </div>
           <div className="flex gap-2">
             <Button
-              onClick={() => router.push('/admin/produtos/new')}
+              onClick={() => router.push('/admin/produtos/novo')}
               className="bg-gray-900 hover:bg-gray-800 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
