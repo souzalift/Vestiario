@@ -40,10 +40,10 @@ export default function PoliticaEnvioPage() {
               Prazos de Entrega
             </h2>
             <p className="mt-2 text-gray-600">
-              <strong>Processamento:</strong> 1 a 3 dias úteis após o pagamento.
+              <strong>Processamento:</strong> 2 a 5 dias úteis após o pagamento.
             </p>
             <p className="mt-1 text-gray-600">
-              <strong>Entrega:</strong> 5 a 7 dias úteis após o envio.
+              <strong>Entrega:</strong> 15 a 25 dias úteis após o envio.
             </p>
           </div>
           <div className="bg-gray-50 p-8 rounded-2xl border">

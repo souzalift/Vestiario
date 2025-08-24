@@ -91,7 +91,7 @@ export default function CentralAjudaPage() {
           <p className="mt-2 text-gray-600">
             A nossa equipa de atendimento está pronta para ajudar.
           </p>
-          <Button asChild className="mt-6">
+          <Button asChild className="mt-6 text-white">
             <Link href="/contato">Fale Conosco</Link>
           </Button>
         </div>
