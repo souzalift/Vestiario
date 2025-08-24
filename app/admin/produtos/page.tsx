@@ -60,6 +60,7 @@ interface Product {
   league?: string;
   createdAt: Date;
   slug: string;
+  isActive?: boolean; // <-- Adicione esta linha
 }
 
 // Novo tipo para o estado de exclusão
@@ -88,6 +89,9 @@ export default function AdminProductsPage() {
   const [deletionState, setDeletionState] = useState<DeletionState>({
     type: null,
   });
+  const [activeFilter, setActiveFilter] = useState<
+    'all' | 'active' | 'inactive'
+  >('all');
 
   useEffect(() => {
     if (isLoaded) {
@@ -146,6 +150,13 @@ export default function AdminProductsPage() {
         (product) => product.league === selectedLeague,
       );
     }
+    if (activeFilter !== 'all') {
+      filtered = filtered.filter((product) =>
+        activeFilter === 'active'
+          ? product.isActive !== false
+          : product.isActive === false,
+      );
+    }
     switch (sortBy) {
       case 'oldest':
         filtered.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -160,7 +171,7 @@ export default function AdminProductsPage() {
         break;
     }
     return filtered;
-  }, [products, searchTerm, selectedLeague, sortBy]);
+  }, [products, searchTerm, selectedLeague, sortBy, activeFilter]);
 
   const handleSelect = (id: string) =>
     setSelectedIds((prev) =>
@@ -335,6 +346,19 @@ export default function AdminProductsPage() {
                   <SelectItem value="price-low">Menor preço</SelectItem>
                 </SelectContent>
               </Select>
+              <Select
+                value={activeFilter}
+                onValueChange={(v) => setActiveFilter(v as any)}
+              >
+                <SelectTrigger className="w-full lg:w-48">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="active">Ativos</SelectItem>
+                  <SelectItem value="inactive">Inativos</SelectItem>
+                </SelectContent>
+              </Select>
               <div className="flex border rounded-lg overflow-hidden">
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
@@ -357,10 +381,32 @@ export default function AdminProductsPage() {
           </CardContent>
         </Card>
         {viewMode === 'list' && selectedIds.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-4 flex gap-2">
             <Button variant="destructive" onClick={openDeleteMultipleModal}>
               <Trash2 className="w-4 h-4 mr-2" /> Excluir Selecionados (
               {selectedIds.length})
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await Promise.all(
+                    selectedIds.map((id) =>
+                      setDoc(
+                        doc(db, 'products', id),
+                        { isActive: false, updatedAt: serverTimestamp() },
+                        { merge: true },
+                      ),
+                    ),
+                  );
+                  toast.success('Produtos desativados com sucesso!');
+                  setSelectedIds([]);
+                } catch (error) {
+                  toast.error('Erro ao desativar produtos.');
+                }
+              }}
+            >
+              Desativar Selecionados
             </Button>
           </div>
         )}
@@ -393,6 +439,9 @@ export default function AdminProductsPage() {
                       </th>
                       <th className="text-center py-4 px-6 font-medium text-gray-900">
                         Destaque
+                      </th>
+                      <th className="text-center py-4 px-6 font-medium text-gray-900">
+                        Ativo
                       </th>
                       <th className="text-left py-4 px-6 font-medium text-gray-900">
                         Criado
@@ -455,6 +504,17 @@ export default function AdminProductsPage() {
                         <td className="py-4 px-6 text-center">
                           {product.featured && (
                             <Star className="w-5 h-5 text-yellow-500 mx-auto" />
+                          )}
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          {product.isActive !== false ? (
+                            <Badge className="bg-green-100 text-green-700">
+                              Sim
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-red-100 text-red-700">
+                              Não
+                            </Badge>
                           )}
                         </td>
                         <td className="py-4 px-6 text-sm text-gray-600">
