@@ -37,23 +37,63 @@ import {
 } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
 
-// CORREÇÃO: Esquema de validação atualizado para aceitar arrays
+// Validação aprimorada com Zod
 const productSchema = z.object({
-  title: z.string().min(5, 'O título é obrigatório.'),
+  title: z
+    .string()
+    .min(5, 'O título deve ter pelo menos 5 caracteres.')
+    .max(100, 'O título deve ter no máximo 100 caracteres.'),
   slug: z
     .string()
     .min(5, 'O slug é obrigatório.')
-    .regex(/^[a-z0-9-]+$/, 'Slug inválido.'),
-  description: z.string().min(10, 'A descrição é obrigatória.'),
-  price: z.coerce.number().min(1, 'O preço é obrigatório.'),
-  sizes: z.array(z.string()).min(1, 'Selecione pelo menos um tamanho.'),
-  tags: z.array(z.string()).min(1, 'Adicione pelo menos uma tag.'),
-  brand: z.string().optional(),
-  team: z.string().optional(),
-  league: z.string().optional(),
+    .max(60, 'O slug deve ter no máximo 60 caracteres.')
+    .regex(/^[a-z0-9-]+$/, 'Use apenas letras minúsculas, números e hífens.'),
+  description: z
+    .string()
+    .min(10, 'A descrição deve ter pelo menos 10 caracteres.')
+    .max(1000, 'A descrição deve ter no máximo 1000 caracteres.'),
+  price: z.coerce
+    .number()
+    .min(1, 'O preço deve ser maior que zero.')
+    .max(99999, 'O preço está muito alto.'),
+  sizes: z
+    .array(z.string())
+    .min(1, 'Selecione pelo menos um tamanho.')
+    .refine(
+      (arr) => arr.every((s) => ['P', 'M', 'G', 'GG', 'XGG'].includes(s)),
+      {
+        message: 'Tamanho inválido selecionado.',
+      },
+    ),
+  tags: z
+    .array(z.string())
+    .min(1, 'Adicione pelo menos uma tag.')
+    .max(10, 'Máximo de 10 tags.'),
+  brand: z
+    .string()
+    .max(50, 'Marca deve ter no máximo 50 caracteres.')
+    .optional()
+    .or(z.literal('')),
+  team: z
+    .string()
+    .max(50, 'Time deve ter no máximo 50 caracteres.')
+    .optional()
+    .or(z.literal('')),
+  league: z
+    .string()
+    .min(2, 'Liga é obrigatória.')
+    .max(50, 'Liga deve ter no máximo 50 caracteres.'),
   featured: z.boolean().default(false),
-  playerName: z.string().optional(),
-  playerNumber: z.string().optional(),
+  playerName: z
+    .string()
+    .max(50, 'Nome do jogador deve ter no máximo 50 caracteres.')
+    .optional()
+    .or(z.literal('')),
+  playerNumber: z
+    .string()
+    .max(5, 'Número do jogador deve ter no máximo 5 caracteres.')
+    .optional()
+    .or(z.literal('')),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -112,13 +152,9 @@ export default function AdminNewProductPage() {
       return;
     }
     try {
-      // A função uploadImages já existe no seu código e está correta
-      // const imageUrls = await uploadImages(imageFiles, data.league);
-
-      // CORREÇÃO: Não é mais necessário usar .split(), pois os dados já são arrays
       await addDoc(collection(db, 'products'), {
         ...data,
-        images: images, // Usa as imagens do componente ImageUpload
+        images: images,
         isActive: true,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -131,9 +167,20 @@ export default function AdminNewProductPage() {
     }
   };
 
+  // Exibe todos os erros do formulário via toast ao tentar enviar
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const result = await handleSubmit(onSubmit)(e);
+    // Se houver erros, exibe todos via toast
+    if (Object.keys(errors).length > 0) {
+      Object.values(errors).forEach((err: any) => {
+        if (err?.message) toast.error(err.message);
+      });
+    }
+  };
+
   return (
     <div>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleFormSubmit}>
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Novo Produto</h1>
