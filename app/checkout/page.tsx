@@ -5,15 +5,6 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCart } from '@/contexts/CartContext';
-import { toast } from 'sonner';
-
-// Libs de formulário
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-
-// UI e Ícones
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,86 +19,112 @@ import {
   Package,
   MapPin,
   User,
-  AlertTriangle,
-  Palette,
-  Tag,
   Mail,
   Phone,
   Shield,
+  Palette,
+  Tag,
+  Calendar,
+  Clock,
+  AlertTriangle,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useCart } from '@/contexts/CartContext';
+import { generateOrderNumber } from '@/services/orders'; // Importa a função de geração de número do pedido
 
-// 1. Esquema de validação com Zod
-const checkoutSchema = z.object({
-  firstName: z.string().min(2, 'Nome é obrigatório'),
-  lastName: z.string().min(2, 'Sobrenome é obrigatório'),
-  email: z.string().email('Email inválido'),
-  phone: z.string().min(10, 'Telefone inválido (inclua o DDD)'),
-  document: z.string().min(11, 'CPF inválido'),
-  zipCode: z.string().min(8, 'CEP inválido'),
-  street: z.string().min(3, 'Rua é obrigatória'),
-  number: z.string().min(1, 'Número é obrigatório'),
-  complement: z.string().optional(),
-  neighborhood: z.string().min(3, 'Bairro é obrigatório'),
-  city: z.string().min(3, 'Cidade é obrigatória'),
-  state: z
-    .string()
-    .min(2, 'Estado é obrigatório')
-    .max(2, 'Use a sigla do estado (ex: BA)'),
-  orderNotes: z.string().optional(),
-  acceptedTerms: z.boolean().refine((val) => val === true, {
-    message: 'Você deve aceitar os termos de uso',
-  }),
-});
+// Interfaces (mantidas como no seu código original)
+interface DeliveryAddress {
+  zipCode: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+}
 
-type CheckoutFormData = z.infer<typeof checkoutSchema>;
+interface CustomerData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  document: string;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
+
   const {
     items: cartItems,
     clearCart,
     cartCount,
     subtotal,
-    shippingPrice,
+    baseSubtotal,
     totalCustomizationFee,
+    shippingPrice,
     totalPrice,
   } = useCart();
+
   const { userProfile, loading: authLoading } = useAuth();
 
-  const [isClient, setIsClient] = useState(false);
-
-  // 2. Configuração do React Hook Form
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<CheckoutFormData>({
-    resolver: zodResolver(checkoutSchema),
+  const [customerData, setCustomerData] = useState<CustomerData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    document: '',
   });
-
-  // Efeito para preencher o formulário com dados do usuário logado
+  const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>({
+    zipCode: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+  });
+  // <<< NOVO: Efeito para preencher o formulário quando o usuário for carregado
   useEffect(() => {
+    // `authLoading === false` garante que já tentamos carregar o usuário do localStorage
     if (!authLoading && userProfile) {
-      setValue('firstName', userProfile.firstName || '');
-      setValue('lastName', userProfile.lastName || '');
-      setValue('email', userProfile.email || '');
-      setValue('phone', userProfile.phoneNumber || '');
-      setValue('document', userProfile.cpf || '');
-      if (userProfile.address) {
-        setValue('zipCode', userProfile.address.zipCode || '');
-        setValue('street', userProfile.address.street || '');
-        setValue('number', userProfile.address.number || '');
-        setValue('complement', userProfile.address.complement || '');
-        setValue('neighborhood', userProfile.address.neighborhood || '');
-        setValue('city', userProfile.address.city || '');
-        setValue('state', userProfile.address.state || '');
-      }
-    }
-  }, [userProfile, authLoading, setValue]);
+      setCustomerData({
+        firstName: userProfile.firstName || '',
+        lastName: userProfile.lastName || '',
+        email: userProfile.email || '',
+        phone: userProfile.phoneNumber || '',
+        document: userProfile.cpf || '',
+      });
 
+      if (userProfile.address) {
+        setDeliveryAddress({
+          zipCode: userProfile.address.zipCode || '',
+          street: userProfile.address.street || '',
+          number: userProfile.address.number || '',
+          complement: userProfile.address.complement || '',
+          neighborhood: userProfile.address.neighborhood || '',
+          city: userProfile.address.city || '',
+          state: userProfile.address.state || '',
+        });
+      }
+
+      // Um pequeno delay no toast para dar tempo de o usuário ver a tela antes do popup
+      setTimeout(() => {
+        toast.info('Seus dados foram preenchidos automaticamente.');
+      }, 500);
+    }
+  }, [userProfile, authLoading]); // Roda sempre que o usuário ou o status de loading da autenticação mudar
+  const [orderNotes, setOrderNotes] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  // Novo estado para exibir alertas de validação
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+
+  // Efeito para evitar hydration mismatch e proteger a rota
   useEffect(() => {
     setIsClient(true);
+    // Usamos cartCount do contexto para a verificação
     if (cartCount === 0) {
       toast.error('Seu carrinho está vazio!');
       router.push('/');
@@ -122,6 +139,7 @@ export default function CheckoutPage() {
   };
 
   const fetchAddressByCep = async (cep: string) => {
+    // Sua função de buscar CEP está ótima, nenhuma mudança necessária.
     const cleanCep = cep.replace(/\D/g, '');
     if (cleanCep.length !== 8) return;
     try {
@@ -130,10 +148,13 @@ export default function CheckoutPage() {
       );
       const data = await response.json();
       if (!data.erro) {
-        setValue('street', data.logouro || '');
-        setValue('neighborhood', data.bairro || '');
-        setValue('city', data.localidade || '');
-        setValue('state', data.uf || '');
+        setDeliveryAddress((prev) => ({
+          ...prev,
+          street: data.logouro || '',
+          neighborhood: data.bairro || '',
+          city: data.localidade || '',
+          state: data.uf || '',
+        }));
         toast.success('Endereço encontrado!');
       } else {
         toast.error('CEP não encontrado');
@@ -143,66 +164,130 @@ export default function CheckoutPage() {
     }
   };
 
-  const processPayment = async (data: CheckoutFormData) => {
-    if (authLoading) {
-      toast.info('Aguardando informações do usuário...');
+  const validateForm = () => {
+    const errors: string[] = [];
+    if (!customerData.firstName.trim()) errors.push('Nome é obrigatório');
+    if (!customerData.lastName.trim()) errors.push('Sobrenome é obrigatório');
+    if (!customerData.email.trim()) errors.push('Email é obrigatório');
+    if (!customerData.phone.trim()) errors.push('Telefone é obrigatório');
+    if (!customerData.document.trim()) errors.push('CPF é obrigatório');
+    if (!deliveryAddress.zipCode.trim()) errors.push('CEP é obrigatório');
+    if (!deliveryAddress.street.trim()) errors.push('Rua é obrigatório');
+    if (!deliveryAddress.number.trim()) errors.push('Número é obrigatório');
+    if (!deliveryAddress.neighborhood.trim())
+      errors.push('Bairro é obrigatório');
+    if (!deliveryAddress.city.trim()) errors.push('Cidade é obrigatório');
+    if (!deliveryAddress.state.trim()) errors.push('Estado é obrigatório');
+    if (!acceptedTerms) errors.push('Aceite os termos de uso');
+    if (!acceptedPrivacy) errors.push('Aceite a política de privacidade');
+    return errors;
+  };
+
+  const processPayment = async () => {
+    const errors = validateForm();
+    setFormErrors(errors);
+    if (errors.length > 0) {
+      errors.forEach((error) => toast.error(error));
       return;
     }
 
-    try {
-      const orderPayload = {
-        userId: userProfile?.uid || 'GUEST_USER',
-        items: cartItems,
-        customer: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          name: `${data.firstName} ${data.lastName}`.trim(),
-          email: data.email,
-          phone: data.phone,
-          document: data.document,
-        },
-        address: {
-          zipCode: data.zipCode,
-          street: data.street,
-          number: data.number,
-          complement: data.complement,
-          neighborhood: data.neighborhood,
-          city: data.city,
-          state: data.state,
-        },
-        subtotal,
-        shippingPrice,
-        totalCustomizationFee,
-        totalPrice,
-        notes: data.orderNotes,
-      };
+    setProcessingPayment(true);
 
-      const response = await fetch('/api/checkout', {
+    try {
+      // 1. Crie o pedido no backend
+      const pedidoResponse = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload),
+        body: JSON.stringify({
+          customer: customerData,
+          address: deliveryAddress,
+          notes: orderNotes,
+          items: cartItems,
+          subtotal,
+          totalCustomizationFee,
+          shippingPrice,
+          totalPrice,
+          status: 'pending',
+          orderNumber: generateOrderNumber(), // <-- Gera o número do pedido
+        }),
       });
 
-      const responseData = await response.json();
-      if (!response.ok)
-        throw new Error(
-          responseData.error || 'Erro ao criar a preferência de pagamento.',
-        );
-
-      if (responseData.init_point) {
-        clearCart();
-        window.location.href = responseData.init_point;
-      } else {
-        throw new Error('URL de pagamento não recebida.');
+      const pedidoData = await pedidoResponse.json();
+      if (!pedidoResponse.ok) {
+        throw new Error(pedidoData.error || 'Erro ao criar pedido');
       }
-    } catch (error: any) {
-      toast.error(
-        error.message || 'Erro ao processar pagamento. Tente novamente.',
-      );
+
+      // 2. Crie a preferência do Mercado Pago normalmente
+      const orderData = {
+        payer: {
+          name: customerData.firstName,
+          surname: customerData.lastName,
+          email: customerData.email,
+          phone: customerData.phone,
+          identification: {
+            type: 'CPF',
+            number: customerData.document,
+          },
+          address: {
+            zip_code: deliveryAddress.zipCode,
+            street_name: deliveryAddress.street,
+            street_number: deliveryAddress.number,
+            neighborhood: deliveryAddress.neighborhood,
+            city: deliveryAddress.city,
+            federal_unit: deliveryAddress.state,
+          },
+        },
+        items: cartItems.map((item) => ({
+          title: item.title,
+          quantity: item.quantity,
+          currency_id: 'BRL',
+          unit_price: item.price,
+          description: `Tamanho: ${item.size}${
+            item.customization?.name || item.customization?.number
+              ? ` - Personalização: ${item.customization.name || ''} ${
+                  item.customization.number
+                    ? '#' + item.customization.number
+                    : ''
+                }`.trim()
+              : ''
+          }`,
+          picture_url: item.image,
+          category_id: item.category || 'sports',
+        })),
+        orderNumber: generateOrderNumber(),
+        // outros campos opcionais...
+      };
+
+      const response = await fetch('/api/mercadopago/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.init_point) {
+        localStorage.setItem(
+          'pendingOrder',
+          JSON.stringify({
+            ...orderData,
+            preferenceId: data.preferenceId,
+            createdAt: new Date().toISOString(),
+          }),
+        );
+        window.location.href = data.init_point;
+      } else {
+        throw new Error(data.error || 'Erro ao processar pagamento');
+      }
+    } catch (error) {
+      toast.error('Erro ao processar pagamento. Tente novamente.');
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
   if (!isClient || cartCount === 0) {
+    // Mostra um loader enquanto hidrata ou se estiver prestes a redirecionar
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900"></div>
@@ -211,307 +296,622 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <form onSubmit={handleSubmit(processPayment)}>
-        <main className="py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Finalizar Compra
-                </h1>
-                <p className="text-gray-600 mt-1">
-                  Revise seus dados e finalize seu pedido.
-                </p>
-              </div>
-              <Button asChild variant="outline">
-                <Link href="/carrinho">
-                  <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao Carrinho
-                </Link>
-              </Button>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <main className="flex-1 pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Finalizar Compra
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Revise seus dados e finalize seu pedido
+              </p>
             </div>
+            <Link href="/carrinho">
+              <Button
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar ao Carrinho
+              </Button>
+            </Link>
+          </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-8">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" /> Dados Pessoais
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="firstName">Nome *</Label>
-                        <Input id="firstName" {...register('firstName')} />
-                        {errors.firstName && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.firstName.message}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <Label htmlFor="lastName">Sobrenome *</Label>
-                        <Input id="lastName" {...register('lastName')} />
-                        {errors.lastName && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.lastName.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="email">Email *</Label>
-                        <Input id="email" type="email" {...register('email')} />
-                        {errors.email && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.email.message}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <Label htmlFor="phone">Telefone *</Label>
-                        <Input id="phone" {...register('phone')} />
-                        {errors.phone && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.phone.message}
-                          </p>
-                        )}
-                      </div>
+          {/* ALERTA DE ERROS DE VALIDAÇÃO */}
+          {formErrors.length > 0 && (
+            <div className="mb-6">
+              <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 flex items-start gap-3 shadow-sm animate-fade-in">
+                <AlertTriangle className="w-5 h-5 mt-0.5 text-red-500" />
+                <div>
+                  <span className="font-semibold">Atenção:</span>
+                  <ul className="list-disc ml-5 mt-1 text-sm space-y-0.5">
+                    {formErrors.map((err, idx) => (
+                      <li key={idx}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Formulário */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Dados Pessoais */}
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-gray-900">
+                    <User className="h-5 w-5" />
+                    Dados Pessoais
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label
+                        htmlFor="firstName"
+                        className="text-gray-700 font-medium"
+                      >
+                        Nome *
+                      </Label>
+                      <Input
+                        id="firstName"
+                        placeholder="Seu primeiro nome"
+                        value={customerData.firstName}
+                        onChange={(e) =>
+                          setCustomerData({
+                            ...customerData,
+                            firstName: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                      />
                     </div>
                     <div>
-                      <Label htmlFor="document">CPF *</Label>
-                      <Input id="document" {...register('document')} />
-                      {errors.document && (
-                        <p className="text-red-600 text-sm mt-1">
-                          {errors.document.message}
-                        </p>
-                      )}
+                      <Label
+                        htmlFor="lastName"
+                        className="text-gray-700 font-medium"
+                      >
+                        Sobrenome *
+                      </Label>
+                      <Input
+                        id="lastName"
+                        placeholder="Seu sobrenome"
+                        value={customerData.lastName}
+                        onChange={(e) =>
+                          setCustomerData({
+                            ...customerData,
+                            lastName: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                      />
                     </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5" /> Endereço de Entrega
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="zipCode">CEP *</Label>
-                        <Input
-                          id="zipCode"
-                          {...register('zipCode')}
-                          onBlur={(e) => fetchAddressByCep(e.target.value)}
-                        />
-                        {errors.zipCode && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.zipCode.message}
-                          </p>
-                        )}
-                      </div>
-                      <div className="md:col-span-2">
-                        <Label htmlFor="street">Rua *</Label>
-                        <Input id="street" {...register('street')} />
-                        {errors.street && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.street.message}
-                          </p>
-                        )}
-                      </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label
+                        htmlFor="email"
+                        className="text-gray-700 font-medium"
+                      >
+                        <Mail className="w-4 h-4 inline mr-1" />
+                        Email *
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={customerData.email}
+                        onChange={(e) =>
+                          setCustomerData({
+                            ...customerData,
+                            email: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                      />
                     </div>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="number">Número *</Label>
-                        <Input id="number" {...register('number')} />
-                        {errors.number && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.number.message}
-                          </p>
-                        )}
-                      </div>
-                      <div className="md:col-span-2">
-                        <Label htmlFor="complement">Complemento</Label>
-                        <Input id="complement" {...register('complement')} />
-                      </div>
+                    <div>
+                      <Label
+                        htmlFor="phone"
+                        className="text-gray-700 font-medium"
+                      >
+                        <Phone className="w-4 h-4 inline mr-1" />
+                        Telefone *
+                      </Label>
+                      <Input
+                        id="phone"
+                        placeholder="(11) 99999-9999"
+                        value={customerData.phone}
+                        onChange={(e) =>
+                          setCustomerData({
+                            ...customerData,
+                            phone: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                      />
                     </div>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="neighborhood">Bairro *</Label>
-                        <Input
-                          id="neighborhood"
-                          {...register('neighborhood')}
-                        />
-                        {errors.neighborhood && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.neighborhood.message}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <Label htmlFor="city">Cidade *</Label>
-                        <Input id="city" {...register('city')} />
-                        {errors.city && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.city.message}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <Label htmlFor="state">Estado *</Label>
-                        <Input id="state" {...register('state')} />
-                        {errors.state && (
-                          <p className="text-red-600 text-sm mt-1">
-                            {errors.state.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="h-5 w-5" /> Observações
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Textarea
-                      placeholder="Informações adicionais..."
-                      {...register('orderNotes')}
+                  </div>
+
+                  <div>
+                    <Label
+                      htmlFor="document"
+                      className="text-gray-700 font-medium"
+                    >
+                      CPF *
+                    </Label>
+                    <Input
+                      id="document"
+                      placeholder="000.000.000-00"
+                      value={customerData.document}
+                      onChange={(e) =>
+                        setCustomerData({
+                          ...customerData,
+                          document: e.target.value,
+                        })
+                      }
+                      className="mt-1 border-gray-200 focus:border-gray-400"
+                      maxLength={14}
                     />
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Endereço de Entrega */}
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-gray-900">
+                    <MapPin className="h-5 w-5" />
+                    Endereço de Entrega
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label
+                        htmlFor="zipCode"
+                        className="text-gray-700 font-medium"
+                      >
+                        CEP *
+                      </Label>
+                      <Input
+                        id="zipCode"
+                        placeholder="00000-000"
+                        value={deliveryAddress.zipCode}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setDeliveryAddress({
+                            ...deliveryAddress,
+                            zipCode: value,
+                          });
+                          if (value.replace(/\D/g, '').length === 8) {
+                            fetchAddressByCep(value);
+                          }
+                        }}
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                        maxLength={9}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label
+                        htmlFor="street"
+                        className="text-gray-700 font-medium"
+                      >
+                        Rua *
+                      </Label>
+                      <Input
+                        id="street"
+                        placeholder="Nome da rua"
+                        value={deliveryAddress.street}
+                        onChange={(e) =>
+                          setDeliveryAddress({
+                            ...deliveryAddress,
+                            street: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label
+                        htmlFor="number"
+                        className="text-gray-700 font-medium"
+                      >
+                        Número *
+                      </Label>
+                      <Input
+                        id="number"
+                        placeholder="123"
+                        value={deliveryAddress.number}
+                        onChange={(e) =>
+                          setDeliveryAddress({
+                            ...deliveryAddress,
+                            number: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label
+                        htmlFor="complement"
+                        className="text-gray-700 font-medium"
+                      >
+                        Complemento
+                      </Label>
+                      <Input
+                        id="complement"
+                        placeholder="Apto, casa, etc."
+                        value={deliveryAddress.complement}
+                        onChange={(e) =>
+                          setDeliveryAddress({
+                            ...deliveryAddress,
+                            complement: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label
+                        htmlFor="neighborhood"
+                        className="text-gray-700 font-medium"
+                      >
+                        Bairro *
+                      </Label>
+                      <Input
+                        id="neighborhood"
+                        placeholder="Nome do bairro"
+                        value={deliveryAddress.neighborhood}
+                        onChange={(e) =>
+                          setDeliveryAddress({
+                            ...deliveryAddress,
+                            neighborhood: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="city"
+                        className="text-gray-700 font-medium"
+                      >
+                        Cidade *
+                      </Label>
+                      <Input
+                        id="city"
+                        placeholder="Nome da cidade"
+                        value={deliveryAddress.city}
+                        onChange={(e) =>
+                          setDeliveryAddress({
+                            ...deliveryAddress,
+                            city: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="state"
+                        className="text-gray-700 font-medium"
+                      >
+                        Estado *
+                      </Label>
+                      <Input
+                        id="state"
+                        placeholder="SP"
+                        value={deliveryAddress.state}
+                        onChange={(e) =>
+                          setDeliveryAddress({
+                            ...deliveryAddress,
+                            state: e.target.value,
+                          })
+                        }
+                        className="mt-1 border-gray-200 focus:border-gray-400"
+                        maxLength={2}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Observações do Pedido */}
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-gray-900">
+                    <Package className="h-5 w-5" />
+                    Observações do Pedido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Label htmlFor="notes" className="text-gray-700 font-medium">
+                    Informações adicionais (opcional)
+                  </Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Alguma informação especial sobre a entrega..."
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    className="mt-1 border-gray-200 focus:border-gray-400 h-20"
+                    maxLength={500}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {orderNotes.length}/500 caracteres
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Termos e Condições */}
+              <Card className="border border-gray-200 shadow-sm">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
                         id="terms"
-                        {...register('acceptedTerms')}
-                        className="mt-1"
+                        checked={acceptedTerms}
+                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                        className="mt-1 h-4 w-4 text-gray-900 rounded border-gray-300"
                       />
-                      <label htmlFor="terms" className="text-sm">
-                        Li e concordo com os{' '}
-                        <Link href="/termos" className="underline font-medium">
-                          Termos de Uso
-                        </Link>{' '}
-                        e a{' '}
+                      <label htmlFor="terms" className="text-sm text-gray-700">
+                        Aceito os{' '}
                         <Link
-                          href="/privacidade"
-                          className="underline font-medium"
+                          href="/termos"
+                          className="text-gray-900 underline hover:text-gray-700"
                         >
-                          Política de Privacidade
+                          termos de uso
                         </Link>{' '}
-                        do site.*
+                        e{' '}
+                        <Link
+                          href="/condicoes"
+                          className="text-gray-900 underline hover:text-gray-700"
+                        >
+                          condições de venda
+                        </Link>
+                        *
                       </label>
                     </div>
-                    {errors.acceptedTerms && (
-                      <p className="text-red-600 text-sm mt-1">
-                        {errors.acceptedTerms.message}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="privacy"
+                        checked={acceptedPrivacy}
+                        onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                        className="mt-1 h-4 w-4 text-gray-900 rounded border-gray-300"
+                      />
+                      <label
+                        htmlFor="privacy"
+                        className="text-sm text-gray-700"
+                      >
+                        Aceito a{' '}
+                        <Link
+                          href="/privacidade"
+                          className="text-gray-900 underline hover:text-gray-700"
+                        >
+                          política de privacidade
+                        </Link>
+                        *
+                      </label>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-              <div className="lg:col-span-1">
-                <Card className="sticky top-24">
-                  <CardHeader>
-                    <CardTitle>Resumo do Pedido</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <h4 className="font-semibold">Produtos ({cartCount})</h4>
-                      <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                        {cartItems.map((item) => (
-                          <div key={item.id} className="flex gap-3">
-                            <Image
-                              src={item.image}
-                              alt={item.title}
-                              width={64}
-                              height={64}
-                              className="rounded-lg bg-gray-100 object-cover"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <h5 className="font-medium text-sm truncate">
-                                {item.title}
-                              </h5>
-                              <div className="flex gap-1 mt-1">
-                                <Badge variant="outline" className="text-xs">
-                                  <Tag className="w-2 h-2 mr-1" />
-                                  {item.size}
-                                </Badge>
-                                {item.customizationFee > 0 && (
-                                  <Badge variant="outline" className="text-xs">
+            {/* Resumo do Pedido */}
+            <div className="lg:col-span-1">
+              <Card className="sticky top-24 border border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-gray-900">
+                    Resumo do Pedido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Produtos */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-gray-900">
+                      Produtos ({cartCount} {cartCount === 1 ? 'item' : 'itens'}
+                      )
+                    </h4>
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {cartItems.map((item) => (
+                        <div key={item.id} className="flex gap-3">
+                          <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                            {item.image ? (
+                              <Image
+                                src={item.image}
+                                alt={item.title}
+                                fill
+                                className="object-cover"
+                                sizes="64px"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="w-6 h-6 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium text-sm text-gray-900 truncate">
+                              {item.title}
+                            </h5>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-gray-300 text-gray-700"
+                              >
+                                <Tag className="w-2 h-2 mr-1" />
+                                {item.size}
+                              </Badge>
+                              {item.customization &&
+                                (item.customization.name ||
+                                  item.customization.number) && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs border-gray-300 text-gray-700"
+                                  >
                                     <Palette className="w-2 h-2 mr-1" />
                                     Custom
                                   </Badge>
                                 )}
-                              </div>
-                              <div className="flex justify-between items-center mt-2">
-                                <span className="text-xs text-gray-600">
-                                  Qtd: {item.quantity}
-                                </span>
-                                <span className="font-semibold text-sm">
-                                  {formatPrice(item.price * item.quantity)}
-                                </span>
-                              </div>
+                            </div>
+                            <div className="flex justify-between items-center mt-2">
+                              <span className="text-xs text-gray-600">
+                                Qtd: {item.quantity}
+                              </span>
+                              <span className="font-semibold text-sm text-gray-900">
+                                {formatPrice(item.price * item.quantity)}
+                              </span>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                    <Separator />
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span className="font-medium">
-                          {formatPrice(subtotal)}
+                  </div>
+
+                  <Separator />
+
+                  {/* Totais */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Subtotal produtos:</span>
+                      <span className="font-medium text-gray-900">
+                        {formatPrice(baseSubtotal)}
+                      </span>
+                    </div>
+
+                    {totalCustomizationFee > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 flex items-center gap-1">
+                          <Palette className="w-3 h-3" />
+                          Personalização:
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          {formatPrice(totalCustomizationFee)}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Frete</span>
-                        <span className="font-medium">
-                          {shippingPrice === 0
-                            ? 'Grátis'
-                            : formatPrice(shippingPrice)}
-                        </span>
+                    )}
+
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 flex items-center gap-1">
+                        <Truck className="w-3 h-3" />
+                        Frete:
+                      </span>
+                      <span className="font-medium text-gray-900">
+                        {shippingPrice === 0
+                          ? 'Grátis'
+                          : formatPrice(shippingPrice)}
+                      </span>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex justify-between text-lg font-bold">
+                      <span className="text-gray-900">Total:</span>
+                      <span className="text-gray-900">
+                        {formatPrice(totalPrice)}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-600 text-center">
+                      ou 3x de {formatPrice(totalPrice / 3)} sem juros
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {/* Entrega */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Truck className="w-4 h-4" />
+                      Entrega
+                    </h4>
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <Calendar className="w-4 h-4" />
+                        <span>Prazo: 15-25 dias úteis</span>
                       </div>
-                      <Separator />
-                      <div className="flex justify-between text-lg font-bold">
-                        <span>Total</span>
-                        <span>{formatPrice(totalPrice)}</span>
+                      <div className="flex items-center gap-2 text-sm text-gray-700 mt-1">
+                        <Clock className="w-4 h-4" />
+                        <span>Rastreamento disponível</span>
                       </div>
                     </div>
-                    <Separator />
+                  </div>
+
+                  <Separator />
+
+                  {/* Botão de Pagamento */}
+                  <div className="space-y-4">
                     <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full bg-sky-500 hover:bg-sky-600 h-12 text-base"
+                      onClick={processPayment}
+                      disabled={processingPayment || cartItems.length === 0}
+                      className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 text-sm font-semibold disabled:opacity-50"
                     >
-                      {isSubmitting ? (
-                        'Processando...'
+                      {processingPayment ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Processando...
+                        </>
                       ) : (
                         <>
-                          <CreditCard className="h-5 w-5 mr-2" /> Pagar com
-                          Mercado Pago
+                          <CreditCard className="h-5 w-5 mr-2" />
+                          Pagar com Mercado Pago
                         </>
                       )}
                     </Button>
+
+                    {/* Segurança */}
                     <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
                       <Shield className="w-4 h-4" />
-                      <span>Pagamento 100% seguro via Mercado Pago</span>
+                      <span>Pagamento 100% seguro</span>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+
+                    {/* Métodos de pagamento */}
+                    <div className="text-center">
+                      <p className="text-xs text-gray-600 mb-2">
+                        Métodos de pagamento:
+                      </p>
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-gray-300"
+                        >
+                          PIX
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-gray-300"
+                        >
+                          Cartão
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-gray-300"
+                        >
+                          Boleto
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
-        </main>
-      </form>
+        </div>
+      </main>
     </div>
   );
 }
