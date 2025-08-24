@@ -148,6 +148,17 @@ export default function AdminPedidosPage() {
     cancelado: { text: 'Cancelado', className: 'bg-red-100 text-red-800' },
   };
 
+  // Mapeamento de status de pagamento
+  const paymentStatusMap: {
+    [key: string]: { text: string; className: string };
+  } = {
+    pending: { text: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
+    paid: { text: 'Pago', className: 'bg-green-100 text-green-800' },
+    failed: { text: 'Falhou', className: 'bg-red-100 text-red-800' },
+    refunded: { text: 'Reembolsado', className: 'bg-blue-100 text-blue-800' },
+    canceled: { text: 'Cancelado', className: 'bg-gray-100 text-gray-800' },
+  };
+
   // Funções de seleção e exclusão
   const handleSelect = (id: string) =>
     setSelectedIds((prev) =>
@@ -280,6 +291,9 @@ export default function AdminPedidosPage() {
                       Status
                     </th>
                     <th className="text-left py-4 px-6 font-medium text-gray-900">
+                      Pagamento
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-900">
                       Total
                     </th>
                     <th className="text-right py-4 px-6 font-medium text-gray-900">
@@ -291,6 +305,12 @@ export default function AdminPedidosPage() {
                   {filteredOrders.map((order) => {
                     const statusInfo = statusMap[order.status] || {
                       text: order.status,
+                      className: 'bg-gray-100 text-gray-800',
+                    };
+                    const paymentInfo = paymentStatusMap[
+                      order.paymentStatus ?? 'pending'
+                    ] || {
+                      text: order.paymentStatus || 'N/A',
                       className: 'bg-gray-100 text-gray-800',
                     };
                     const nomeCliente =
@@ -331,6 +351,13 @@ export default function AdminPedidosPage() {
                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.className}`}
                           >
                             {statusInfo.text}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${paymentInfo.className}`}
+                          >
+                            {paymentInfo.text}
                           </span>
                         </td>
                         <td className="py-4 px-6 font-medium text-gray-900">

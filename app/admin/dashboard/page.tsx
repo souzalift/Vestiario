@@ -28,6 +28,16 @@ export default async function AdminDashboardPage() {
     cancelado: { text: 'Cancelado', className: 'bg-red-100 text-red-800' },
   };
 
+  const paymentStatusMap: {
+    [key: string]: { text: string; className: string };
+  } = {
+    pending: { text: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
+    paid: { text: 'Pago', className: 'bg-green-100 text-green-800' },
+    failed: { text: 'Falhou', className: 'bg-red-100 text-red-800' },
+    refunded: { text: 'Reembolsado', className: 'bg-blue-100 text-blue-800' },
+    canceled: { text: 'Cancelado', className: 'bg-gray-100 text-gray-800' },
+  };
+
   return (
     <div className="pb-12">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
@@ -91,6 +101,7 @@ export default async function AdminDashboardPage() {
                   <th className="pb-2 font-normal">Pedido</th>
                   <th className="pb-2 font-normal">Cliente</th>
                   <th className="pb-2 font-normal">Status</th>
+                  <th className="pb-2 font-normal">Pagamento</th>
                   <th className="pb-2 font-normal text-right">Total</th>
                 </tr>
               </thead>
@@ -100,17 +111,36 @@ export default async function AdminDashboardPage() {
                     text: order.status,
                     className: 'bg-gray-100 text-gray-800',
                   };
+                  const paymentInfo = paymentStatusMap[
+                    order.paymentStatus ?? ''
+                  ] || {
+                    text: order.paymentStatus || 'N/A',
+                    className: 'bg-gray-100 text-gray-800',
+                  };
+                  const nomeCliente =
+                    `${order.customer?.firstName || ''} ${
+                      order.customer?.lastName || ''
+                    }`.trim() ||
+                    order.customer?.name ||
+                    'N/A';
                   return (
                     <tr key={order.id} className="border-t">
                       <td className="py-3 font-mono text-sm">
                         {order.orderNumber}
                       </td>
-                      <td>{order.customer.name}</td>
+                      <td>{nomeCliente}</td>
                       <td>
                         <span
                           className={`px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.className}`}
                         >
                           {statusInfo.text}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full ${paymentInfo.className}`}
+                        >
+                          {paymentInfo.text}
                         </span>
                       </td>
                       <td className="text-right font-medium">
