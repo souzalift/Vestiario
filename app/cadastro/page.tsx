@@ -43,11 +43,9 @@ const registerSchema = z
         'Deve conter maiúscula, minúscula e número',
       ),
     confirmPassword: z.string(),
-    terms: z
-      .boolean()
-      .refine((val) => val === true, {
-        message: 'Você deve aceitar os termos de uso',
-      }),
+    terms: z.boolean().refine((val) => val === true, {
+      message: 'Você deve aceitar os termos de uso',
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'As senhas não coincidem',
@@ -254,7 +252,11 @@ function RegisterPageContent() {
                   )}
                 </div>
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full text-white"
+                disabled={isLoading}
+              >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Criar Conta
               </Button>
