@@ -22,11 +22,14 @@ import {
   Shield,
   Heart,
   Frown,
+  X,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { CartItem } from '@/contexts/CartContext';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 
 export default function CartPage() {
   const router = useRouter();
@@ -40,7 +43,22 @@ export default function CartPage() {
     subtotal,
     shippingPrice,
     totalPrice,
+    coupon,
+    discountAmount,
+    applyCoupon,
+    removeCoupon,
   } = useCart();
+
+  const [couponCode, setCouponCode] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsApplyingCoupon(true);
+    await applyCoupon(couponCode);
+    setIsApplyingCoupon(false);
+    setCouponCode('');
+  };
 
   const { addFavorite, isFavorite } = useFavorites();
 
@@ -272,19 +290,59 @@ export default function CartPage() {
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-6 text-gray-900">
-                    Resumo do Pedido
-                  </h3>
+                  <h3 className="text-xl font-bold mb-6">Resumo do Pedido</h3>
+                  {/* CAMPO DO CUPOM*/}
+                  {!coupon ? (
+                    <div className="flex gap-2 mb-6">
+                      <Input
+                        placeholder="Código do cupom"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                      />
+                      <Button
+                        onClick={handleApplyCoupon}
+                        disabled={isApplyingCoupon}
+                      >
+                        {isApplyingCoupon ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Aplicar'
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
+                      <div className="flex justify-between items-center">
+                        <p className="font-semibold text-green-800 flex items-center gap-2">
+                          <Tag className="w-4 h-4" /> Cupom "{coupon.code}"
+                          aplicado!
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={removeCoupon}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-4 mb-6 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="font-medium text-gray-900">
-                        {formatPrice(subtotal)}
-                      </span>
+                      <span>Subtotal</span>
+                      <span>{formatPrice(subtotal)}</span>
                     </div>
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Desconto</span>
+                        <span>- {formatPrice(discountAmount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Frete</span>
-                      <span className="font-medium text-gray-900">
+                      <span>Frete</span>
+                      <span>
                         {shippingPrice === 0
                           ? 'Grátis'
                           : formatPrice(shippingPrice)}
@@ -292,10 +350,8 @@ export default function CartPage() {
                     </div>
                     <Separator />
                     <div className="flex justify-between font-bold text-xl">
-                      <span className="text-gray-900">Total</span>
-                      <span className="text-gray-900">
-                        {formatPrice(totalPrice)}
-                      </span>
+                      <span>Total</span>
+                      <span>{formatPrice(totalPrice)}</span>
                     </div>
                   </div>
                   <Button
@@ -305,10 +361,6 @@ export default function CartPage() {
                   >
                     Finalizar Compra
                   </Button>
-                  <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mt-4">
-                    <Shield className="w-4 h-4" />
-                    <span>Compra 100% segura</span>
-                  </div>
                 </CardContent>
               </Card>
             </div>

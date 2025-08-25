@@ -10,7 +10,9 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { calculateShipping } from '@/lib/shipping';
+import type { Coupon } from '@/services/coupons';
 
+// Interfaces para os tipos de dados
 export interface CartItem {
   id: string;
   productId: string;
@@ -23,10 +25,7 @@ export interface CartItem {
   image: string;
   size: string;
   quantity: number;
-  customization?: {
-    name?: string;
-    number?: string;
-  } | null;
+  customization?: { name?: string; number?: string } | null;
   team?: string;
   brand?: string;
   category?: string;
@@ -46,10 +45,7 @@ interface ProductToAdd {
 interface AddOptions {
   size: string;
   quantity: number;
-  customization?: {
-    name?: string;
-    number?: string;
-  } | null;
+  customization?: { name?: string; number?: string } | null;
 }
 
 interface CartContextType {
@@ -60,11 +56,12 @@ interface CartContextType {
   clearCart: () => void;
   cartCount: number;
   subtotal: number;
-  baseSubtotal: number;
-  totalCustomizationFee: number;
-  totalSizeFee: number;
   shippingPrice: number;
   totalPrice: number;
+  coupon: Coupon | null;
+  discountAmount: number;
+  applyCoupon: (code: string) => Promise<boolean>;
+  removeCoupon: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -76,10 +73,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const localData = localStorage.getItem('cartItems');
       return localData ? JSON.parse(localData) : [];
     } catch (error) {
-      console.error('Falha ao carregar o carrinho do localStorage:', error);
       return [];
     }
   });
+  const [coupon, setCoupon] = useState<Coupon | null>(null);
 
   useEffect(() => {
     localStorage.setItem('cartItems', JSON.stringify(items));
@@ -118,9 +115,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           size: options.size,
           quantity: options.quantity,
           customization: options.customization,
-          customizationFee: customizationFee,
-          sizeFee: sizeFee,
+          customizationFee,
+          sizeFee,
           price: finalPrice,
+          basePrice: product.basePrice,
         };
         toast.success(`${product.title} adicionado ao carrinho!`);
         return [...prevItems, newItem];
@@ -147,53 +145,67 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = () => {
     setItems([]);
-    toast.info('Seu carrinho foi esvaziado.');
+    setCoupon(null);
+    toast.info('O seu carrinho foi esvaziado.');
   };
 
-  const {
-    cartCount,
-    subtotal,
-    baseSubtotal,
-    totalCustomizationFee,
-    totalSizeFee,
-    shippingPrice,
-    totalPrice,
-  } = useMemo(() => {
-    const calculatedCartCount = items.reduce(
-      (sum, item) => sum + item.quantity,
-      0,
-    );
-    const calculatedSubtotal = items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    );
-    const calculatedBaseSubtotal = items.reduce(
-      (sum, item) => sum + item.basePrice * item.quantity,
-      0,
-    );
-    const calculatedTotalCustomizationFee = items.reduce(
-      (sum, item) => sum + item.customizationFee * item.quantity,
-      0,
-    );
-    const calculatedTotalSizeFee = items.reduce(
-      (sum, item) => sum + (item.sizeFee || 0) * item.quantity,
-      0,
-    );
+  const applyCoupon = async (code: string): Promise<boolean> => {
+    try {
+      // Esta é uma chamada de API hipotética. Você precisará de criar esta rota.
+      const response = await fetch(`/api/coupons/${code}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Cupom inválido');
 
-    const shippingInfo = calculateShipping(calculatedCartCount);
-    const calculatedShippingPrice = shippingInfo.price;
-    const calculatedTotalPrice = calculatedSubtotal + calculatedShippingPrice;
+      setCoupon(data.coupon);
+      toast.success(`Cupom "${data.coupon.code}" aplicado com sucesso!`);
+      return true;
+    } catch (error: any) {
+      toast.error(error.message);
+      setCoupon(null);
+      return false;
+    }
+  };
 
-    return {
-      cartCount: calculatedCartCount,
-      subtotal: calculatedSubtotal,
-      baseSubtotal: calculatedBaseSubtotal,
-      totalCustomizationFee: calculatedTotalCustomizationFee,
-      totalSizeFee: calculatedTotalSizeFee,
-      shippingPrice: calculatedShippingPrice,
-      totalPrice: calculatedTotalPrice,
-    };
-  }, [items]);
+  const removeCoupon = () => {
+    setCoupon(null);
+    toast.info('Cupom removido.');
+  };
+
+  // CORREÇÃO: Garante que todas as variáveis são extraídas do useMemo
+  const { cartCount, subtotal, shippingPrice, discountAmount, totalPrice } =
+    useMemo(() => {
+      const calculatedCartCount = items.reduce(
+        (sum, item) => sum + item.quantity,
+        0,
+      );
+      const calculatedSubtotal = items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      );
+      const shippingInfo = calculateShipping(calculatedCartCount);
+      const calculatedShippingPrice = shippingInfo.price;
+
+      let calculatedDiscount = 0;
+      if (coupon) {
+        if (coupon.type === 'percentage') {
+          calculatedDiscount = (calculatedSubtotal * coupon.value) / 100;
+        } else {
+          calculatedDiscount = coupon.value;
+        }
+      }
+      calculatedDiscount = Math.min(calculatedDiscount, calculatedSubtotal);
+
+      const calculatedTotalPrice =
+        calculatedSubtotal + calculatedShippingPrice - calculatedDiscount;
+
+      return {
+        cartCount: calculatedCartCount,
+        subtotal: calculatedSubtotal,
+        shippingPrice: calculatedShippingPrice,
+        discountAmount: calculatedDiscount,
+        totalPrice: Math.max(0, calculatedTotalPrice),
+      };
+    }, [items, coupon]);
 
   const value: CartContextType = {
     items,
@@ -203,11 +215,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     clearCart,
     cartCount,
     subtotal,
-    baseSubtotal,
-    totalCustomizationFee,
-    totalSizeFee,
     shippingPrice,
     totalPrice,
+    coupon,
+    discountAmount, // <-- Agora esta variável existe no escopo
+    applyCoupon,
+    removeCoupon,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
@@ -215,8 +228,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
 export const useCart = (): CartContextType => {
   const context = useContext(CartContext);
-  if (context === undefined) {
+  if (context === undefined)
     throw new Error('useCart must be used within a CartProvider');
-  }
   return context;
 };
