@@ -245,13 +245,14 @@ export const getDashboardData = async (): Promise<DashboardData> => {
     // Reutilizamos a sua função que já busca e formata todos os pedidos
     const allOrders = await getAllOrders();
 
-    // Filtramos apenas os pedidos com status 'pago' para calcular o faturamento
-    const paidOrders = allOrders.filter(order => order.status === 'pago');
+    // Agora inclui 'pago', 'enviado' e 'entregue'
+    const countedOrders = allOrders.filter(order =>
+      ['pago', 'enviado', 'entregue'].includes(order.status)
+    );
 
-    // Calculamos as métricas
-    const totalRevenue = paidOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+    const totalRevenue = countedOrders.reduce((sum, order) => sum + order.totalPrice, 0);
     const totalOrders = allOrders.length;
-    const paidOrdersCount = paidOrders.length;
+    const paidOrdersCount = countedOrders.length;
     const averageTicket = paidOrdersCount > 0 ? totalRevenue / paidOrdersCount : 0;
 
     // Pegamos os 5 pedidos mais recentes para exibir na lista
