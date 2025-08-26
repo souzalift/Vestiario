@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Cria o pedido no seu banco de dados (Firestore) com status inicial "pendente"
-    const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
+    const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> & { userId: string } = {
       orderNumber: generateOrderNumber(),
-      userId, // Importante para vincular o pedido ao usuário
+      userId: typeof userId === 'string' && userId.trim() !== '' ? userId : 'GUEST_USER',
       items,
       customer,
       address,
@@ -81,7 +81,6 @@ export async function POST(request: NextRequest) {
           type: 'CPF',
           number: customer.document.replace(/\D/g, ''),
         },
-        // MELHORIA: Adicionado o endereço do pagador para análise de fraude
         address: {
           zip_code: address.zipCode.replace(/\D/g, ''),
           street_name: address.street,

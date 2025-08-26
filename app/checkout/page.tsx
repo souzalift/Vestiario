@@ -71,6 +71,18 @@ export default function CheckoutPage() {
   const [isClient, setIsClient] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
+  // Proteção de rota: redireciona se não estiver logado
+  useEffect(() => {
+    if (!authLoading) {
+      if (!userProfile?.uid) {
+        router.push(
+          `/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`,
+        );
+      }
+    }
+  }, [authLoading, userProfile, router]);
+
+  // Preenchimento automático dos dados
   useEffect(() => {
     if (!authLoading && userProfile) {
       setCustomerData({
@@ -97,6 +109,7 @@ export default function CheckoutPage() {
     }
   }, [userProfile, authLoading]);
 
+  // Verifica se o carrinho está vazio
   useEffect(() => {
     setIsClient(true);
     if (cartCount === 0) {
@@ -164,7 +177,7 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido');
 
       if (data.init_point) {
-        window.location.href = data.init_point; // MESMA ABA
+        window.location.href = data.init_point;
       } else {
         toast.error('Não foi possível iniciar o pagamento.');
       }
@@ -176,10 +189,10 @@ export default function CheckoutPage() {
     }
   };
 
-  if (!isClient || cartCount === 0) {
+  if (!isClient || cartCount === 0 || authLoading || !userProfile?.uid) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900"></div>
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900 mb-4"></div>
       </div>
     );
   }
