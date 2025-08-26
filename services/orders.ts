@@ -78,7 +78,10 @@ export interface DashboardData {
 }
 
 // Tipo para os dados que vêm do frontend para criar um pedido
-type CreateOrderData = Omit<Order, 'id' | 'createdAt' | 'updatedAt'>;
+type CreateOrderData = Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & {
+  userId: string;
+};
+
 
 // Gera um ID do pedido no padrão V-XXXXXX
 export function generateOrderNumber() {
@@ -118,11 +121,16 @@ const transformOrderDocument = (doc: DocumentSnapshot): Order => {
 // Criar pedido
 export const createOrder = async (orderData: CreateOrderData): Promise<string> => {
   try {
+    if (!orderData.userId) {
+      throw new Error('O campo userId é obrigatório para criar um pedido.');
+    }
+
     const docRef = await addDoc(collection(db, 'orders'), {
       ...orderData,
-      createdAt: Timestamp.now(), // Usa o Timestamp do servidor
+      createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
+
     return docRef.id;
   } catch (error) {
     console.error('Erro ao criar pedido:', error);
