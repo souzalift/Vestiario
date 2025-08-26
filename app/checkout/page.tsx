@@ -194,7 +194,7 @@ export default function CheckoutPage() {
 
     try {
       // 1. Crie o pedido no backend
-      const pedidoResponse = await fetch('/api/orders', {
+      const pedidoResponse = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
