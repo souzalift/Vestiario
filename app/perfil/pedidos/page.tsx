@@ -10,7 +10,15 @@ import { ptBR } from 'date-fns/locale';
 // UI e Ícones
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Package, ArrowRight, FileText, Truck } from 'lucide-react';
+import {
+  Loader2,
+  Package,
+  ArrowRight,
+  FileText,
+  Truck,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
 
 export default function MeusPedidosPage() {
   const { userProfile, loading: authLoading } = useAuth();
@@ -23,7 +31,13 @@ export default function MeusPedidosPage() {
       const fetchOrders = async () => {
         try {
           const userOrders = await getUserOrders(userProfile.uid);
-          setOrders(userOrders);
+          // Ordenar por data (mais recentes primeiro)
+          const sorted = [...userOrders].sort(
+            (a, b) =>
+              new Date(b.createdAt as any).getTime() -
+              new Date(a.createdAt as any).getTime(),
+          );
+          setOrders(sorted);
         } catch (error) {
           console.error('Erro ao buscar pedidos:', error);
         } finally {
@@ -41,15 +55,47 @@ export default function MeusPedidosPage() {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
-  const formatDate = (date: Date) =>
-    format(date, 'dd/MM/yyyy', { locale: ptBR });
 
-  const statusMap: { [key: string]: { text: string; className: string } } = {
-    pendente: { text: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
-    pago: { text: 'Pago', className: 'bg-green-100 text-green-800' },
-    enviado: { text: 'Enviado', className: 'bg-blue-100 text-blue-800' },
-    entregue: { text: 'Entregue', className: 'bg-gray-100 text-gray-800' },
-    cancelado: { text: 'Cancelado', className: 'bg-red-100 text-red-800' },
+  const formatDate = (date: any) => {
+    let parsedDate: Date;
+    if (date?.toDate) {
+      parsedDate = date.toDate(); // Firestore Timestamp
+    } else if (date instanceof Date) {
+      parsedDate = date;
+    } else {
+      parsedDate = new Date(date);
+    }
+    return format(parsedDate, 'dd/MM/yyyy', { locale: ptBR });
+  };
+
+  const statusMap: {
+    [key: string]: { text: string; className: string; icon: JSX.Element };
+  } = {
+    pendente: {
+      text: 'Pendente',
+      className: 'bg-yellow-100 text-yellow-800',
+      icon: <Loader2 className="w-3 h-3" />,
+    },
+    pago: {
+      text: 'Pago',
+      className: 'bg-green-100 text-green-800',
+      icon: <CheckCircle2 className="w-3 h-3" />,
+    },
+    enviado: {
+      text: 'Enviado',
+      className: 'bg-blue-100 text-blue-800',
+      icon: <Truck className="w-3 h-3" />,
+    },
+    entregue: {
+      text: 'Entregue',
+      className: 'bg-gray-100 text-gray-800',
+      icon: <Package className="w-3 h-3" />,
+    },
+    cancelado: {
+      text: 'Cancelado',
+      className: 'bg-red-100 text-red-800',
+      icon: <XCircle className="w-3 h-3" />,
+    },
   };
 
   if (loading || authLoading) {
@@ -79,6 +125,7 @@ export default function MeusPedidosPage() {
             const statusInfo = statusMap[order.status] || {
               text: order.status,
               className: 'bg-gray-100 text-gray-800',
+              icon: <Package className="w-3 h-3" />,
             };
             return (
               <Card
@@ -95,14 +142,14 @@ export default function MeusPedidosPage() {
                     </p>
                   </div>
                   <span
-                    className={`px-3 py-1 text-xs font-semibold rounded-full ${statusInfo.className}`}
+                    className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${statusInfo.className}`}
                   >
-                    {statusInfo.text}
+                    {statusInfo.icon} {statusInfo.text}
                   </span>
                 </CardHeader>
                 <CardContent>
-                  {/* NOVO: Secção de Rastreio */}
-                  {order.trackingCode && (
+                  {/* Secção de Rastreio */}
+                  {order.trackingCode ? (
                     <div className="border-t border-b py-4 my-4">
                       <h4 className="text-sm font-semibold text-gray-800 mb-2">
                         Rastreio
@@ -123,6 +170,10 @@ export default function MeusPedidosPage() {
                         </Button>
                       </div>
                     </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">
+                      Aguardando código de rastreio...
+                    </p>
                   )}
 
                   <div className="flex items-center justify-between pt-4">

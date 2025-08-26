@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -20,15 +20,47 @@ import {
   Shield,
 } from 'lucide-react';
 
-export default function ProfilePage() {
-  const { userProfile, loading, isAuthenticated, logout } = useAuth();
-  const router = useRouter();
+// Tipagem do perfil
+interface UserProfile {
+  displayName: string | null;
+  email: string;
+  photoURL?: string;
+  role?: string;
+  phoneNumber?: string;
+  createdAt?: { toDate?: () => Date } | string | Date;
+  address?: {
+    street?: string;
+    number?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  };
+}
 
+export default function ProfilePage() {
+  const { userProfile, loading, isAuthenticated, logout } = useAuth() as {
+    userProfile: UserProfile | null;
+    loading: boolean;
+    isAuthenticated: boolean;
+    logout: () => Promise<void>;
+  };
+
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Proteção de rota
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login?redirect=/perfil');
     }
   }, [loading, isAuthenticated, router]);
+
+  // Logout com redirecionamento
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
 
   if (loading || !userProfile) {
     return (
@@ -38,6 +70,7 @@ export default function ProfilePage() {
     );
   }
 
+  // Iniciais do usuário
   const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
     const names = name.split(' ');
@@ -47,14 +80,27 @@ export default function ProfilePage() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const formatDate = (timestamp: any) => {
-    if (!timestamp || !timestamp.toDate) return 'Data indisponível';
-    return new Date(timestamp.toDate()).toLocaleDateString('pt-BR', {
+  // Formatação de data mais robusta
+  const formatDate = (date: any) => {
+    if (!date) return 'Data indisponível';
+    let parsedDate: Date;
+    if (date.toDate) {
+      parsedDate = date.toDate();
+    } else if (date instanceof Date) {
+      parsedDate = date;
+    } else {
+      parsedDate = new Date(date);
+    }
+    return parsedDate.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
     });
   };
+
+  // Helper para botões ativos da sidebar
+  const isActive = (path: string) =>
+    pathname === path ? 'bg-gray-100 font-semibold' : '';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,15 +114,15 @@ export default function ProfilePage() {
                   <Avatar className="w-24 h-24 mb-4 border-4 border-white shadow-md">
                     <AvatarImage
                       src={userProfile.photoURL || ''}
-                      alt={userProfile.displayName || 'Avatar'}
+                      alt={userProfile.displayName || 'Avatar do usuário'}
                     />
                     <AvatarFallback className="text-3xl">
                       {getInitials(userProfile.displayName)}
                     </AvatarFallback>
                   </Avatar>
-                  <h2 className="text-xl font-bold text-gray-900">
+                  <h1 className="text-xl font-bold text-gray-900">
                     {userProfile.displayName || 'Usuário'}
-                  </h2>
+                  </h1>
                   <p className="text-sm text-gray-500">{userProfile.email}</p>
                   {userProfile.role === 'admin' && (
                     <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
@@ -92,7 +138,9 @@ export default function ProfilePage() {
                   <Link href="/perfil/pedidos">
                     <Button
                       variant="ghost"
-                      className="w-full justify-start gap-3"
+                      className={`w-full justify-start gap-3 ${isActive(
+                        '/perfil/pedidos',
+                      )}`}
                     >
                       <ShoppingBag className="w-5 h-5 text-gray-600" />
                       Meus Pedidos
@@ -101,7 +149,9 @@ export default function ProfilePage() {
                   <Link href="/perfil/favoritos">
                     <Button
                       variant="ghost"
-                      className="w-full justify-start gap-3"
+                      className={`w-full justify-start gap-3 ${isActive(
+                        '/perfil/favoritos',
+                      )}`}
                     >
                       <Heart className="w-5 h-5 text-gray-600" />
                       Favoritos
@@ -110,7 +160,9 @@ export default function ProfilePage() {
                   <Link href="/perfil/editar">
                     <Button
                       variant="ghost"
-                      className="w-full justify-start gap-3"
+                      className={`w-full justify-start gap-3 ${isActive(
+                        '/perfil/editar',
+                      )}`}
                     >
                       <Edit className="w-5 h-5 text-gray-600" />
                       Editar Perfil
@@ -119,7 +171,7 @@ export default function ProfilePage() {
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={logout}
+                    onClick={handleLogout}
                   >
                     <LogOut className="w-5 h-5" />
                     Sair
