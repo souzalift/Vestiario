@@ -5,37 +5,38 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { updateOrderStatus } from '@/services/orders';
 import type { Order } from '@/services/orders';
 
-// Inicialize o cliente do Mercado Pago com a sua chave de acesso
-const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
-});
-
 export async function POST(request: NextRequest) {
+  // 1. Verificação da variável de ambiente ANTES de qualquer outra coisa
+  const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+  if (!accessToken) {
+    console.error('❌ ERRO CRÍTICO: A variável de ambiente MERCADO_PAGO_ACCESS_TOKEN não está configurada no servidor.');
+    // Responde 200 ao Mercado Pago para evitar re-tentativas, mas regista o erro grave.
+    return NextResponse.json({ status: 'error', message: 'Configuração do servidor incompleta.' }, { status: 200 });
+  }
+
+  // 2. Inicializa o cliente DENTRO da função, usando a chave validada
+  const client = new MercadoPagoConfig({ accessToken });
+
   try {
-    // 1. Recebe a notificação do Mercado Pago
     const body = await request.json();
     console.log('🔔 Webhook do Mercado Pago recebido:', body);
 
-    // O webhook envia diferentes tipos de notificações. Estamos interessados no pagamento.
     if (body.type === 'payment') {
       const paymentId = body.data.id;
 
-      // 2. Busca os detalhes completos do pagamento usando o ID recebido
       const payment = new Payment(client);
       const paymentInfo = await payment.get({ id: paymentId });
 
       console.log('🔍 Detalhes do pagamento:', paymentInfo);
 
-      // 3. Extrai as informações importantes
       const orderId = paymentInfo.external_reference;
-      const paymentStatus = paymentInfo.status; // ex: "approved", "rejected", "in_process"
+      const paymentStatus = paymentInfo.status;
 
       if (!orderId) {
         console.warn('⚠️ Webhook recebido sem external_reference (ID do pedido). Ignorando.');
         return NextResponse.json({ status: 'ok' });
       }
 
-      // 4. Mapeia o status do Mercado Pago para o status do seu sistema
       let newOrderStatus: Order['status'] = 'pendente';
       let newPaymentStatus: Order['paymentStatus'] = 'pending';
 
@@ -49,25 +50,17 @@ export async function POST(request: NextRequest) {
           newOrderStatus = 'cancelado';
           newPaymentStatus = 'failed';
           break;
-        // Adicione outros casos se necessário
       }
 
       console.log(`🔄 A atualizar pedido ${orderId} para status: ${newOrderStatus}`);
-
-      // 5. Atualiza o pedido no seu banco de dados (Firestore)
       await updateOrderStatus(orderId, newOrderStatus, newPaymentStatus);
-
       console.log(`✅ Pedido ${orderId} atualizado com sucesso!`);
     }
 
-    // 6. Responde ao Mercado Pago com status 200 OK para confirmar o recebimento
     return NextResponse.json({ status: 'ok' });
 
   } catch (error: any) {
-    console.error('❌ Erro no webhook do Mercado Pago:', error);
-    // CORREÇÃO: Responde 200 OK mesmo em caso de erro.
-    // Isto confirma ao Mercado Pago que a notificação foi recebida.
-    // O erro já foi registado nos seus logs de servidor para análise.
+    console.error('❌ Erro ao processar o webhook do Mercado Pago:', error);
     return NextResponse.json({ status: 'error', message: error.message }, { status: 200 });
   }
 }
