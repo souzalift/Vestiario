@@ -57,6 +57,7 @@ interface CartContextType {
   cartCount: number;
   subtotal: number;
   shippingPrice: number;
+  totalCustomizationFee: number;
   totalPrice: number;
   coupon: Coupon | null;
   discountAmount: number;
@@ -172,40 +173,52 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // CORREÇÃO: Garante que todas as variáveis são extraídas do useMemo
-  const { cartCount, subtotal, shippingPrice, discountAmount, totalPrice } =
-    useMemo(() => {
-      const calculatedCartCount = items.reduce(
-        (sum, item) => sum + item.quantity,
-        0,
-      );
-      const calculatedSubtotal = items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-      );
-      const shippingInfo = calculateShipping(calculatedCartCount);
-      const calculatedShippingPrice = shippingInfo.price;
+  const {
+    cartCount,
+    subtotal,
+    shippingPrice,
+    discountAmount,
+    totalPrice,
+    totalCustomizationFee,
+  } = useMemo(() => {
+    const calculatedCartCount = items.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
+    const calculatedSubtotal = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const shippingInfo = calculateShipping(calculatedCartCount);
+    const calculatedShippingPrice = shippingInfo.price;
 
-      let calculatedDiscount = 0;
-      if (coupon) {
-        if (coupon.type === 'percentage') {
-          calculatedDiscount = (calculatedSubtotal * coupon.value) / 100;
-        } else {
-          calculatedDiscount = coupon.value;
-        }
+    let calculatedDiscount = 0;
+    if (coupon) {
+      if (coupon.type === 'percentage') {
+        calculatedDiscount = (calculatedSubtotal * coupon.value) / 100;
+      } else {
+        calculatedDiscount = coupon.value;
       }
-      calculatedDiscount = Math.min(calculatedDiscount, calculatedSubtotal);
+    }
+    calculatedDiscount = Math.min(calculatedDiscount, calculatedSubtotal);
 
-      const calculatedTotalPrice =
-        calculatedSubtotal + calculatedShippingPrice - calculatedDiscount;
+    const calculatedTotalCustomizationFee = items.reduce(
+      (sum, item) => sum + (item.customizationFee || 0) * item.quantity,
+      0,
+    );
 
-      return {
-        cartCount: calculatedCartCount,
-        subtotal: calculatedSubtotal,
-        shippingPrice: calculatedShippingPrice,
-        discountAmount: calculatedDiscount,
-        totalPrice: Math.max(0, calculatedTotalPrice),
-      };
-    }, [items, coupon]);
+    const calculatedTotalPrice =
+      calculatedSubtotal + calculatedShippingPrice - calculatedDiscount;
+
+    return {
+      cartCount: calculatedCartCount,
+      subtotal: calculatedSubtotal,
+      shippingPrice: calculatedShippingPrice,
+      discountAmount: calculatedDiscount,
+      totalPrice: Math.max(0, calculatedTotalPrice),
+      totalCustomizationFee: calculatedTotalCustomizationFee,
+    };
+  }, [items, coupon]);
 
   const value: CartContextType = {
     items,
@@ -218,7 +231,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     shippingPrice,
     totalPrice,
     coupon,
-    discountAmount, // <-- Agora esta variável existe no escopo
+    totalCustomizationFee,
+    discountAmount,
     applyCoupon,
     removeCoupon,
   };

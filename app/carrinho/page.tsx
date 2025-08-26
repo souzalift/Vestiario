@@ -335,7 +335,7 @@ export default function CartPage() {
                       <span>{formatPrice(subtotal)}</span>
                     </div>
                     {discountAmount > 0 && (
-                      <div className="flex justify-between text-green-600">
+                      <div className="flex justify-between text-green-600 font-semibold">
                         <span>Desconto</span>
                         <span>- {formatPrice(discountAmount)}</span>
                       </div>
