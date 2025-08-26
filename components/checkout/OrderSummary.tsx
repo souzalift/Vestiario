@@ -1,5 +1,15 @@
 // components/checkout/OrderSummary.tsx
 import { CartItem } from '@/contexts/CartContext';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card';
+import PaymentButton from './PaymentButton';
+import { Separator } from '@/components/ui/separator';
+import Image from 'next/image';
 
 export interface OrderSummaryProps {
   cartItems: CartItem[];
@@ -27,60 +37,83 @@ export function OrderSummary({
     }).format(price);
 
   return (
-    <div className="border rounded p-4 space-y-4 shadow-sm">
-      <h2 className="font-semibold text-lg">Resumo do Pedido</h2>
-
-      <div className="space-y-3 max-h-60 overflow-y-auto">
-        {cartItems.map((item) => (
-          <div key={item.id} className="flex justify-between items-center">
-            <span>
-              {item.title} x {item.quantity}
-            </span>
-            <span>{formatPrice(item.price * item.quantity)}</span>
-          </div>
-        ))}
-      </div>
-
-      <hr />
-
-      <div className="flex justify-between">
-        <span>Subtotal</span>
-        <span>{formatPrice(subtotal)}</span>
-      </div>
-
-      {totalCustomizationFee > 0 && (
-        <div className="flex justify-between">
-          <span>Personalização</span>
-          <span>{formatPrice(totalCustomizationFee)}</span>
+    <Card>
+      <CardHeader>
+        <CardTitle>Resumo do Pedido</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3 max-h-60 overflow-y-auto">
+          {cartItems.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center justify-between gap-3 border-b last:border-b-0 pb-2"
+            >
+              <div className="flex items-center gap-3">
+                <div className="relative w-12 h-12 rounded overflow-hidden border bg-muted">
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    sizes="48px"
+                  />
+                </div>
+                <div>
+                  <div className="font-medium text-sm">{item.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {item.quantity}x
+                    {item.size && (
+                      <span className="ml-2">Tam: {item.size}</span>
+                    )}
+                  </div>
+                  {item.customization?.name && (
+                    <div className="text-xs text-muted-foreground">
+                      Personalização: {item.customization.name}
+                      {item.customization.number &&
+                        ` - ${item.customization.number}`}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <span className="font-semibold text-sm">
+                {formatPrice(item.price * item.quantity)}
+              </span>
+            </div>
+          ))}
         </div>
-      )}
 
-      <div className="flex justify-between">
-        <span>Frete</span>
-        <span>
-          {shippingPrice === 0 ? 'Grátis' : formatPrice(shippingPrice)}
-        </span>
-      </div>
+        <Separator className="my-4" />
 
-      <hr />
+        <div className="flex justify-between text-sm">
+          <span>Subtotal</span>
+          <span>{formatPrice(subtotal)}</span>
+        </div>
 
-      <div className="flex justify-between font-bold text-lg">
-        <span>Total</span>
-        <span>{formatPrice(totalPrice)}</span>
-      </div>
-
-      <button
-        onClick={onPay}
-        disabled={processingPayment || cartItems.length === 0}
-        className="w-full bg-gray-900 hover:bg-gray-800 text-white py-2 mt-3 rounded disabled:opacity-50 flex justify-center items-center gap-2"
-      >
-        {processingPayment ? (
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-        ) : (
-          'Pagar com Mercado Pago'
+        {totalCustomizationFee > 0 && (
+          <div className="flex justify-between text-sm">
+            <span>Personalização</span>
+            <span>{formatPrice(totalCustomizationFee)}</span>
+          </div>
         )}
-      </button>
-    </div>
+
+        <div className="flex justify-between text-sm">
+          <span>Frete</span>
+          <span>
+            {shippingPrice === 0 ? 'Grátis' : formatPrice(shippingPrice)}
+          </span>
+        </div>
+
+        <Separator className="my-4" />
+
+        <div className="flex justify-between font-bold text-lg">
+          <span>Total</span>
+          <span>{formatPrice(totalPrice)}</span>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <PaymentButton onClick={onPay} />
+      </CardFooter>
+    </Card>
   );
 }
 export default OrderSummary;
