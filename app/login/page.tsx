@@ -36,7 +36,7 @@ function LoginPageContent() {
   const { login, loginWithGoogle, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/';
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
 
   const {
     register,
@@ -48,14 +48,14 @@ function LoginPageContent() {
   });
 
   useEffect(() => {
-    if (isAuthenticated) router.push(returnUrl);
-  }, [isAuthenticated, router, returnUrl]);
+    if (isAuthenticated) router.push(callbackUrl);
+  }, [isAuthenticated, router, callbackUrl]);
 
   const handleAuthSuccess = () => {
     toast.success('Login realizado com sucesso!', {
       description: 'Redirecionando...',
     });
-    router.push(returnUrl);
+    router.push(callbackUrl);
   };
 
   const onSubmit = async (data: LoginFormData) => {
@@ -183,7 +183,7 @@ function LoginPageContent() {
         <div className="mt-4 text-center text-sm">
           Não tem uma conta?{' '}
           <Link
-            href={`/cadastro?returnUrl=${encodeURIComponent(returnUrl)}`}
+            href={`/cadastro?callbackUrl=${encodeURIComponent(callbackUrl)}`}
             className="underline"
           >
             Cadastre-se
