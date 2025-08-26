@@ -59,7 +59,6 @@ export default function CheckoutPage() {
     clearCart,
     cartCount,
     subtotal,
-    baseSubtotal,
     totalCustomizationFee,
     shippingPrice,
     totalPrice,
@@ -789,7 +788,7 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Subtotal produtos:</span>
                       <span className="font-medium text-gray-900">
-                        {formatPrice(baseSubtotal)}
+                        {formatPrice(subtotal)}
                       </span>
                     </div>
 
