@@ -7,12 +7,12 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { generateOrderNumber } from '@/services/orders';
-
+import { fetchAddressFromCep } from '@/utils/viacep';
 import {
   CustomerForm,
-  AddressForm,
   OrderSummary,
   TermsAndPrivacy,
+  AddressForm,
 } from '@/components/checkout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
@@ -189,6 +189,21 @@ export default function CheckoutPage() {
     }
   };
 
+  async function handleFetchAddressByCep(cep: string) {
+    try {
+      const data = await fetchAddressFromCep(cep);
+      setDeliveryAddress((prev) => ({
+        ...prev,
+        street: data.street,
+        neighborhood: data.neighborhood,
+        city: data.city,
+        state: data.state,
+      }));
+    } catch (err) {
+      // Trate o erro conforme necessário (ex: mostrar toast)
+    }
+  }
+
   if (!isClient || cartCount === 0 || authLoading || !userProfile?.uid) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50">
@@ -244,6 +259,7 @@ export default function CheckoutPage() {
               <AddressForm
                 deliveryAddress={deliveryAddress}
                 setDeliveryAddress={setDeliveryAddress}
+                fetchAddressByCep={handleFetchAddressByCep}
               />
               <Card className="border border-gray-200 shadow-sm">
                 <CardHeader>
