@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
     '/time',
     '/busca',
     '/carrinho',
-    '/checkout', // ← Checkout é público (guest checkout)
+
     '/sobre',
     '/contato',
     '/termos',
@@ -28,12 +28,13 @@ export function middleware(request: NextRequest) {
   const protectedRoutes = [
     '/perfil',
     '/pedidos',
+    '/checkout',
     '/configuracoes',
     '/admin',
   ];
 
   // Rotas de autenticação
-  const authRoutes = ['/login', '/register', '/recuperar-senha'];
+  const authRoutes = ['/login', '/cadastro', '/recuperar-senha'];
 
   // Verificar se é rota pública
   if (publicRoutes.some(route => pathname.startsWith(route))) {
