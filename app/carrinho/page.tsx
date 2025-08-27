@@ -146,32 +146,44 @@ export default function CartPage() {
             </Button>
           </div>
 
-          {cartCount > 0 && cartCount < 4 && (
+          {cartCount > 0 && (
             <div className="mb-8">
               <Card className="bg-gray-50">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
+                <CardContent className="items-center p-6">
+                  <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center flex-shrink-0">
                       <Truck className="h-6 w-6 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">
-                        Faltam apenas {itemsToFreeShipping}{' '}
-                        {itemsToFreeShipping === 1 ? 'produto' : 'produtos'}{' '}
-                        para{' '}
-                        <span className="text-green-600">frete grátis!</span>
-                      </h3>
-                      <div className="mt-3">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-gray-900 h-2 rounded-full"
-                            style={{ width: `${(cartCount / 4) * 100}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {cartCount} de 4 produtos
-                        </p>
-                      </div>
+                      {cartCount < 4 ? (
+                        <>
+                          <h3 className="font-semibold text-gray-900 mb-1">
+                            Faltam apenas {itemsToFreeShipping}{' '}
+                            {itemsToFreeShipping === 1 ? 'produto' : 'produtos'}{' '}
+                            para{' '}
+                            <span className="text-green-600">
+                              frete grátis!
+                            </span>
+                          </h3>
+                          <div className="mt-3">
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-gray-900 h-2 rounded-full"
+                                style={{ width: `${(cartCount / 4) * 100}%` }}
+                              ></div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {cartCount} de 4 produtos
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <h3 className="font-semibold text-green-700 mb-1">
+                          <span className="text-green-700">
+                            Parabéns! Você ganhou frete grátis 🎉
+                          </span>
+                        </h3>
+                      )}
                     </div>
                   </div>
                 </CardContent>
