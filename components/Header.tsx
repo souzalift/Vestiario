@@ -260,7 +260,7 @@ export default function Header() {
                 <Link href="/favoritos">
                   <Heart className="h-5 w-5" />
                   {hasMounted && favoritesCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white size-5 text-xs p-0 flex items-center justify-center">
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs p-0 flex items-center justify-center rounded-full w-4 h-4 min-w-3 min-h-3">
                       {favoritesCount}
                     </Badge>
                   )}
@@ -276,7 +276,7 @@ export default function Header() {
                 <Link href="/carrinho">
                   <ShoppingCart className="h-5 w-5" />
                   {hasMounted && cartCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white size-5 text-xs p-0 flex items-center justify-center">
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs p-0 flex items-center justify-center rounded-full w-4 h-4 min-w-3 min-h-3">
                       {cartCount}
                     </Badge>
                   )}
