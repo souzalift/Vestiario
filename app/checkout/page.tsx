@@ -45,6 +45,7 @@ export default function CheckoutPage() {
     totalCustomizationFee,
     shippingPrice,
     totalPrice,
+    clearCart,
   } = useCart();
   const { userProfile, loading: authLoading } = useAuth();
 
@@ -177,6 +178,7 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido');
 
       if (data.init_point) {
+        clearCart(); // Limpa o carrinho antes de redirecionar
         window.location.href = data.init_point;
       } else {
         toast.error('Não foi possível iniciar o pagamento.');
