@@ -43,6 +43,13 @@ import {
   FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function AdminPedidosPage() {
   const { isAdmin, isLoaded } = useAdmin();
@@ -55,6 +62,8 @@ export default function AdminPedidosPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
 
   // Efeito para proteger a rota e buscar os dados em tempo real
   useEffect(() => {
@@ -187,6 +196,20 @@ export default function AdminPedidosPage() {
       setSelectedIds([]);
     } catch (error) {
       toast.error('Erro ao excluir pedidos.');
+    }
+  };
+
+  // Função para exclusão individual
+  const handleDeleteOrder = async () => {
+    if (!orderToDelete) return;
+    try {
+      await deleteDoc(doc(db, 'orders', orderToDelete.id));
+      toast.success('Pedido excluído com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao excluir pedido.');
+    } finally {
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
     }
   };
 
@@ -375,6 +398,16 @@ export default function AdminPedidosPage() {
                                 <Edit className="w-4 h-4" />
                               </Link>
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                setOrderToDelete(order);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -391,6 +424,37 @@ export default function AdminPedidosPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Dialog de confirmação de exclusão */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Excluir pedido</DialogTitle>
+            </DialogHeader>
+            <div>
+              Tem certeza que deseja excluir o pedido{' '}
+              <span className="font-semibold">
+                {orderToDelete?.orderNumber}
+              </span>
+              ? Esta ação não pode ser desfeita.
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteOrder}
+                autoFocus
+              >
+                Excluir
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
