@@ -71,6 +71,7 @@ export default function CheckoutPage() {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [ignoreCartEmptyRedirect, setIgnoreCartEmptyRedirect] = useState(false);
 
   // Proteção de rota: redireciona se não estiver logado
   useEffect(() => {
@@ -113,11 +114,11 @@ export default function CheckoutPage() {
   // Verifica se o carrinho está vazio
   useEffect(() => {
     setIsClient(true);
-    if (cartCount === 0) {
+    if (cartCount === 0 && !ignoreCartEmptyRedirect) {
       toast.error('Seu carrinho está vazio!');
       router.push('/');
     }
-  }, [cartCount, router]);
+  }, [cartCount, router, ignoreCartEmptyRedirect]);
 
   const validateForm = () => {
     const errors: string[] = [];
@@ -178,6 +179,7 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido');
 
       if (data.init_point) {
+        setIgnoreCartEmptyRedirect(true); // <-- Adicione esta linha
         clearCart(); // Limpa o carrinho antes de redirecionar
         window.location.href = data.init_point;
       } else {
