@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,6 @@ import {
   Truck,
   Palette,
   Tag,
-  Shield,
   Heart,
   Frown,
   X,
@@ -30,6 +28,8 @@ import { toast } from 'sonner';
 import type { CartItem } from '@/contexts/CartContext';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+
+const FREE_SHIPPING_THRESHOLD = 4;
 
 export default function CartPage() {
   const router = useRouter();
@@ -51,17 +51,16 @@ export default function CartPage() {
 
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
     setIsApplyingCoupon(true);
     await applyCoupon(couponCode);
     setIsApplyingCoupon(false);
-    setCouponCode('');
   };
 
   const { addFavorite, isFavorite } = useFavorites();
-
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -76,6 +75,11 @@ export default function CartPage() {
     toast.success('Produto movido para os favoritos!');
   };
 
+  const handleRemove = (id: string) => {
+    removeItem(id);
+    toast.success('Produto removido do carrinho!');
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -83,35 +87,35 @@ export default function CartPage() {
     }).format(price);
   };
 
-  const itemsToFreeShipping = Math.max(0, 4 - cartCount);
+  const itemsToFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartCount);
 
   if (!isClient) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        {/* Pode adicionar um spinner/loader aqui */}
+        <Loader2 className="h-10 w-10 animate-spin text-gray-600" />
       </div>
     );
   }
 
-  // NOVO ESTADO DE CARRINHO VAZIO
+  // Carrinho vazio
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <main className="flex-1 flex items-center justify-center py-12">
+        <main className="flex-1 flex items-center justify-center py-12 px-4">
           <div className="max-w-lg w-full text-center">
-            <Card className="p-12">
+            <Card className="p-8 sm:p-12">
               <CardContent>
-                <div className="w-24 h-24  flex items-center justify-center mx-auto mb-6">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center mx-auto mb-6">
                   <Frown className="h-12 w-12 text-gray-400" />
                 </div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
                   Seu carrinho está no banco de reservas!
                 </h2>
-                <p className="text-gray-600 mb-8">
+                <p className="text-gray-600 mb-8 text-sm sm:text-base">
                   Parece que ainda não escalou nenhum produto. Vá para o mercado
                   e faça umas contratações de peso para o seu guarda-roupa!
                 </p>
-                <Button asChild size="lg">
+                <Button asChild size="lg" className="w-full sm:w-auto">
                   <Link href="/#produtos">
                     <ShoppingBag className="h-4 w-4 mr-2" />
                     Contratar Reforços
@@ -127,37 +131,43 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="py-12">
+      <main className="py-8 sm:py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 Carrinho de Compras
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">
                 {cartCount} {cartCount === 1 ? 'produto' : 'produtos'} no seu
                 carrinho
               </p>
             </div>
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="sm:size-auto"
+            >
               <Link href="/#produtos">
                 <ArrowLeft className="h-4 w-4 mr-2" /> Continuar Comprando
               </Link>
             </Button>
           </div>
 
+          {/* Frete grátis */}
           {cartCount > 0 && (
             <div className="mb-8">
               <Card className="bg-white">
-                <CardContent className="items-center p-6">
+                <CardContent className="items-center p-4 sm:p-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Truck className="h-6 w-6 text-white" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-900 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                     </div>
                     <div className="flex-1">
-                      {cartCount < 4 ? (
+                      {cartCount < FREE_SHIPPING_THRESHOLD ? (
                         <>
-                          <h3 className="font-semibold text-gray-900 mb-1">
+                          <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
                             Faltam apenas {itemsToFreeShipping}{' '}
                             {itemsToFreeShipping === 1 ? 'produto' : 'produtos'}{' '}
                             para{' '}
@@ -169,19 +179,21 @@ export default function CartPage() {
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
                                 className="bg-gray-900 h-2 rounded-full"
-                                style={{ width: `${(cartCount / 4) * 100}%` }}
+                                style={{
+                                  width: `${
+                                    (cartCount / FREE_SHIPPING_THRESHOLD) * 100
+                                  }%`,
+                                }}
                               ></div>
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
-                              {cartCount} de 4 produtos
+                              {cartCount} de {FREE_SHIPPING_THRESHOLD} produtos
                             </p>
                           </div>
                         </>
                       ) : (
                         <h3 className="font-semibold text-green-700 mb-1">
-                          <span className="text-green-700">
-                            Parabéns! Você ganhou frete grátis 🎉
-                          </span>
+                          🎉 Parabéns! Você ganhou frete grátis
                         </h3>
                       )}
                     </div>
@@ -191,29 +203,32 @@ export default function CartPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Grid principal */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            {/* Lista de produtos */}
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => (
                 <Card key={item.id} className="overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex gap-6">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                       <Link
                         href={`/produto/${item.productSlug || item.productId}`}
+                        className="self-center sm:self-start"
                       >
-                        <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100">
+                        <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 mx-auto sm:mx-0">
                           <Image
-                            src={item.image}
+                            src={item.image || '/images/placeholder.png'}
                             alt={item.title}
-                            fill
+                            width={96}
+                            height={96}
                             className="object-cover"
-                            sizes="96px"
                           />
                         </div>
                       </Link>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 text-lg leading-tight mb-2 truncate">
+                            <h3 className="font-semibold text-gray-900 text-base sm:text-lg leading-tight mb-2 truncate">
                               {item.title}
                             </h3>
                             <div className="flex flex-wrap gap-2 mb-3">
@@ -231,24 +246,24 @@ export default function CartPage() {
                                 )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
+                          <div className="flex items-center gap-2 ml-2 sm:ml-4">
                             <button
                               onClick={() => moveToFavorites(item)}
                               className="p-2 text-gray-400 hover:text-gray-900"
-                              title="Mover para favoritos"
+                              aria-label="Mover para favoritos"
                             >
                               <Heart className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => removeItem(item.id)}
+                              onClick={() => handleRemove(item.id)}
                               className="p-2 text-gray-400 hover:text-red-600"
-                              title="Remover"
+                              aria-label="Remover item"
                             >
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </button>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                           <div className="flex items-center gap-2">
                             <Button
                               size="icon"
@@ -257,6 +272,7 @@ export default function CartPage() {
                                 updateQuantity(item.id, item.quantity - 1)
                               }
                               disabled={item.quantity <= 1}
+                              aria-label="Diminuir quantidade"
                             >
                               <Minus className="h-4 w-4" />
                             </Button>
@@ -269,16 +285,17 @@ export default function CartPage() {
                               onClick={() =>
                                 updateQuantity(item.id, item.quantity + 1)
                               }
+                              aria-label="Aumentar quantidade"
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
                           <div className="text-right">
-                            <p className="text-xl font-bold text-gray-900">
+                            <p className="text-lg sm:text-xl font-bold text-gray-900">
                               {formatPrice(item.price * item.quantity)}
                             </p>
                             {item.quantity > 1 && (
-                              <p className="text-sm text-gray-600">
+                              <p className="text-xs sm:text-sm text-gray-600">
                                 {formatPrice(item.price)} cada
                               </p>
                             )}
@@ -299,13 +316,15 @@ export default function CartPage() {
               )}
             </div>
 
+            {/* Resumo do pedido */}
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-6">Resumo do Pedido</h3>
-                  {/* CAMPO DO CUPOM*/}
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-bold mb-6">
+                    Resumo do Pedido
+                  </h3>
                   {!coupon ? (
-                    <div className="flex gap-2 mb-6">
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6">
                       <Input
                         placeholder="Código do cupom"
                         value={couponCode}
@@ -361,7 +380,7 @@ export default function CartPage() {
                       </span>
                     </div>
                     <Separator />
-                    <div className="flex justify-between font-bold text-xl">
+                    <div className="flex justify-between font-bold text-lg sm:text-xl">
                       <span>Total</span>
                       <span>{formatPrice(totalPrice)}</span>
                     </div>
@@ -369,9 +388,17 @@ export default function CartPage() {
                   <Button
                     size="lg"
                     className="w-full text-lg"
-                    onClick={() => router.push('/checkout')}
+                    onClick={() => {
+                      setIsCheckingOut(true);
+                      router.push('/checkout');
+                    }}
+                    disabled={isCheckingOut}
                   >
-                    Finalizar Compra
+                    {isCheckingOut ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      'Finalizar Compra'
+                    )}
                   </Button>
                 </CardContent>
               </Card>
