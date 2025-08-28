@@ -78,4 +78,17 @@ export const createCoupon = async (data: Omit<Coupon, 'id' | 'createdAt'>) => {
   }
 };
 
-// ... (Pode adicionar funções de update e delete aqui se necessário) ...
+export const deleteCouponByCode = async (code: string): Promise<boolean> => {
+  try {
+    const couponRef = doc(db, 'coupons', code.toUpperCase());
+    const docSnap = await getDoc(couponRef);
+    if (!docSnap.exists()) {
+      return false;
+    }
+    await deleteDoc(couponRef);
+    return true;
+  } catch (error) {
+    console.error("Erro ao deletar cupom:", error);
+    throw new Error('Não foi possível deletar o cupom.');
+  }
+};

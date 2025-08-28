@@ -1,7 +1,7 @@
 // app/api/coupons/[code]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCouponByCode } from '@/services/coupons';
+import { getCouponByCode, deleteCouponByCode } from '@/services/coupons';
 
 type RouteContext = {
   params: {
@@ -37,5 +37,26 @@ export async function GET(request: NextRequest, context: RouteContext) {
   } catch (error: any) {
     console.error(`Erro ao verificar o cupom ${context.params.code}:`, error);
     return NextResponse.json({ error: 'Erro interno ao verificar o cupom.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  try {
+    const { code } = context.params;
+
+    if (!code) {
+      return NextResponse.json({ error: 'Código do cupom não fornecido.' }, { status: 400 });
+    }
+
+    const deleted = await deleteCouponByCode(code);
+
+    if (!deleted) {
+      return NextResponse.json({ error: 'Cupom não encontrado ou já removido.' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error(`Erro ao apagar o cupom ${context.params.code}:`, error);
+    return NextResponse.json({ error: 'Erro interno ao apagar o cupom.' }, { status: 500 });
   }
 }

@@ -5,7 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { getAllCoupons, createCoupon, Coupon } from '@/services/coupons';
+import {
+  getAllCoupons,
+  createCoupon,
+  deleteCouponByCode,
+  Coupon,
+} from '@/services/coupons';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -21,7 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Tag, Plus } from 'lucide-react';
+import { Trash2, Loader2, Tag, Plus } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 const couponSchema = z.object({
   code: z
@@ -37,6 +49,8 @@ type CouponFormData = z.infer<typeof couponSchema>;
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null);
 
   const {
     register,
@@ -71,6 +85,16 @@ export default function AdminCouponsPage() {
       loadCoupons();
     } catch (error) {
       toast.error('Erro ao criar cupcuo.');
+    }
+  };
+
+  const handleDeleteCoupon = async (code: string) => {
+    try {
+      await deleteCouponByCode(code);
+      toast.success(`Cupom "${code}" apagado com sucesso!`);
+      loadCoupons();
+    } catch (error) {
+      toast.error('Erro ao apagar cupom.');
     }
   };
 
@@ -167,15 +191,27 @@ export default function AdminCouponsPage() {
                             : `R$ ${coupon.value.toFixed(2)} de desconto`}
                         </p>
                       </div>
-                      <span
-                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                          coupon.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {coupon.isActive ? 'Ativo' : 'Inativo'}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            coupon.isActive
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {coupon.isActive ? 'Ativo' : 'Inativo'}
+                        </span>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => {
+                            setCouponToDelete(coupon);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -184,6 +220,41 @@ export default function AdminCouponsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Dialog de confirmação de exclusão */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir cupom</DialogTitle>
+          </DialogHeader>
+          <div>
+            Tem certeza que deseja excluir o cupom{' '}
+            <span className="font-semibold">{couponToDelete?.code}</span>? Esta
+            ação não pode ser desfeita.
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (couponToDelete) {
+                  await handleDeleteCoupon(couponToDelete.code);
+                  setDeleteDialogOpen(false);
+                  setCouponToDelete(null);
+                }
+              }}
+              autoFocus
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
