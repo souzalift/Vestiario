@@ -35,6 +35,7 @@ interface UserProfile {
     state?: string;
     zipCode?: string;
     country?: string;
+    complement?: string; // Adicionado complemento
   };
 }
 
@@ -231,6 +232,12 @@ export default function ProfilePage() {
                         {userProfile.address.street},{' '}
                         {userProfile.address.number}
                       </p>
+                      {/* Exibe o complemento, se houver */}
+                      {userProfile.address.complement && (
+                        <p className="text-gray-600">
+                          {userProfile.address.complement}
+                        </p>
+                      )}
                       <p className="text-gray-600">
                         {userProfile.address.city}, {userProfile.address.state}{' '}
                         - {userProfile.address.zipCode}

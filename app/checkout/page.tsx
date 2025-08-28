@@ -48,6 +48,7 @@ export default function CheckoutPage() {
     clearCart,
   } = useCart();
   const { userProfile, loading: authLoading } = useAuth();
+  const { updateUserProfile } = useAuth(); // Certifique-se de expor essa função no contexto
 
   const [customerData, setCustomerData] = useState<CustomerData>({
     firstName: '',
@@ -155,6 +156,24 @@ export default function CheckoutPage() {
     setProcessingPayment(true);
 
     try {
+      // Salva os dados no perfil antes de criar o pedido
+      await updateUserProfile({
+        firstName: customerData.firstName,
+        lastName: customerData.lastName,
+        email: customerData.email,
+        phoneNumber: customerData.phone,
+        cpf: customerData.document,
+        address: {
+          zipCode: deliveryAddress.zipCode,
+          street: deliveryAddress.street,
+          number: deliveryAddress.number,
+          complement: deliveryAddress.complement,
+          neighborhood: deliveryAddress.neighborhood,
+          city: deliveryAddress.city,
+          state: deliveryAddress.state,
+        },
+      });
+
       const orderPayload = {
         userId: userProfile.uid,
         customer: customerData,
@@ -179,8 +198,8 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido');
 
       if (data.init_point) {
-        setIgnoreCartEmptyRedirect(true); // <-- Adicione esta linha
-        clearCart(); // Limpa o carrinho antes de redirecionar
+        setIgnoreCartEmptyRedirect(true);
+        clearCart();
         window.location.href = data.init_point;
       } else {
         toast.error('Não foi possível iniciar o pagamento.');

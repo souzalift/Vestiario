@@ -57,6 +57,7 @@ export default function EditProfilePage() {
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [country, setCountry] = useState('');
+  const [complement, setComplement] = useState(''); // NOVO
 
   // State for image upload
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -97,6 +98,7 @@ export default function EditProfilePage() {
       setState(userProfile.address?.state || '');
       setZipCode(userProfile.address?.zipCode || '');
       setCountry(userProfile.address?.country || '');
+      setComplement(userProfile.address?.complement || ''); // NOVO
     }
   }, [userProfile]);
 
@@ -190,7 +192,8 @@ export default function EditProfilePage() {
         address: {
           street: street.trim(),
           number: streetNumber.trim(),
-          neighborhood: neighborhood.trim(), // NOVO
+          complement: complement.trim(), // NOVO
+          neighborhood: neighborhood.trim(),
           city: city.trim(),
           state: state.trim(),
           zipCode: zipCode.trim(),
@@ -403,6 +406,16 @@ export default function EditProfilePage() {
                       onChange={(e) => setStreetNumber(e.target.value)}
                     />
                   </div>
+                </div>
+                {/* NOVO CAMPO DE COMPLEMENTO */}
+                <div>
+                  <Label htmlFor="complement">Complemento</Label>
+                  <Input
+                    id="complement"
+                    value={complement}
+                    onChange={(e) => setComplement(e.target.value)}
+                    placeholder="Apartamento, bloco, etc."
+                  />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
