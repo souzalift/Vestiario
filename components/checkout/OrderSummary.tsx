@@ -19,6 +19,7 @@ export interface OrderSummaryProps {
   totalPrice: number;
   processingPayment: boolean;
   onPay: () => Promise<void>;
+  discountAmount?: number; // Adicione esta linha
 }
 
 export function OrderSummary({
@@ -29,6 +30,8 @@ export function OrderSummary({
   totalPrice,
   processingPayment,
   onPay,
+
+  discountAmount, // Adicione esta linha
 }: OrderSummaryProps) {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('pt-BR', {
@@ -88,6 +91,13 @@ export function OrderSummary({
           <span>Subtotal</span>
           <span>{formatPrice(subtotal)}</span>
         </div>
+
+        {discountAmount && discountAmount > 0 && (
+          <div className="flex justify-between text-sm text-green-700 font-medium">
+            <span>Cupom:</span>
+            <span>-{formatPrice(discountAmount)}</span>
+          </div>
+        )}
 
         {totalCustomizationFee > 0 && (
           <div className="flex justify-between text-sm">

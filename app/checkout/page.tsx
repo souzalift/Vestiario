@@ -45,6 +45,7 @@ export default function CheckoutPage() {
     totalCustomizationFee,
     shippingPrice,
     totalPrice,
+    discountAmount,
     clearCart,
   } = useCart();
   const { userProfile, loading: authLoading, updateUserProfile } = useAuth();
@@ -309,6 +310,7 @@ export default function CheckoutPage() {
             <OrderSummary
               cartItems={cartItems}
               subtotal={subtotal}
+              discountAmount={discountAmount}
               totalCustomizationFee={totalCustomizationFee}
               shippingPrice={shippingPrice}
               totalPrice={totalPrice}
