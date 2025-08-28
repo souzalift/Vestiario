@@ -140,7 +140,7 @@ export default function CartPage() {
               </p>
             </div>
             <Button asChild variant="outline">
-              <Link href="/">
+              <Link href="/#produtos">
                 <ArrowLeft className="h-4 w-4 mr-2" /> Continuar Comprando
               </Link>
             </Button>
