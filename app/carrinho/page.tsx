@@ -148,7 +148,7 @@ export default function CartPage() {
 
           {cartCount > 0 && (
             <div className="mb-8">
-              <Card className="bg-gray-50">
+              <Card className="bg-white">
                 <CardContent className="items-center p-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center flex-shrink-0">
