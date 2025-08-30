@@ -65,6 +65,7 @@ interface CartContextType {
   removeCoupon: () => void;
 }
 
+const MAX_CART_ITEMS = 7;
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
@@ -86,6 +87,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addItem = (product: ProductToAdd, options: AddOptions) => {
     setItems((prevItems) => {
+      const currentCount = prevItems.reduce(
+        (sum, item) => sum + item.quantity,
+        0,
+      );
+
+      // 🔒 Impede ultrapassar o limite de 7 itens
+      if (currentCount + options.quantity > MAX_CART_ITEMS) {
+        toast.error(
+          `O carrinho só pode ter no máximo ${MAX_CART_ITEMS} itens.`,
+        );
+        return prevItems;
+      }
+
       const existingItem = prevItems.find(
         (item) =>
           item.productId === product.productId &&
@@ -136,11 +150,24 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (newQuantity <= 0) {
       removeItem(itemId);
     } else {
-      setItems((prevItems) =>
-        prevItems.map((item) =>
+      setItems((prevItems) => {
+        const totalExcludingCurrent = prevItems.reduce(
+          (sum, item) => (item.id === itemId ? sum : sum + item.quantity),
+          0,
+        );
+
+        // 🔒 Impede que a atualização ultrapasse o limite
+        if (totalExcludingCurrent + newQuantity > MAX_CART_ITEMS) {
+          toast.error(
+            `O carrinho só pode ter no máximo ${MAX_CART_ITEMS} itens.`,
+          );
+          return prevItems;
+        }
+
+        return prevItems.map((item) =>
           item.id === itemId ? { ...item, quantity: newQuantity } : item,
-        ),
-      );
+        );
+      });
     }
   };
 
@@ -152,7 +179,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const applyCoupon = async (code: string): Promise<boolean> => {
     try {
-      // Esta é uma chamada de API hipotética. Você precisará de criar esta rota.
       const response = await fetch(`/api/coupons/${code}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Cupom inválido');
@@ -172,7 +198,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     toast.info('Cupom removido.');
   };
 
-  // CORREÇÃO: Garante que todas as variáveis são extraídas do useMemo
   const {
     cartCount,
     subtotal,

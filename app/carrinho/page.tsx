@@ -30,6 +30,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 
 const FREE_SHIPPING_THRESHOLD = 4;
+const MAX_CART_ITEMS = 7;
 
 export default function CartPage() {
   const router = useRouter();
@@ -52,11 +53,18 @@ export default function CartPage() {
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [backupItems, setBackupItems] = useState<CartItem[]>([]);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
     setIsApplyingCoupon(true);
-    await applyCoupon(couponCode);
+    const success = await applyCoupon(couponCode);
+    if (!success) {
+      toast.error('Cupom inválido ou expirado.');
+    } else {
+      toast.success('Cupom aplicado com sucesso!');
+    }
     setIsApplyingCoupon(false);
   };
 
@@ -78,6 +86,24 @@ export default function CartPage() {
   const handleRemove = (id: string) => {
     removeItem(id);
     toast.success('Produto removido do carrinho!');
+  };
+
+  const handleClearCart = () => {
+    setBackupItems(cartItems); // salva para desfazer
+    setIsClearing(true);
+    clearCart();
+    setIsClearing(false);
+
+    toast.success('Carrinho limpo!', {
+      action: {
+        label: 'Desfazer',
+        onClick: () => {
+          backupItems.forEach((item) => {
+            updateQuantity(item.id, item.quantity);
+          });
+        },
+      },
+    });
   };
 
   const formatPrice = (price: number) => {
@@ -218,9 +244,10 @@ export default function CartPage() {
                         <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 mx-auto sm:mx-0">
                           <Image
                             src={item.image || '/images/placeholder.png'}
-                            alt={item.title}
+                            alt={`Produto: ${item.title} - Tamanho: ${item.size}`}
                             width={96}
                             height={96}
+                            sizes="(max-width: 640px) 96px, 128px"
                             className="object-cover"
                           />
                         </div>
@@ -269,7 +296,10 @@ export default function CartPage() {
                               size="icon"
                               variant="outline"
                               onClick={() =>
-                                updateQuantity(item.id, item.quantity - 1)
+                                updateQuantity(
+                                  item.id,
+                                  Math.max(1, item.quantity - 1),
+                                )
                               }
                               disabled={item.quantity <= 1}
                               aria-label="Diminuir quantidade"
@@ -282,9 +312,15 @@ export default function CartPage() {
                             <Button
                               size="icon"
                               variant="outline"
-                              onClick={() =>
-                                updateQuantity(item.id, item.quantity + 1)
-                              }
+                              onClick={() => {
+                                if (cartCount >= MAX_CART_ITEMS) {
+                                  toast.error(
+                                    `Máximo de ${MAX_CART_ITEMS} itens permitido no carrinho.`,
+                                  );
+                                  return;
+                                }
+                                updateQuantity(item.id, item.quantity + 1);
+                              }}
                               aria-label="Aumentar quantidade"
                             >
                               <Plus className="h-4 w-4" />
@@ -308,9 +344,19 @@ export default function CartPage() {
               ))}
               {cartItems.length > 0 && (
                 <div className="text-center pt-6">
-                  <Button variant="destructive" onClick={clearCart}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Limpar Carrinho
+                  <Button
+                    variant="destructive"
+                    onClick={handleClearCart}
+                    disabled={isClearing}
+                  >
+                    {isClearing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Limpar Carrinho
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
