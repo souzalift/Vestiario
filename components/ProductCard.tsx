@@ -50,7 +50,11 @@ export default function ProductCard({
       <div className="relative">
         {/* Product Image */}
         <Link href={`/produto/${product.slug || product.id}`}>
-          <div className="relative aspect-square bg-gray-100 overflow-hidden cursor-pointer">
+          <div
+            className="relative aspect-square bg-gray-100 overflow-hidden cursor-pointer"
+            tabIndex={0}
+            aria-label={product.title}
+          >
             {!imageError &&
             product.images &&
             product.images.length > 0 &&
@@ -83,7 +87,7 @@ export default function ProductCard({
 
             {/* Favorite Button */}
             {onToggleFavorite && (
-              <button
+              <Button
                 onClick={(e) => {
                   e.preventDefault();
                   onToggleFavorite(product);
@@ -97,14 +101,14 @@ export default function ProductCard({
                 <Heart
                   className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`}
                 />
-              </button>
+              </Button>
             )}
 
             {/* Image Navigation */}
             {product.images && product.images.length > 1 && (
               <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {product.images.map((_, index) => (
-                  <button
+                  <Button
                     key={index}
                     onClick={(e) => {
                       e.preventDefault();
@@ -120,36 +124,7 @@ export default function ProductCard({
           </div>
         </Link>
 
-        {/* Quick Actions */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors">
-          <div className="absolute bottom-4 left-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-4 group-hover:translate-y-0">
-            <Button
-              size="sm"
-              variant="secondary"
-              className="flex-1 bg-white/90 hover:bg-white"
-              onClick={(e) => {
-                e.preventDefault();
-                // Adicionar visualização rápida
-              }}
-            >
-              <Eye className="w-4 h-4 mr-1" />
-              Ver
-            </Button>
-            {onAddToCart && (
-              <Button
-                size="sm"
-                className="flex-1 text-white bg-stone-700  "
-                onClick={(e) => {
-                  e.preventDefault();
-                  onAddToCart(product);
-                }}
-              >
-                <ShoppingCart className="w-4 h-4 mr-1" />
-                Carrinho
-              </Button>
-            )}
-          </div>
-        </div>
+        {/* Removido: Quick Actions (Ver e Carrinho) */}
       </div>
       {/* Product Info */}
 
