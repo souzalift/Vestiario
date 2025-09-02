@@ -59,7 +59,7 @@ interface CartContextType {
   shippingPrice: number;
   totalCustomizationFee: number;
   totalPrice: number;
-  coupon: Coupon | null;
+  appliedCoupon: Coupon | null;
   discountAmount: number;
   applyCoupon: (code: string) => Promise<boolean>;
   removeCoupon: () => void;
@@ -143,7 +143,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const removeItem = (itemId: string) => {
     setItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
-    toast.error('Produto removido do carrinho.');
+    toast.success('Produto removido do carrinho.');
   };
 
   const updateQuantity = (itemId: string, newQuantity: number) => {
@@ -183,7 +183,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Cupom inválido');
 
-      setCoupon(data.coupon);
+      setCoupon(data.appliedCoupon);
       toast.success(`Cupom "${data.coupon.code}" aplicado com sucesso!`);
       return true;
     } catch (error: any) {
@@ -255,7 +255,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     subtotal,
     shippingPrice,
     totalPrice,
-    coupon,
+    appliedCoupon: coupon,
     totalCustomizationFee,
     discountAmount,
     applyCoupon,

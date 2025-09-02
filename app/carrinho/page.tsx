@@ -24,13 +24,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-import type { CartItem } from '@/contexts/CartContext';
-import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import type { CartItem } from '@/contexts/CartContext';
 
 const FREE_SHIPPING_THRESHOLD = 4;
-const MAX_CART_ITEMS = 7;
 
 export default function CartPage() {
   const router = useRouter();
@@ -44,32 +42,17 @@ export default function CartPage() {
     subtotal,
     shippingPrice,
     totalPrice,
-    coupon,
+    appliedCoupon,
     discountAmount,
     applyCoupon,
     removeCoupon,
   } = useCart();
 
+  const { addFavorite, isFavorite } = useFavorites();
+
+  const [isClient, setIsClient] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-  const [backupItems, setBackupItems] = useState<CartItem[]>([]);
-
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
-    setIsApplyingCoupon(true);
-    const success = await applyCoupon(couponCode);
-    if (!success) {
-      toast.error('Cupom inválido ou expirado.');
-    } else {
-      toast.success('Cupom aplicado com sucesso!');
-    }
-    setIsApplyingCoupon(false);
-  };
-
-  const { addFavorite, isFavorite } = useFavorites();
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -79,31 +62,16 @@ export default function CartPage() {
     if (!isFavorite(item.productId)) {
       addFavorite(item.productId);
     }
+    // O toast já é acionado pela função removeItem no contexto
     removeItem(item.id);
-    toast.success('Produto movido para os favoritos!');
   };
 
-  const handleRemove = (id: string) => {
-    removeItem(id);
-    toast.success('Produto removido do carrinho!');
-  };
-
-  const handleClearCart = () => {
-    setBackupItems(cartItems); // salva para desfazer
-    setIsClearing(true);
-    clearCart();
-    setIsClearing(false);
-
-    toast.success('Carrinho limpo!', {
-      action: {
-        label: 'Desfazer',
-        onClick: () => {
-          backupItems.forEach((item) => {
-            updateQuantity(item.id, item.quantity);
-          });
-        },
-      },
-    });
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsApplyingCoupon(true);
+    await applyCoupon(couponCode);
+    setIsApplyingCoupon(false);
+    setCouponCode('');
   };
 
   const formatPrice = (price: number) => {
@@ -135,7 +103,7 @@ export default function CartPage() {
                   <Frown className="h-12 w-12 text-gray-400" />
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
-                  Seu carrinho está no banco de reservas!
+                  O seu carrinho está no banco de reservas!
                 </h2>
                 <p className="text-gray-600 mb-8 text-sm sm:text-base">
                   Parece que ainda não escalou nenhum produto. Vá para o mercado
@@ -181,47 +149,36 @@ export default function CartPage() {
             </Button>
           </div>
 
-          {/* Frete grátis */}
-          {cartCount > 0 && (
+          {cartCount > 0 && cartCount < FREE_SHIPPING_THRESHOLD && (
             <div className="mb-8">
               <Card className="bg-white">
-                <CardContent className="items-center p-4 sm:p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-900 rounded-full flex items-center justify-center flex-shrink-0">
                       <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                     </div>
                     <div className="flex-1">
-                      {cartCount < FREE_SHIPPING_THRESHOLD ? (
-                        <>
-                          <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
-                            Faltam apenas {itemsToFreeShipping}{' '}
-                            {itemsToFreeShipping === 1 ? 'produto' : 'produtos'}{' '}
-                            para{' '}
-                            <span className="text-green-600">
-                              frete grátis!
-                            </span>
-                          </h3>
-                          <div className="mt-3">
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-gray-900 h-2 rounded-full"
-                                style={{
-                                  width: `${
-                                    (cartCount / FREE_SHIPPING_THRESHOLD) * 100
-                                  }%`,
-                                }}
-                              ></div>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {cartCount} de {FREE_SHIPPING_THRESHOLD} produtos
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <h3 className="font-semibold text-green-700 mb-1">
-                          🎉 Parabéns! Você ganhou frete grátis
-                        </h3>
-                      )}
+                      <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
+                        Faltam apenas {itemsToFreeShipping}{' '}
+                        {itemsToFreeShipping === 1 ? 'produto' : 'produtos'}{' '}
+                        para{' '}
+                        <span className="text-green-600">frete grátis!</span>
+                      </h3>
+                      <div className="mt-3">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gray-900 h-2 rounded-full"
+                            style={{
+                              width: `${
+                                (cartCount / FREE_SHIPPING_THRESHOLD) * 100
+                              }%`,
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {cartCount} de {FREE_SHIPPING_THRESHOLD} produtos
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -229,9 +186,7 @@ export default function CartPage() {
             </div>
           )}
 
-          {/* Grid principal */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Lista de produtos */}
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => (
                 <Card key={item.id} className="overflow-hidden">
@@ -245,8 +200,7 @@ export default function CartPage() {
                           <Image
                             src={item.image || '/images/placeholder.png'}
                             alt={`Produto: ${item.title} - Tamanho: ${item.size}`}
-                            width={96}
-                            height={96}
+                            fill
                             sizes="(max-width: 640px) 96px, 128px"
                             className="object-cover"
                           />
@@ -282,11 +236,11 @@ export default function CartPage() {
                               <Heart className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleRemove(item.id)}
+                              onClick={() => removeItem(item.id)}
                               className="p-2 text-gray-400 hover:text-red-600"
                               aria-label="Remover item"
                             >
-                              <Trash2 className="h-4 w-4 text-red-600" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         </div>
@@ -296,10 +250,7 @@ export default function CartPage() {
                               size="icon"
                               variant="outline"
                               onClick={() =>
-                                updateQuantity(
-                                  item.id,
-                                  Math.max(1, item.quantity - 1),
-                                )
+                                updateQuantity(item.id, item.quantity - 1)
                               }
                               disabled={item.quantity <= 1}
                               aria-label="Diminuir quantidade"
@@ -312,15 +263,9 @@ export default function CartPage() {
                             <Button
                               size="icon"
                               variant="outline"
-                              onClick={() => {
-                                if (cartCount >= MAX_CART_ITEMS) {
-                                  toast.error(
-                                    `Máximo de ${MAX_CART_ITEMS} itens permitido no carrinho.`,
-                                  );
-                                  return;
-                                }
-                                updateQuantity(item.id, item.quantity + 1);
-                              }}
+                              onClick={() =>
+                                updateQuantity(item.id, item.quantity + 1)
+                              }
                               aria-label="Aumentar quantidade"
                             >
                               <Plus className="h-4 w-4" />
@@ -342,43 +287,27 @@ export default function CartPage() {
                   </CardContent>
                 </Card>
               ))}
-              {cartItems.length > 0 && (
-                <div className="text-center pt-6">
-                  <Button
-                    variant="destructive"
-                    onClick={handleClearCart}
-                    disabled={isClearing}
-                  >
-                    {isClearing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Limpar Carrinho
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
             </div>
 
-            {/* Resumo do pedido */}
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <CardContent className="p-4 sm:p-6">
                   <h3 className="text-lg sm:text-xl font-bold mb-6">
                     Resumo do Pedido
                   </h3>
-                  {!coupon ? (
+                  {!appliedCoupon ? (
                     <div className="flex flex-col sm:flex-row gap-2 mb-6">
                       <Input
                         placeholder="Código do cupom"
                         value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value)}
+                        onChange={(e) =>
+                          setCouponCode(e.target.value.toUpperCase())
+                        }
                       />
                       <Button
                         onClick={handleApplyCoupon}
                         disabled={isApplyingCoupon}
+                        className="sm:w-auto"
                       >
                         {isApplyingCoupon ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -391,8 +320,8 @@ export default function CartPage() {
                     <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
                       <div className="flex justify-between items-center">
                         <p className="font-semibold text-green-800 flex items-center gap-2">
-                          <Tag className="w-4 h-4" /> Cupom "{coupon.code}"
-                          aplicado!
+                          <Tag className="w-4 h-4" /> Cupom "
+                          {appliedCoupon.code}" aplicado!
                         </p>
                         <Button
                           variant="ghost"
@@ -409,7 +338,9 @@ export default function CartPage() {
                   <div className="space-y-4 mb-6 text-sm">
                     <div className="flex justify-between">
                       <span>Subtotal</span>
-                      <span>{formatPrice(subtotal)}</span>
+                      <span className="font-medium">
+                        {formatPrice(subtotal)}
+                      </span>
                     </div>
                     {discountAmount > 0 && (
                       <div className="flex justify-between text-green-600 font-semibold">
@@ -431,20 +362,13 @@ export default function CartPage() {
                       <span>{formatPrice(totalPrice)}</span>
                     </div>
                   </div>
+
                   <Button
                     size="lg"
                     className="w-full text-lg"
-                    onClick={() => {
-                      setIsCheckingOut(true);
-                      router.push('/checkout');
-                    }}
-                    disabled={isCheckingOut}
+                    onClick={() => router.push('/checkout')}
                   >
-                    {isCheckingOut ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      'Finalizar Compra'
-                    )}
+                    Finalizar Compra
                   </Button>
                 </CardContent>
               </Card>
