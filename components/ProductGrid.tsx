@@ -14,7 +14,7 @@ const LEAGUES = [
   'Ligue 1',
 ];
 
-const PER_PAGE = 20;
+const PER_PAGE = 25;
 
 // O componente não precisa mais da prop 'league'.
 interface ProductGridProps {
