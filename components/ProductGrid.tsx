@@ -19,6 +19,7 @@ const PER_PAGE = 20;
 // O componente não precisa mais da prop 'league'.
 interface ProductGridProps {
   searchQuery: string;
+  selectedLeague: string;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ searchQuery }) => {
