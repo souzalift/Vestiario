@@ -5,6 +5,8 @@ import ProductGrid from '@/components/ProductGrid';
 import LeagueFilter from '@/components/LeagueFilter';
 import HeroBannerGallery from '@/components/HeroBannerGallery';
 import WhyChooseUs from '@/components/WhyChooseUs'; // Novo componente
+import ContactCTA from '@/components/ContactCTA'; // Novo componente
+import { Loader2 } from 'lucide-react';
 
 // Dados
 import { siteBanners } from '@/lib/banners'; // Novos dados do banner
@@ -13,7 +15,7 @@ import { siteBanners } from '@/lib/banners'; // Novos dados do banner
 interface Props {
   searchParams?: {
     league?: string;
-    q?: string; // Alterado de 'busca' para 'q' para consistência
+    q?: string;
   };
 }
 
@@ -26,7 +28,7 @@ export default function Home({ searchParams }: Props) {
       {/* 1. Hero Banner agora recebe os dados via props */}
       <HeroBannerGallery banners={siteBanners} />
 
-      {/* 2. Nova secção consolidada */}
+      {/* 2. Nova secção consolidada de "Por que nos escolher" */}
       <WhyChooseUs />
 
       {/* 3. Secção Principal de Produtos */}
@@ -61,6 +63,9 @@ export default function Home({ searchParams }: Props) {
           </Suspense>
         </div>
       </div>
+
+      {/* 4. Nova secção de contato via WhatsApp */}
+      <ContactCTA />
     </div>
   );
 }
