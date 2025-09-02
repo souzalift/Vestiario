@@ -58,12 +58,12 @@ export default function ContatoPage() {
               WhatsApp:
             </p>
             <a
-              href="https://wa.me/5571999999999"
+              href="https://wa.me/5571982400893"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 inline-block font-semibold text-green-600 hover:text-green-500"
             >
-              (71) 99999-9999
+              (71) 98240-0893
             </a>
             <p className="mt-2 text-sm text-gray-500">
               Atendimento de Segunda a Sexta, das 9h às 18h.
