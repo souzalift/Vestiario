@@ -1,11 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserOrders, Order } from '@/services/orders';
+import { useCart } from '@/contexts/CartContext';
+import { Order } from '@/services/orders';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import Link from 'next/link';
+import Image from 'next/image';
+
+// Firebase imports for real-time updates
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  orderBy,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 // UI e Ícones
 import { Button } from '@/components/ui/button';
@@ -18,37 +30,102 @@ import {
   Truck,
   CheckCircle2,
   XCircle,
+  CreditCard,
+  RefreshCw,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function MeusPedidosPage() {
   const { userProfile, loading: authLoading } = useAuth();
+  const { addItem } = useCart();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [repayingOrderId, setRepayingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
+
     if (userProfile?.uid) {
-      const fetchOrders = async () => {
-        try {
-          const userOrders = await getUserOrders(userProfile.uid);
-          // Ordenar por data (mais recentes primeiro)
-          const sorted = [...userOrders].sort(
-            (a, b) =>
-              new Date(b.createdAt as any).getTime() -
-              new Date(a.createdAt as any).getTime(),
-          );
-          setOrders(sorted);
-        } catch (error) {
-          console.error('Erro ao buscar pedidos:', error);
-        } finally {
+      // Configura a query para os pedidos do usuário
+      const ordersQuery = query(
+        collection(db, 'orders'),
+        where('userId', '==', userProfile.uid),
+        orderBy('createdAt', 'desc'),
+      );
+
+      // Inicia o "ouvinte" em tempo real
+      const unsubscribe = onSnapshot(
+        ordersQuery,
+        (querySnapshot) => {
+          const userOrders = querySnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              // Converte Timestamps para objetos Date
+              createdAt: data.createdAt?.toDate
+                ? data.createdAt.toDate()
+                : new Date(),
+              updatedAt: data.updatedAt?.toDate
+                ? data.updatedAt.toDate()
+                : new Date(),
+            } as Order;
+          });
+          setOrders(userOrders);
           setLoading(false);
-        }
-      };
-      fetchOrders();
+        },
+        (error) => {
+          console.error('Erro ao buscar pedidos em tempo real:', error);
+          toast.error('Não foi possível carregar os seus pedidos.');
+          setLoading(false);
+        },
+      );
+
+      // Função de limpeza: para o "ouvinte" quando o componente é desmontado
+      return () => unsubscribe();
     } else {
       setLoading(false);
     }
   }, [userProfile, authLoading]);
+
+  const handleRepay = async (orderId: string) => {
+    setRepayingOrderId(orderId);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/repay`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao gerar link de pagamento.');
+      }
+      window.location.href = data.init_point;
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setRepayingOrderId(null);
+    }
+  };
+
+  const handleReorder = (order: Order) => {
+    order.items.forEach((item) => {
+      const productData = {
+        productId: item.id,
+        productSlug: item.productSlug,
+        title: item.title,
+        basePrice: item.basePrice,
+        image: item.image,
+        team: item.team,
+        category: 'default', // Categoria padrão, se necessário
+      };
+      const options = {
+        size: item.size,
+        quantity: item.quantity,
+        customization: item.customization,
+      };
+      addItem(productData, options);
+    });
+    toast.success('Itens do pedido adicionados novamente ao carrinho!');
+  };
 
   const formatCurrency = (value: number = 0) =>
     new Intl.NumberFormat('pt-BR', {
@@ -56,16 +133,9 @@ export default function MeusPedidosPage() {
       currency: 'BRL',
     }).format(value);
 
-  const formatDate = (date: any) => {
-    let parsedDate: Date;
-    if (date?.toDate) {
-      parsedDate = date.toDate(); // Firestore Timestamp
-    } else if (date instanceof Date) {
-      parsedDate = date;
-    } else {
-      parsedDate = new Date(date);
-    }
-    return format(parsedDate, 'dd/MM/yyyy', { locale: ptBR });
+  const formatDate = (date: Date) => {
+    if (!date || !(date instanceof Date)) return 'Data indisponível';
+    return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
   const statusMap: {
@@ -74,7 +144,7 @@ export default function MeusPedidosPage() {
     pendente: {
       text: 'Pendente',
       className: 'bg-yellow-100 text-yellow-800',
-      icon: <Loader2 className="w-3 h-3" />,
+      icon: <Loader2 className="w-3 h-3 animate-spin" />,
     },
     pago: {
       text: 'Pago',
@@ -142,14 +212,55 @@ export default function MeusPedidosPage() {
                     </p>
                   </div>
                   <span
-                    className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${statusInfo.className}`}
+                    className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full ${statusInfo.className}`}
                   >
                     {statusInfo.icon} {statusInfo.text}
                   </span>
                 </CardHeader>
                 <CardContent>
-                  {/* Secção de Rastreio */}
-                  {order.trackingCode ? (
+                  <div className="flex -space-x-4 mb-4">
+                    {order.items.slice(0, 5).map((item) => (
+                      <div
+                        key={item.id}
+                        className="relative w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-gray-100"
+                      >
+                        <Image
+                          src={item.image}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ))}
+                    {order.items.length > 5 && (
+                      <div className="relative w-12 h-12 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center text-xs font-semibold">
+                        +{order.items.length - 5}
+                      </div>
+                    )}
+                  </div>
+
+                  {order.status === 'pendente' && (
+                    <div className="border-t border-b py-4 my-4 flex items-center justify-between">
+                      <p className="text-sm font-medium text-yellow-800">
+                        Seu pagamento está pendente.
+                      </p>
+                      <Button
+                        onClick={() => handleRepay(order.id)}
+                        disabled={repayingOrderId === order.id}
+                      >
+                        {repayingOrderId === order.id ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <CreditCard className="w-4 h-4 mr-2" />
+                        )}
+                        {repayingOrderId === order.id
+                          ? 'A processar...'
+                          : 'Pagar Agora'}
+                      </Button>
+                    </div>
+                  )}
+
+                  {order.trackingCode && (
                     <div className="border-t border-b py-4 my-4">
                       <h4 className="text-sm font-semibold text-gray-800 mb-2">
                         Rastreio
@@ -160,7 +271,6 @@ export default function MeusPedidosPage() {
                         </p>
                         <Button asChild size="sm">
                           <a
-                            className="text-white"
                             href={`https://t.17track.net/pt#nums=${order.trackingCode}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -170,10 +280,6 @@ export default function MeusPedidosPage() {
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 italic">
-                      Aguardando código de rastreio...
-                    </p>
                   )}
 
                   <div className="flex items-center justify-between pt-4">
@@ -183,11 +289,20 @@ export default function MeusPedidosPage() {
                         {formatCurrency(order.totalPrice)}
                       </span>
                     </div>
-                    <Button asChild variant="outline">
-                      <Link href={`/perfil/pedidos/${order.id}`}>
-                        Ver Detalhes <ArrowRight className="w-4 h-4 ml-2" />
-                      </Link>
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleReorder(order)}
+                        variant="secondary"
+                        size="sm"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" /> Repetir Compra
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/perfil/pedidos/${order.id}`}>
+                          Ver Detalhes <ArrowRight className="w-4 h-4 ml-2" />
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
