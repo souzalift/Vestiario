@@ -17,7 +17,6 @@ const getClient = () => {
 };
 
 // Função para validar a assinatura do webhook
-// CORREÇÃO: Alterado para aceitar o tipo 'Request' padrão.
 const validateSignature = (request: Request, payload: string) => {
   if (!WEBHOOK_SECRET) {
     console.warn('⚠️ A chave secreta do webhook não está configurada. A validação será ignorada.');
@@ -40,7 +39,7 @@ const validateSignature = (request: Request, payload: string) => {
 
   const manifest = `id:${JSON.parse(payload).data.id};request-id:${request.headers.get('x-request-id')};ts:${ts};`;
 
-  const hmac = crypto.createHmac('sha265', WEBHOOK_SECRET);
+  const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
   hmac.update(manifest);
   const expectedSignature = hmac.digest('hex');
 
@@ -48,11 +47,10 @@ const validateSignature = (request: Request, payload: string) => {
 };
 
 
-// CORREÇÃO: Alterado para aceitar o tipo 'Request' padrão.
 export async function POST(request: Request) {
   const requestBody = await request.text(); // Lê o corpo como texto para a validação
 
-  if (!validateSignature(request.clone(), requestBody)) {
+  if (!validateSignature(request, requestBody)) {
     console.error('❌ Assinatura do webhook inválida!');
     return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 });
   }
@@ -95,11 +93,13 @@ export async function POST(request: Request) {
       }
     }
 
+    // Responde sempre com 200 OK para confirmar o recebimento ao Mercado Pago
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
     console.error('❌ Erro no processamento do webhook:', error.message);
+    // Mesmo em caso de erro, responde com sucesso para evitar que o MP reenvie a notificação.
+    // Os erros devem ser monitorizados pelos logs do servidor.
     return NextResponse.json({ success: true });
   }
 }
-
