@@ -26,15 +26,20 @@ export default function ContactCTA() {
           <h2 className="text-3xl font-bold text-white mb-4 font-heading uppercase tracking-wider">
             Não achou a camisa que procurava?
           </h2>
-          <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-            O nosso stock é atualizado constantemente, mas se tem um pedido
-            especial ou uma camisa rara em mente, fale connosco! Faremos o nosso
-            melhor para a encontrar para si.
-          </p>
+          <span className="text-lg text-gray-300 mb-8 max-w-3xl mx-auto">
+            <p>
+              Às vezes a peça ainda não entrou no sistema, mas já está
+              disponível. 😉
+            </p>
+            <p>
+              Manda uma mensagem pra gente e vamos ver juntos se conseguimos a
+              sua!
+            </p>
+          </span>
           <Button
             asChild
             size="lg"
-            className="bg-green-500 hover:bg-green-600 text-white font-bold text-lg px-8 py-6"
+            className="bg-green-500 hover:bg-green-600 mt-6 text-white font-bold text-lg px-8 py-6"
           >
             <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
               <SiWhatsapp className="w-6 h-6 mr-3" />
