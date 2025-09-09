@@ -15,11 +15,12 @@ import {
   QueryDocumentSnapshot,
   Query,
   DocumentData,
+  documentId,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export interface Product {
-  id?: string;
+  id: string;
   title: string;
   description: string;
   price: number;
@@ -205,6 +206,43 @@ export const getProductBySlug = async (slug: string): Promise<Product | null> =>
     throw error;
   }
 };
+
+// Buscar vários produtos por uma lista de IDs (ESSENCIAL PARA A PÁGINA DE FAVORITOS)
+export const getProductsByIds = async (ids: string[]): Promise<Product[]> => {
+  if (!ids || ids.length === 0) {
+    return [];
+  }
+
+  try {
+    // O Firestore tem um limite de 30 itens por consulta 'in'
+    const productChunks = [];
+    for (let i = 0; i < ids.length; i += 30) {
+      const chunk = ids.slice(i, i + 30);
+      const q = query(collection(db, 'products'), where(documentId(), 'in', chunk));
+      productChunks.push(getDocs(q));
+    }
+
+    const allSnapshots = await Promise.all(productChunks);
+    const products: Product[] = [];
+    allSnapshots.forEach(snapshot => {
+      snapshot.docs.forEach(doc => {
+        products.push({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate(),
+          updatedAt: doc.data().updatedAt?.toDate(),
+        } as Product);
+      });
+    });
+
+    return products;
+
+  } catch (error) {
+    console.error('Erro ao buscar produtos por IDs:', error);
+    throw new Error('Não foi possível buscar os produtos favoritos.');
+  }
+};
+
 
 // Criar produto (admin)
 export const createProduct = async (productData: Omit<Product, 'id'>) => {

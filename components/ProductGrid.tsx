@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import ProductCard from './ProductCard';
 import { Product } from '@/services/products';
 import { useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 
 const LEAGUES = [
   'Premier League',
@@ -31,6 +33,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ searchQuery }) => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
 
   // Usar useCallback para memorizar a função de busca
   const fetchProducts = useCallback(
@@ -118,6 +121,17 @@ const ProductGrid: React.FC<ProductGridProps> = ({ searchQuery }) => {
       fetchProducts(page, false); // `false` indica que estamos anexando produtos
     }
   }, [page, fetchProducts]);
+  const handleToggleFavorite = (product: Product) => {
+    if (!product.id) return; // Garante que o produto tem um ID
+
+    if (isFavorite(product.id)) {
+      removeFavorite(product.id);
+      toast.info(`"${product.title}" removido dos favoritos.`);
+    } else {
+      addFavorite(product.id);
+      toast.success(`"${product.title}" adicionado aos favoritos!`);
+    }
+  };
 
   // Estado de esqueleto de layout: apenas no carregamento inicial.
   if (loading && products.length === 0) {
@@ -168,12 +182,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({ searchQuery }) => {
           <ProductCard
             key={`${product.id}-${product.slug}`}
             product={product}
-            onAddToCart={(product) =>
-              console.log('Adicionar ao carrinho:', product.title)
-            }
-            onToggleFavorite={(product) =>
-              console.log('Toggle favorito:', product.title)
-            }
+            isFavorite={isFavorite(product.id!)}
+            onToggleFavorite={() => handleToggleFavorite(product)}
           />
         ))}
       </div>
