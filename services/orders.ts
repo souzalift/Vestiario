@@ -240,40 +240,55 @@ export const getOrderByNumber = async (orderNumber: string): Promise<Order | nul
 };
 
 // Busca e calcula os dados para o painel de administração
-export const getDashboardData = async (): Promise<DashboardData> => {
+export const getDashboardData = async () => {
   try {
-    // Reutilizamos a sua função que já busca e formata todos os pedidos
-    const allOrders = await getAllOrders();
+    const ordersRef = collection(db, 'orders');
 
-    // Agora inclui 'pago', 'enviado' e 'entregue'
-    const countedOrders = allOrders.filter(order =>
-      ['pago', 'enviado', 'entregue'].includes(order.status)
-    );
-
-    const totalRevenue = countedOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+    // 1. Busca todos os pedidos para a contagem total e os recentes
+    const allOrdersQuery = query(ordersRef, orderBy('createdAt', 'desc'));
+    const allOrdersSnapshot = await getDocs(allOrdersQuery);
+    const allOrders = allOrdersSnapshot.docs.map(transformOrderDocument);
     const totalOrders = allOrders.length;
-    const paidOrdersCount = countedOrders.length;
+    const recentOrders = allOrders.slice(0, 5);
+
+    // 2. Filtra apenas os pedidos pagos para os cálculos de receita
+    const paidOrders = allOrders.filter(order => order.paymentStatus === 'paid');
+    const paidOrdersCount = paidOrders.length;
+
+    const totalRevenue = paidOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+
     const averageTicket = paidOrdersCount > 0 ? totalRevenue / paidOrdersCount : 0;
 
-    // Pegamos os 5 pedidos mais recentes para exibir na lista
-    const recentOrders = allOrders.slice(0, 5);
+    // 3. Calcula os produtos mais vendidos
+    const productSales: { [key: string]: { title: string; count: number } } = {};
+    paidOrders.forEach(order => {
+      order.items.forEach(item => {
+        if (productSales[item.id]) {
+          productSales[item.id].count += item.quantity;
+        } else {
+          productSales[item.id] = {
+            title: item.title,
+            count: item.quantity,
+          };
+        }
+      });
+    });
+
+    const topSellingProducts = Object.values(productSales)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
 
     return {
       totalRevenue,
-      totalOrders,
       paidOrdersCount,
+      totalOrders,
       averageTicket,
       recentOrders,
+      topSellingProducts, // Adicionado
     };
+
   } catch (error) {
     console.error("Erro ao buscar dados do dashboard:", error);
-    // Retorna dados vazios em caso de erro
-    return {
-      totalRevenue: 0,
-      totalOrders: 0,
-      paidOrdersCount: 0,
-      averageTicket: 0,
-      recentOrders: [],
-    };
+    throw new Error("Não foi possível carregar os dados do dashboard.");
   }
 };
