@@ -1,6 +1,9 @@
-// app/admin/dashboard/page.tsx
+'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { onSnapshot, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { getDashboardData, Order } from '@/services/orders';
 
 // UI e Ícones
@@ -28,8 +31,27 @@ const formatCurrency = (value: number = 0) =>
     value,
   );
 
-export default async function AdminDashboardPage() {
-  const data = await getDashboardData();
+export default function AdminDashboardPage() {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, 'orders'),
+      async (snapshot) => {
+        const orders = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        const dashboardData = await getDashboardData(orders);
+        setData(dashboardData);
+      },
+    );
+    return () => unsubscribe();
+  }, []);
+
+  if (!data) {
+    return <div className="p-8 text-center text-gray-500">Carregando...</div>;
+  }
 
   // Calcular produtos mais vendidos
   const productSales: Record<string, { title: string; quantity: number }> = {};
@@ -41,7 +63,6 @@ export default async function AdminDashboardPage() {
       productSales[item.productId].quantity += item.quantity;
     });
   });
-  // Ordena por quantidade vendida (top 5)
   const topProducts = Object.values(productSales)
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 5);
@@ -134,7 +155,7 @@ export default async function AdminDashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.recentOrders.map((order) => {
+                  {data.recentOrders.map((order: Order) => {
                     const statusInfo = statusMap[order.status] || {
                       text: order.status,
                       className: 'bg-gray-100 text-gray-800',

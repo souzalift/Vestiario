@@ -240,7 +240,7 @@ export const getOrderByNumber = async (orderNumber: string): Promise<Order | nul
 };
 
 // Busca e calcula os dados para o painel de administração
-export const getDashboardData = async () => {
+export const getDashboardData = async (orders: { id: string; }[]) => {
   try {
     const ordersRef = collection(db, 'orders');
 
