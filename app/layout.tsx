@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { GoogleAnalytics } from '@next/third-parties/google';
 
 import { Poppins, Oswald } from 'next/font/google';
 import { Toaster } from 'sonner';
@@ -106,7 +105,6 @@ export default function RootLayout({
           </FavoritesProvider>
         </AuthProvider>
       </body>
-      <GoogleAnalytics gaId="G-F48CLM2VP0" />
     </html>
   );
 }
