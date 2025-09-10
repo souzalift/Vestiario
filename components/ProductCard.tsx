@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/services/products';
-import { Heart, ShoppingCart, Star, Eye } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -19,7 +19,6 @@ interface ProductCardProps {
 
 export default function ProductCard({
   product,
-  onAddToCart,
   onToggleFavorite,
   isFavorite = false,
   className = '',
