@@ -59,7 +59,7 @@
     "eslint-config-next": "13.5.1",
     "eslint-plugin-react-hooks": "^6.1.0-canary-3958d5d8-20250807",
     "firebase": "^12.1.0",
-    "firebase-admin": "^13.4.0",
+    "firebase-admin": "^13.5.0",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.446.0",
     "mercadopago": "^2.8.0",
