@@ -25,7 +25,10 @@ import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 const loginSchema = z.object({
   email: z.string().email('Por favor, insira um email válido'),
   password: z.string().min(1, 'Senha é obrigatória'),
-  rememberMe: z.boolean().optional(),
+  rememberMe: z
+    .any()
+    .transform((val) => val === true || val === 'true' || val === 'on')
+    .optional(),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
