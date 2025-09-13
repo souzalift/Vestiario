@@ -8,19 +8,11 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // Firebase e Serviços
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  doc,
-  updateDoc,
-  Timestamp,
-} from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 // UI e Ícones
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -64,7 +56,6 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [verificationFilter, setVerificationFilter] = useState('all');
 
-  // Efeito para proteger a rota e buscar os dados em tempo real
   useEffect(() => {
     if (isLoaded) {
       if (!isAdmin) {
@@ -72,35 +63,29 @@ export default function AdminUsersPage() {
         return;
       }
 
-      const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-
-      const unsubscribe = onSnapshot(
-        q,
-        (querySnapshot) => {
-          const usersData = querySnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-              uid: doc.id,
-              ...data,
-              createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
-              lastLoginAt: (data.lastLoginAt as Timestamp)?.toDate(),
-            } as UserProfile;
-          });
-          setUsers(usersData);
+      const fetchUsers = async () => {
+        try {
+          const res = await fetch('/api/users');
+          const data = await res.json();
+          setUsers(
+            data.map((u: any) => ({
+              ...u,
+              createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
+              lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
+            })),
+          );
           setLoading(false);
-        },
-        (err) => {
-          console.error('Erro ao carregar usuários:', err);
+        } catch (err) {
+          console.error(err);
           toast.error('Não foi possível carregar os usuários.');
           setLoading(false);
-        },
-      );
+        }
+      };
 
-      return () => unsubscribe();
+      fetchUsers();
     }
   }, [isLoaded, isAdmin, router]);
 
-  // Lógica de filtragem usando useMemo para performance
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
       const searchMatch = searchTerm
@@ -156,8 +141,9 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
             Gerenciar Usuários
@@ -168,7 +154,8 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      <Card className="mb-6">
+      {/* Filtros */}
+      <Card>
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
@@ -207,32 +194,38 @@ export default function AdminUsersPage() {
         </CardContent>
       </Card>
 
+      {/* Tabela */}
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto rounded-lg">
+            <table className="w-full border-collapse">
+              <thead className="bg-gray-100">
                 <tr>
-                  <th className="text-left py-4 px-6 font-medium text-gray-900">
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700">
                     Usuário
                   </th>
-                  <th className="text-left py-4 px-6 font-medium text-gray-900">
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700">
                     Permissão
                   </th>
-                  <th className="text-left py-4 px-6 font-medium text-gray-900">
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700">
                     Status
                   </th>
-                  <th className="text-left py-4 px-6 font-medium text-gray-900">
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700">
                     Cadastro
                   </th>
-                  <th className="text-right py-4 px-6 font-medium text-gray-900">
+                  <th className="text-right py-4 px-6 font-semibold text-gray-700">
                     Ações
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user.uid} className="border-t hover:bg-gray-50">
+              <tbody className="divide-y divide-gray-200">
+                {filteredUsers.map((user, idx) => (
+                  <tr
+                    key={user.uid}
+                    className={`hover:bg-gray-50 ${
+                      idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                    }`}
+                  >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <Image
@@ -245,7 +238,7 @@ export default function AdminUsersPage() {
                             }&background=random`
                           }
                           alt={user.displayName || user.email}
-                          className="w-10 h-10 rounded-full object-cover"
+                          className="w-10 h-10 rounded-full object-cover border"
                         />
                         <div>
                           <div className="font-medium text-gray-900">
@@ -273,7 +266,7 @@ export default function AdminUsersPage() {
                         ) : (
                           <User className="w-3 h-3 mr-1 text-white" />
                         )}
-                        <p>{user.role === 'admin' ? 'ADM' : 'Cliente'}</p>
+                        {user.role === 'admin' ? 'ADM' : 'Cliente'}
                       </Badge>
                     </td>
                     <td className="py-4 px-6">
