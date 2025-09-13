@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getOrderById, Order } from '@/services/orders';
+import { getOrderById, Order } from '@/services/orders.admin';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

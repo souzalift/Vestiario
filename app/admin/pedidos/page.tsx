@@ -19,7 +19,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Order } from '@/services/orders';
+import { Order } from '@/services/orders.admin';
 
 // UI e Ícones
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

@@ -1,10 +1,16 @@
 // app/api/mercadopago/webhook/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
-import { MercadoPagoConfig, Payment } from 'mercadopago';
-import { updateOrderStatus } from '@/services/orders';
-import type { Order } from '@/services/orders';
+import { Payment, MercadoPagoConfig } from 'mercadopago';
+import admin from 'firebase-admin';
 import crypto from 'crypto';
+import type { Order } from '@/services/orders.admin';
+
+// Inicializa Admin SDK (somente se ainda não estiver inicializado)
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+const db = admin.firestore();
 
 // Chave secreta para validar a assinatura do webhook
 const WEBHOOK_SECRET = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
@@ -17,20 +23,12 @@ const getClient = () => {
   return new MercadoPagoConfig({ accessToken });
 };
 
-// Função para validar a assinatura do webhook
+// Validação da assinatura do webhook
 const validateSignature = (request: Request, payload: string) => {
-  console.log('Iniciando validação da assinatura...');
-  if (!WEBHOOK_SECRET) {
-    console.warn('⚠️ A chave secreta do webhook não está configurada. A validação será ignorada (NÃO FAÇA ISTO EM PRODUÇÃO).');
-    return true;
-  }
+  if (!WEBHOOK_SECRET) return true; // Ignorar em dev (não faça em produção)
 
   const signatureHeader = request.headers.get('x-signature');
-  console.log(`Header x-signature recebido: ${signatureHeader}`);
-  if (!signatureHeader) {
-    console.error('❌ Header x-signature em falta.');
-    return false;
-  }
+  if (!signatureHeader) return false;
 
   const parts = signatureHeader.split(',').reduce((acc, part) => {
     const [key, value] = part.split('=');
@@ -40,37 +38,38 @@ const validateSignature = (request: Request, payload: string) => {
 
   const ts = parts['ts'];
   const hash = parts['v1'];
-  console.log(`Headers recebidos: { ts: '${ts}', v1: '${hash}' }`);
-
-  if (!ts || !hash) {
-    console.error("❌ Partes 'ts' ou 'v1' em falta no header da assinatura.");
-    return false;
-  }
+  if (!ts || !hash) return false;
 
   const manifest = `id:${JSON.parse(payload).data.id};request-id:${request.headers.get('x-request-id')};ts:${ts};`;
-  console.log(`Manifesto criado para validação: ${manifest}`);
 
   const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
   hmac.update(manifest);
   const expectedSignature = hmac.digest('hex');
-  console.log(`Assinatura esperada: ${expectedSignature}`);
-  console.log(`Assinatura recebida:   ${hash}`);
 
   try {
-    const isValid = crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(expectedSignature));
-    console.log(isValid ? '✅ Validação da assinatura bem-sucedida!' : '❌ ERRO: As assinaturas não coincidem.');
-    return isValid;
-  } catch (e) {
-    console.error('❌ Erro durante a comparação das assinaturas:', e);
+    return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(expectedSignature));
+  } catch {
     return false;
   }
 };
 
-export async function POST(request: Request) {
-  // Verificação inicial das variáveis de ambiente
+// Atualiza pedido usando Admin SDK (ignora regras)
+const updateOrderStatusAdmin = async (
+  orderId: string,
+  status: Order['status'],
+  paymentStatus?: Order['paymentStatus']
+) => {
+  const docRef = db.doc(`orders/${orderId}`);
+  await docRef.update({
+    status,
+    paymentStatus,
+    updatedAt: admin.firestore.Timestamp.now(),
+  });
+};
+
+export async function POST(request: NextRequest) {
   if (!process.env.MERCADO_PAGO_ACCESS_TOKEN || !process.env.MERCADO_PAGO_WEBHOOK_SECRET) {
-    console.error('❌ ERRO CRÍTICO: Variáveis de ambiente do Mercado Pago não configuradas no servidor.');
-    return NextResponse.json({ status: 'error', message: 'Configuração do servidor incompleta.' }, { status: 500 });
+    return NextResponse.json({ status: 'error', message: 'Configuração incompleta do servidor.' }, { status: 500 });
   }
 
   const requestBody = await request.text();
@@ -81,16 +80,12 @@ export async function POST(request: Request) {
 
   try {
     const body = JSON.parse(requestBody);
-    console.log('🔔 Webhook do Mercado Pago recebido e validado:', body);
 
     if (body.type === 'payment' && body.data?.id) {
       const paymentId = body.data.id;
       const client = getClient();
       const payment = new Payment(client);
-
-      console.log(`🔍 A buscar detalhes do pagamento com ID: ${paymentId}`);
       const paymentInfo = await payment.get({ id: paymentId });
-      console.log('✅ Detalhes do pagamento obtidos:', paymentInfo);
 
       if (paymentInfo && paymentInfo.external_reference) {
         const orderId = paymentInfo.external_reference;
@@ -114,18 +109,17 @@ export async function POST(request: Request) {
             break;
         }
 
-        console.log(`🔄 A atualizar pedido ${orderId} para status: ${newOrderStatus}`);
-        await updateOrderStatus(orderId, newOrderStatus, newPaymentStatus);
-        console.log(`✅ Pedido ${orderId} atualizado com sucesso!`);
+        await updateOrderStatusAdmin(orderId, newOrderStatus, newPaymentStatus);
+        console.log(`✅ Pedido ${orderId} atualizado para ${newOrderStatus}`);
       } else {
-        console.warn(`⚠️ Pagamento ${paymentId} recebido sem referência externa.`);
+        console.warn(`⚠️ Pagamento ${paymentId} sem referência externa.`);
       }
     }
 
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    console.error('❌ Erro no processamento do webhook:', error.message);
-    return NextResponse.json({ success: true });
+    console.error('❌ Erro no processamento do webhook:', error);
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
