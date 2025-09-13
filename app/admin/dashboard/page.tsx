@@ -193,7 +193,7 @@ export default function AdminDashboardPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(order.totalPrice)}
+                          {formatCurrency(order.total)}
                         </TableCell>
                       </TableRow>
                     );

@@ -183,8 +183,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Cupom inválido');
 
-      setCoupon(data.appliedCoupon);
-      toast.success(`Cupom "${data.coupon.code}" aplicado com sucesso!`);
+      setCoupon(data.coupon);
+
+      if (data.coupon.type === 'free_shipping') {
+        toast.success(
+          `Cupom "${data.coupon.code}" aplicado! Frete grátis ativado.`,
+        );
+      } else {
+        toast.success(`Cupom "${data.coupon.code}" aplicado com sucesso!`);
+      }
+
       return true;
     } catch (error: any) {
       toast.error(error.message);
@@ -215,7 +223,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       0,
     );
     const shippingInfo = calculateShipping(calculatedCartCount);
-    const calculatedShippingPrice = shippingInfo.price;
+    let calculatedShippingPrice = shippingInfo.price;
+
+    // Se houver cupom de frete grátis, zera o frete
+    if (coupon && coupon.type === 'free_shipping') {
+      calculatedShippingPrice = 0;
+    }
 
     let calculatedDiscount = 0;
     if (coupon) {
@@ -232,7 +245,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       0,
     );
 
-    const calculatedTotalPrice =
+    const totalPrice =
       calculatedSubtotal + calculatedShippingPrice - calculatedDiscount;
 
     return {
@@ -240,7 +253,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       subtotal: calculatedSubtotal,
       shippingPrice: calculatedShippingPrice,
       discountAmount: calculatedDiscount,
-      totalPrice: Math.max(0, calculatedTotalPrice),
+      totalPrice,
       totalCustomizationFee: calculatedTotalCustomizationFee,
     };
   }, [items, coupon]);

@@ -11,22 +11,13 @@ import {
   deleteCouponByCode,
   Coupon,
 } from '@/services/coupons';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Loader2, Trash2, Plus } from 'lucide-react';
 
-// UI e Ícones
+// UI
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Trash2, Loader2, Tag, Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -35,13 +26,17 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
+// --- Schema atualizado ---
 const couponSchema = z.object({
   code: z
     .string()
     .min(3, 'O código deve ter pelo menos 3 caracteres.')
     .toUpperCase(),
-  type: z.enum(['percentage', 'fixed']),
-  value: z.coerce.number().min(0.01, 'O valor deve ser maior que zero.'),
+  type: z.enum(['percentage', 'fixed', 'free_shipping']),
+  value: z.coerce
+    .number()
+    .min(0.01, 'O valor deve ser maior que zero.')
+    .optional(),
 });
 
 type CouponFormData = z.infer<typeof couponSchema>;
@@ -55,6 +50,7 @@ export default function AdminCouponsPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<CouponFormData>({
@@ -70,7 +66,7 @@ export default function AdminCouponsPage() {
     try {
       const allCoupons = await getAllCoupons();
       setCoupons(allCoupons);
-    } catch (error) {
+    } catch {
       toast.error('Erro ao carregar cupons.');
     } finally {
       setLoading(false);
@@ -79,12 +75,16 @@ export default function AdminCouponsPage() {
 
   const onSubmit = async (data: CouponFormData) => {
     try {
-      await createCoupon({ ...data, isActive: true });
+      await createCoupon({
+        ...data,
+        isActive: true,
+        value: data.type === 'free_shipping' ? 0 : data.value ?? 0,
+      });
       toast.success(`Cupom "${data.code}" criado com sucesso!`);
       reset();
       loadCoupons();
-    } catch (error) {
-      toast.error('Erro ao criar cupcuo.');
+    } catch {
+      toast.error('Erro ao criar cupom.');
     }
   };
 
@@ -93,10 +93,12 @@ export default function AdminCouponsPage() {
       await deleteCouponByCode(code);
       toast.success(`Cupom "${code}" apagado com sucesso!`);
       loadCoupons();
-    } catch (error) {
+    } catch {
       toast.error('Erro ao apagar cupom.');
     }
   };
+
+  const typeValue = watch('type');
 
   return (
     <div>
@@ -104,6 +106,7 @@ export default function AdminCouponsPage() {
         Gerenciar Cupons
       </h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Criar cupom */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
@@ -124,6 +127,7 @@ export default function AdminCouponsPage() {
                     </p>
                   )}
                 </div>
+
                 <div>
                   <Label>Tipo de Desconto</Label>
                   <select
@@ -132,40 +136,43 @@ export default function AdminCouponsPage() {
                   >
                     <option value="percentage">Percentagem (%)</option>
                     <option value="fixed">Valor Fixo (R$)</option>
+                    <option value="free_shipping">Frete Grátis</option>
                   </select>
-                  {errors.type && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.type.message}
-                    </p>
-                  )}
                 </div>
-                <div>
-                  <Label htmlFor="value">Valor</Label>
-                  <Input
-                    id="value"
-                    type="number"
-                    step="0.01"
-                    {...register('value')}
-                    placeholder="10"
-                  />
-                  {errors.value && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.value.message}
-                    </p>
-                  )}
-                </div>
+
+                {/* Mostrar campo de valor apenas para percentage ou fixed */}
+                {['percentage', 'fixed'].includes(typeValue) && (
+                  <div>
+                    <Label htmlFor="value">Valor</Label>
+                    <Input
+                      id="value"
+                      type="number"
+                      step="0.01"
+                      {...register('value')}
+                      placeholder="10"
+                    />
+                    {errors.value && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.value.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Plus className="w-4 h-4 mr-2" />
-                  )}{' '}
+                  )}
                   Criar Cupom
                 </Button>
               </form>
             </CardContent>
           </Card>
         </div>
+
+        {/* Listagem de cupons */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
@@ -188,7 +195,9 @@ export default function AdminCouponsPage() {
                         <p className="text-sm text-gray-600">
                           {coupon.type === 'percentage'
                             ? `${coupon.value}% de desconto`
-                            : `R$ ${coupon.value.toFixed(2)} de desconto`}
+                            : coupon.type === 'fixed'
+                            ? `R$ ${coupon.value.toFixed(2)} de desconto`
+                            : 'Frete grátis'}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
@@ -221,7 +230,7 @@ export default function AdminCouponsPage() {
         </div>
       </div>
 
-      {/* Dialog de confirmação de exclusão */}
+      {/* Dialog de exclusão */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
