@@ -16,6 +16,7 @@ import {
   Timestamp,
   deleteDoc,
   doc,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Order } from '@/services/orders';
@@ -213,6 +214,18 @@ export default function AdminPedidosPage() {
     }
   };
 
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), {
+        status: newStatus,
+        updatedAt: new Date(),
+      });
+      toast.success('Status atualizado!');
+    } catch (error) {
+      toast.error('Erro ao atualizar status.');
+    }
+  };
+
   if (!isLoaded || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -370,11 +383,27 @@ export default function AdminPedidosPage() {
                           </div>
                         </td>
                         <td className="py-4 px-6">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.className}`}
+                          <Select
+                            value={order.status}
+                            onValueChange={(value) =>
+                              handleStatusChange(order.id, value)
+                            }
                           >
-                            {statusInfo.text}
-                          </span>
+                            <SelectTrigger
+                              className={`w-32 ${
+                                statusMap[order.status]?.className
+                              }`}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.keys(statusMap).map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  {statusMap[status].text}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </td>
                         <td className="py-4 px-6">
                           <span
