@@ -349,7 +349,7 @@ export default function PedidoDetailPage() {
                 <div className="flex justify-between font-bold text-base">
                   <span className="text-gray-900">Total</span>
                   <span className="text-gray-900">
-                    {formatCurrency(order.totalPrice)}
+                    {formatCurrency(order.total)}
                   </span>
                 </div>
               </div>

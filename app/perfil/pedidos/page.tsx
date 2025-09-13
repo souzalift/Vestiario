@@ -286,7 +286,7 @@ export default function MeusPedidosPage() {
                     <div>
                       <span className="text-gray-600">Total:</span>
                       <span className="font-bold text-lg text-gray-900 ml-2">
-                        {formatCurrency(order.totalPrice)}
+                        {formatCurrency(order.total)}
                       </span>
                     </div>
                     <div className="flex gap-2">
