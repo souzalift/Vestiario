@@ -176,6 +176,7 @@ export default function ProductPage() {
                       alt={`${product.title} thumbnail ${index + 1}`}
                       fill
                       className="object-cover"
+                      priority
                     />
                   </Button>
                 ))}
