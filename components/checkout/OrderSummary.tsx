@@ -1,4 +1,5 @@
-// components/checkout/OrderSummary.tsx
+'use client';
+
 import { CartItem } from '@/contexts/CartContext';
 import {
   Card,
@@ -9,7 +10,9 @@ import {
 } from '@/components/ui/card';
 import PaymentButton from './PaymentButton';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { X, Tag, Truck } from 'lucide-react';
 
 export interface OrderSummaryProps {
   cartItems: CartItem[];
@@ -19,7 +22,9 @@ export interface OrderSummaryProps {
   totalPrice: number;
   processingPayment: boolean;
   onPay: () => Promise<void>;
-  discountAmount?: number; // Adicione esta linha
+  discountAmount?: number;
+  appliedCouponCode?: string;
+  onRemoveCoupon?: () => void;
 }
 
 export function OrderSummary({
@@ -30,8 +35,9 @@ export function OrderSummary({
   totalPrice,
   processingPayment,
   onPay,
-
-  discountAmount, // Adicione esta linha
+  discountAmount,
+  appliedCouponCode,
+  onRemoveCoupon,
 }: OrderSummaryProps) {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('pt-BR', {
@@ -40,7 +46,7 @@ export function OrderSummary({
     }).format(price);
 
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
         <CardTitle>Resumo do Pedido</CardTitle>
       </CardHeader>
@@ -85,19 +91,30 @@ export function OrderSummary({
           ))}
         </div>
 
+        {appliedCouponCode && discountAmount && discountAmount > 0 && (
+          <div className="flex justify-between items-center text-sm text-green-700 font-medium my-2 p-2 bg-green-50 rounded-md">
+            <div className="flex items-center gap-1">
+              <Tag className="w-4 h-4" />
+              Cupom "{appliedCouponCode}" aplicado
+            </div>
+            {onRemoveCoupon && (
+              <Button
+                onClick={onRemoveCoupon}
+                className="p-1 rounded hover:bg-green-100"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+            <span className="ml-auto">-{formatPrice(discountAmount)}</span>
+          </div>
+        )}
+
         <Separator className="my-4" />
 
         <div className="flex justify-between text-sm">
           <span>Subtotal</span>
           <span>{formatPrice(subtotal)}</span>
         </div>
-
-        {discountAmount && discountAmount > 0 && (
-          <div className="flex justify-between text-sm text-green-700 font-medium">
-            <span>Cupom:</span>
-            <span>-{formatPrice(discountAmount)}</span>
-          </div>
-        )}
 
         {totalCustomizationFee > 0 && (
           <div className="flex justify-between text-sm">
@@ -108,8 +125,15 @@ export function OrderSummary({
 
         <div className="flex justify-between text-sm">
           <span>Frete</span>
-          <span>
-            {shippingPrice === 0 ? 'Grátis' : formatPrice(shippingPrice)}
+          <span className="flex items-center gap-1">
+            {shippingPrice === 0 ? (
+              <>
+                <Truck className="w-4 h-4 text-green-600" />
+                <span className="font-semibold text-green-600">Grátis</span>
+              </>
+            ) : (
+              formatPrice(shippingPrice)
+            )}
           </span>
         </div>
 
@@ -120,10 +144,13 @@ export function OrderSummary({
           <span>{formatPrice(totalPrice)}</span>
         </div>
       </CardContent>
+
       <CardFooter>
-        <PaymentButton onClick={onPay} />
+        {' '}
+        <PaymentButton onClick={onPay} />{' '}
       </CardFooter>
     </Card>
   );
 }
+
 export default OrderSummary;

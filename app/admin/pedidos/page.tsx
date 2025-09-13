@@ -384,7 +384,7 @@ export default function AdminPedidosPage() {
                           </span>
                         </td>
                         <td className="py-4 px-6 font-medium text-gray-900">
-                          {formatCurrency(order.totalPrice)}
+                          {formatCurrency(order.total)}
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2 justify-end">

@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import type { CartItem } from '@/contexts/CartContext';
+import { Coupon } from '@/services/coupons';
 
 const FREE_SHIPPING_THRESHOLD = 4;
 
@@ -37,7 +38,6 @@ export default function CartPage() {
     items: cartItems,
     removeItem,
     updateQuantity,
-    clearCart,
     cartCount,
     subtotal,
     shippingPrice,
@@ -49,7 +49,7 @@ export default function CartPage() {
   } = useCart();
 
   const { addFavorite, isFavorite } = useFavorites();
-
+  const coupon = appliedCoupon as Coupon | null;
   const [isClient, setIsClient] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
@@ -351,9 +351,15 @@ export default function CartPage() {
                     <div className="flex justify-between">
                       <span>Frete</span>
                       <span>
-                        {shippingPrice === 0
-                          ? 'Grátis'
-                          : formatPrice(shippingPrice)}
+                        {coupon?.type === 'free_shipping' ? (
+                          <span className="text-green-600 font-semibold">
+                            Grátis
+                          </span>
+                        ) : shippingPrice === 0 ? (
+                          'Grátis'
+                        ) : (
+                          formatPrice(shippingPrice)
+                        )}
                       </span>
                     </div>
                     <Separator />

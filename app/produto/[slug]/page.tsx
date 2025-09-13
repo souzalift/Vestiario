@@ -93,9 +93,7 @@ export default function ProductPage() {
 
     addItem(productData, options);
 
-    setTimeout(() => {
-      router.push('/carrinho');
-    }, 800);
+    setIsAdding(false);
   };
 
   const handleToggleFavorite = () => {
@@ -106,7 +104,7 @@ export default function ProductPage() {
       toast.info(`${product.title} removido dos favoritos.`);
     } else {
       addFavorite(product.id);
-      toast.success(`${product.title} adicionado aos favoritos!`);
+      toast.success(`${product.title} adicionado favoritos.`);
     }
   };
 
