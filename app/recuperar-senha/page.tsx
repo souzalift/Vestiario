@@ -1,9 +1,9 @@
-// app/forgot-password/page.tsx
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -13,15 +13,28 @@ export default function ForgotPasswordPage() {
   const [emailSent, setEmailSent] = useState(false);
   const { resetPassword } = useAuth();
 
+  // Validação simples de email
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidEmail(email)) {
+      toast.error('Por favor, insira um email válido.');
+      return;
+    }
     setLoading(true);
 
     try {
       await resetPassword(email);
       setEmailSent(true);
+      toast.success('Email de recuperação enviado!');
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(
+        error?.message === 'Firebase: Error (auth/user-not-found).'
+          ? 'Email não encontrado.'
+          : error?.message || 'Erro ao enviar email de recuperação.',
+      );
     } finally {
       setLoading(false);
     }
@@ -40,6 +53,7 @@ export default function ForgotPasswordPage() {
             </h2>
             <p className="text-gray-600 mb-6">
               Enviamos um link de recuperação para <strong>{email}</strong>.
+              <br />
               Verifique sua caixa de entrada e spam.
             </p>
             <Link
@@ -70,7 +84,11 @@ export default function ForgotPasswordPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl rounded-2xl sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form
+            className="space-y-6"
+            onSubmit={handleSubmit}
+            autoComplete="off"
+          >
             <div>
               <label
                 htmlFor="email"
@@ -89,19 +107,21 @@ export default function ForgotPasswordPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none block w-full px-3 py-3 pl-10 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                   placeholder="seu@email.com"
+                  disabled={loading}
+                  aria-label="Email para recuperação de senha"
                 />
-                <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
               </div>
             </div>
 
             <div>
-              <button
+              <Button
                 type="submit"
-                disabled={loading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={loading || !email}
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Enviando...' : 'Enviar link de recuperação'}
-              </button>
+              </Button>
             </div>
           </form>
 
