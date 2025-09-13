@@ -150,7 +150,7 @@ export default function AdminDashboardPage() {
                     <TableHead>Pedido</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Pagamento</TableHead>
+
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -158,12 +158,6 @@ export default function AdminDashboardPage() {
                   {data.recentOrders.map((order: Order) => {
                     const statusInfo = statusMap[order.status] || {
                       text: order.status,
-                      className: 'bg-gray-100 text-gray-800',
-                    };
-                    const paymentInfo = paymentStatusMap[
-                      order.paymentStatus ?? ''
-                    ] || {
-                      text: order.paymentStatus || 'N/A',
                       className: 'bg-gray-100 text-gray-800',
                     };
                     const nomeCliente =
@@ -183,13 +177,6 @@ export default function AdminDashboardPage() {
                             className={`px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.className}`}
                           >
                             {statusInfo.text}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${paymentInfo.className}`}
-                          >
-                            {paymentInfo.text}
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-medium">
