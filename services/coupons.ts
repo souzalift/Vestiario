@@ -16,9 +16,9 @@ import { db } from '@/lib/firebase';
 
 export interface Coupon {
   id: string;
-  code: string; // ex: BEMVINDO10
-  type: 'percentage' | 'fixed'; // Desconto percentual ou de valor fixo
-  value: number; // O valor do desconto (ex: 10 para 10% ou 20 para R$ 20,00)
+  code: string;
+  type: 'percentage' | 'fixed' | 'free_shipping';
+  value: number;
   isActive: boolean;
   expiryDate?: Date;
   createdAt: Date;

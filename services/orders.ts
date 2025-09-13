@@ -85,8 +85,10 @@ type CreateOrderData = Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'userId'> 
 
 // Gera um ID do pedido no padrão V-XXXXXX
 export function generateOrderNumber() {
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `V-${random}`;
+  const randomDigits = Math.floor(Math.random() * 1000000)
+    .toString()
+    .padStart(6, '0'); // garante sempre 6 dígitos
+  return `V-${randomDigits}`;
 }
 
 // --- MELHORIA: Função centralizada para transformar dados do Firestore ---
