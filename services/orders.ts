@@ -257,7 +257,7 @@ export const getDashboardData = async (orders: { id: string; }[]) => {
     const paidOrders = allOrders.filter(order => order.paymentStatus === 'paid');
     const paidOrdersCount = paidOrders.length;
 
-    const totalRevenue = paidOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+    const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
 
     const averageTicket = paidOrdersCount > 0 ? totalRevenue / paidOrdersCount : 0;
 

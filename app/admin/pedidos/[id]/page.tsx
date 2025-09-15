@@ -111,7 +111,7 @@ export default async function AdminPedidoDetailPage({
                 <div>
                   <p className="font-semibold text-gray-600">Total Pago</p>
                   <p className="text-gray-900 font-bold">
-                    {formatCurrency(order.totalPrice)}
+                    {formatCurrency(order.total)}
                   </p>
                 </div>
               </CardContent>
@@ -219,7 +219,7 @@ export default async function AdminPedidoDetailPage({
                   <div className="flex justify-between font-bold text-base">
                     <span className="text-gray-900">Total</span>
                     <span className="text-gray-900">
-                      {formatCurrency(order.totalPrice)}
+                      {formatCurrency(order.total)}
                     </span>
                   </div>
                 </div>
