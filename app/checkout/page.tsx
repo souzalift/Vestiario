@@ -34,6 +34,7 @@ interface CustomerData {
   email: string;
   phone: string;
   document: string;
+  birthDate: string;
 }
 
 export default function CheckoutPage() {
@@ -56,6 +57,7 @@ export default function CheckoutPage() {
     email: '',
     phone: '',
     document: '',
+    birthDate: '',
   });
   const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>({
     zipCode: '',
@@ -94,6 +96,7 @@ export default function CheckoutPage() {
         email: userProfile.email || '',
         phone: userProfile.phoneNumber || '',
         document: userProfile.cpf || '',
+        birthDate: userProfile.birthDate || '',
       });
       if (userProfile.address) {
         setDeliveryAddress({
@@ -165,6 +168,7 @@ export default function CheckoutPage() {
         phoneNumber: customerData.phone,
         cpf: customerData.document,
         address: deliveryAddress,
+        birthDate: customerData.birthDate,
       });
 
       const orderPayload = {

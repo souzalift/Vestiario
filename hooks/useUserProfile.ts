@@ -28,6 +28,7 @@ interface UserProfile {
   lastName?: string;
   photoURL: string | null;
   phoneNumber?: string;
+  birthDate: string;
   address?: {
     street?: string;
     city?: string;
@@ -273,6 +274,7 @@ export function UserProfile() {
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
         phoneNumber: userData.phoneNumber || '',
+        birthDate: userData.birthDate || '',
         address: userData.address || {},
         preferences: {
           newsletter: true,

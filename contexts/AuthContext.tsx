@@ -38,6 +38,7 @@ interface UserProfile {
   lastName?: string;
   photoURL: string | null;
   phoneNumber?: string;
+  birthDate: string; // ADICIONADO
   cpf: string; // ADICIONADO
   address?: {
     street?: string;

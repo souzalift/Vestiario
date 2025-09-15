@@ -36,6 +36,7 @@ export interface Customer {
   email: string;
   phone: string;
   document: string;
+  birthDate: string;
 }
 
 export interface Address {

@@ -8,13 +8,12 @@ import { ptBR } from 'date-fns/locale';
 // UI e Ícones
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+
 import {
   ArrowLeft,
   Edit,
   User,
   MapPin,
-  Package,
   FileText,
   ShoppingCart,
 } from 'lucide-react';
@@ -140,6 +139,12 @@ export default async function AdminPedidoDetailPage({
                 <div>
                   <p className="font-semibold text-gray-600">CPF</p>
                   <p className="text-gray-900">{order.customer.document}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-600">
+                    Data de Nascimento
+                  </p>
+                  <p className="text-gray-900">{order.customer.birthDate}</p>
                 </div>
               </CardContent>
             </Card>

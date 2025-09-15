@@ -48,6 +48,9 @@ interface UserProfile {
   emailVerified: boolean;
   createdAt: Date;
   lastLoginAt?: Date;
+  phoneNumber?: string;
+  cpf: string;
+  birthDate: string;
 }
 
 type SortField =

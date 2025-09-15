@@ -11,6 +11,7 @@ export interface CustomerFormProps {
     email: string;
     phone: string;
     document: string;
+    birthDate: string;
   };
   setCustomerData: Dispatch<
     SetStateAction<{
@@ -19,6 +20,7 @@ export interface CustomerFormProps {
       email: string;
       phone: string;
       document: string;
+      birthDate: string;
     }>
   >;
 }
@@ -42,7 +44,10 @@ export function CustomerForm({
               placeholder="Nome"
               value={customerData.firstName}
               onChange={(e) =>
-                setCustomerData({ ...customerData, firstName: e.target.value })
+                setCustomerData({
+                  ...customerData,
+                  firstName: e.target.value,
+                })
               }
               className="w-full"
               autoComplete="given-name"
@@ -56,13 +61,16 @@ export function CustomerForm({
               placeholder="Sobrenome"
               value={customerData.lastName}
               onChange={(e) =>
-                setCustomerData({ ...customerData, lastName: e.target.value })
+                setCustomerData({
+                  ...customerData,
+                  lastName: e.target.value,
+                })
               }
               className="w-full"
               autoComplete="family-name"
             />
           </div>
-          <div className="md:col-span-2">
+          <div>
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
@@ -70,10 +78,30 @@ export function CustomerForm({
               placeholder="Email"
               value={customerData.email}
               onChange={(e) =>
-                setCustomerData({ ...customerData, email: e.target.value })
+                setCustomerData({
+                  ...customerData,
+                  email: e.target.value,
+                })
               }
               className="w-full"
               autoComplete="email"
+            />
+          </div>
+          <div>
+            <Label htmlFor="birthDate">Data de Nascimento</Label>
+            <Input
+              id="birthDate"
+              type="date"
+              placeholder="Data de Nascimento"
+              value={customerData.birthDate}
+              onChange={(e) =>
+                setCustomerData({
+                  ...customerData,
+                  birthDate: e.target.value,
+                })
+              }
+              className="w-full"
+              autoComplete="bday"
             />
           </div>
           <div>
@@ -84,7 +112,10 @@ export function CustomerForm({
               placeholder="Telefone"
               value={customerData.phone}
               onChange={(e) =>
-                setCustomerData({ ...customerData, phone: e.target.value })
+                setCustomerData({
+                  ...customerData,
+                  phone: e.target.value,
+                })
               }
               className="w-full"
               autoComplete="tel"
@@ -98,7 +129,10 @@ export function CustomerForm({
               placeholder="CPF"
               value={customerData.document}
               onChange={(e) =>
-                setCustomerData({ ...customerData, document: e.target.value })
+                setCustomerData({
+                  ...customerData,
+                  document: e.target.value,
+                })
               }
               className="w-full"
               autoComplete="off"
