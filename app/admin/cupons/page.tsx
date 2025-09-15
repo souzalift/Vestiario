@@ -483,7 +483,7 @@ export default function AdminCouponsPage() {
                       {currentCoupons.map((coupon) => (
                         <div
                           key={coupon.code}
-                          className="flex items-start p-4 bg-white rounded-md border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                          className="flex flex-col sm:flex-row items-start sm:items-center p-4 bg-white rounded-md border border-gray-200 shadow-sm hover:shadow-md transition-shadow gap-3"
                         >
                           <div className="flex items-start mr-3 mt-1">
                             <div
@@ -498,7 +498,7 @@ export default function AdminCouponsPage() {
                             </div>
                           </div>
 
-                          <div className="flex-1">
+                          <div className="flex-1 w-full">
                             <div className="flex flex-wrap items-center gap-2 mb-2">
                               <p className="font-mono font-bold text-lg text-gray-900">
                                 {coupon.code}
@@ -534,16 +534,9 @@ export default function AdminCouponsPage() {
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleEditCoupon(coupon)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-
-                            <div className="flex items-center space-x-2 mr-2">
+                          {/* Botões: empilhados no mobile, em linha no desktop */}
+                          <div className="flex flex-row items-stretch sm:items-center gap-2 mt-3 sm:mt-0">
+                            <div className="flex items-center space-x-2 sm:space-x-2">
                               <Switch
                                 checked={coupon.isActive}
                                 onCheckedChange={() =>
@@ -551,6 +544,14 @@ export default function AdminCouponsPage() {
                                 }
                               />
                             </div>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleEditCoupon(coupon)}
+                              className="w-8 h-8"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
 
                             <Button
                               variant="destructive"
@@ -559,6 +560,7 @@ export default function AdminCouponsPage() {
                                 setCouponToDelete(coupon);
                                 setDeleteDialogOpen(true);
                               }}
+                              className="w-8 h-8"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

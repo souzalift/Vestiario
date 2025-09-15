@@ -26,6 +26,7 @@ import {
   setDoc,
   serverTimestamp,
   Timestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -42,6 +43,10 @@ import {
   Star,
   Upload,
   AlertTriangle,
+  Filter,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -60,10 +65,9 @@ interface Product {
   league?: string;
   createdAt: Date;
   slug: string;
-  isActive?: boolean; // <-- Adicione esta linha
+  isActive?: boolean;
 }
 
-// Novo tipo para o estado de exclusão
 interface DeletionState {
   type: 'single' | 'multiple' | null;
   product?: { id: string; title: string };
@@ -82,7 +86,10 @@ export default function AdminProductsPage() {
   const [leagues, setLeagues] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
+  const [updatingProducts, setUpdatingProducts] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 12;
 
   // Estados para o modal de confirmação
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -111,6 +118,7 @@ export default function AdminProductsPage() {
               id: doc.id,
               ...data,
               createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+              isActive: data.isActive !== false, // Default to true if not set
             } as Product;
           });
 
@@ -136,20 +144,37 @@ export default function AdminProductsPage() {
     }
   }, [isLoaded, isAdmin, router]);
 
+  // Estatísticas
+  const productStats = useMemo(() => {
+    const totalProducts = products.length;
+    const activeProducts = products.filter((p) => p.isActive !== false).length;
+    const featuredProducts = products.filter((p) => p.featured).length;
+
+    return { totalProducts, activeProducts, featuredProducts };
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
+
+    // Aplicar filtros
     if (searchTerm) {
       filtered = filtered.filter(
         (product) =>
           product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.league?.toLowerCase().includes(searchTerm.toLowerCase()),
+          product.description
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          product.league?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.brand?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
+
     if (selectedLeague !== 'all') {
       filtered = filtered.filter(
         (product) => product.league === selectedLeague,
       );
     }
+
     if (activeFilter !== 'all') {
       filtered = filtered.filter((product) =>
         activeFilter === 'active'
@@ -157,6 +182,8 @@ export default function AdminProductsPage() {
           : product.isActive === false,
       );
     }
+
+    // Aplicar ordenação
     switch (sortBy) {
       case 'oldest':
         filtered.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -167,16 +194,29 @@ export default function AdminProductsPage() {
       case 'price-low':
         filtered.sort((a, b) => a.price - b.price);
         break;
-      default:
+      case 'name':
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      default: // 'newest'
+        filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         break;
     }
+
     return filtered;
   }, [products, searchTerm, selectedLeague, sortBy, activeFilter]);
+
+  // Paginação
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * productsPerPage;
+    return filteredProducts.slice(startIndex, startIndex + productsPerPage);
+  }, [filteredProducts, currentPage, productsPerPage]);
 
   const handleSelect = (id: string) =>
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((_id) => _id !== id) : [...prev, id],
     );
+
   const handleSelectAll = () =>
     setSelectedIds(
       selectedIds.length === filteredProducts.length
@@ -200,15 +240,21 @@ export default function AdminProductsPage() {
   const handleConfirmDelete = async () => {
     if (deletionState.type === 'single' && deletionState.product) {
       try {
+        setUpdatingProducts((prev) => [...prev, deletionState.product!.id]);
         await deleteDoc(doc(db, 'products', deletionState.product.id));
         toast.success(
           `Produto "${deletionState.product.title}" excluído com sucesso!`,
         );
       } catch (error) {
         toast.error('Erro ao excluir produto.');
+      } finally {
+        setUpdatingProducts((prev) =>
+          prev.filter((id) => id !== deletionState.product!.id),
+        );
       }
     } else if (deletionState.type === 'multiple') {
       try {
+        setUpdatingProducts((prev) => [...prev, ...selectedIds]);
         await Promise.all(
           selectedIds.map((id) => deleteDoc(doc(db, 'products', id))),
         );
@@ -216,10 +262,54 @@ export default function AdminProductsPage() {
         setSelectedIds([]);
       } catch (error) {
         toast.error('Erro ao excluir produtos.');
+      } finally {
+        setUpdatingProducts((prev) =>
+          prev.filter((id) => !selectedIds.includes(id)),
+        );
       }
     }
     setIsConfirmModalOpen(false);
     setDeletionState({ type: null });
+  };
+
+  const toggleProductStatus = async (
+    productId: string,
+    currentStatus: boolean,
+  ) => {
+    try {
+      setUpdatingProducts((prev) => [...prev, productId]);
+      await updateDoc(doc(db, 'products', productId), {
+        isActive: !currentStatus,
+        updatedAt: serverTimestamp(),
+      });
+      toast.success(
+        `Produto ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`,
+      );
+    } catch (error) {
+      toast.error('Erro ao alterar status do produto.');
+    } finally {
+      setUpdatingProducts((prev) => prev.filter((id) => id !== productId));
+    }
+  };
+
+  const toggleFeaturedStatus = async (
+    productId: string,
+    currentStatus: boolean,
+  ) => {
+    try {
+      setUpdatingProducts((prev) => [...prev, productId]);
+      await updateDoc(doc(db, 'products', productId), {
+        featured: !currentStatus,
+        updatedAt: serverTimestamp(),
+      });
+      toast.success(
+        `Produto ${!currentStatus ? 'destacado' : 'removido dos destaques'}!`,
+      );
+    } catch (error) {
+      toast.error('Erro ao alterar status de destaque.');
+    } finally {
+      setUpdatingProducts((prev) => prev.filter((id) => id !== productId));
+    }
   };
 
   const importProductsFromJson = async (file: File) => {
@@ -227,23 +317,37 @@ export default function AdminProductsPage() {
     try {
       const text = await file.text();
       const productsToImport = JSON.parse(text);
-      if (!Array.isArray(productsToImport))
+
+      if (!Array.isArray(productsToImport)) {
         throw new Error('O ficheiro JSON deve conter uma lista de produtos.');
-      const importPromises = productsToImport.map((product) => {
-        if (!product.slug) return Promise.resolve();
-        return setDoc(
-          doc(db, 'products', product.slug),
-          {
-            ...product,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true },
-        );
-      });
-      await Promise.all(importPromises);
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const product of productsToImport) {
+        try {
+          if (!product.slug) continue;
+
+          await setDoc(
+            doc(db, 'products', product.slug),
+            {
+              ...product,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true },
+          );
+
+          successCount++;
+        } catch (err) {
+          console.error(`Erro ao importar produto ${product.title}:`, err);
+          errorCount++;
+        }
+      }
+
       toast.success(
-        `Importação concluída! (${productsToImport.length} produtos processados)`,
+        `Importação concluída! ${successCount} produtos processados com sucesso, ${errorCount} com erro.`,
       );
     } catch (err: any) {
       toast.error('Erro ao importar produtos: ' + err.message);
@@ -258,12 +362,23 @@ export default function AdminProductsPage() {
       style: 'currency',
       currency: 'BRL',
     }).format(price);
+
   const formatDate = (date: Date) =>
-    date ? format(date, 'dd/MM/yyyy') : 'N/A';
+    date ? format(date, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
+
+  const hasActiveFilters =
+    searchTerm || selectedLeague !== 'all' || activeFilter !== 'all';
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedLeague('all');
+    setActiveFilter('all');
+    setCurrentPage(1);
+  };
 
   if (!isLoaded || loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center min-h-[400px]">
         <Loader2 className="w-12 h-12 animate-spin text-gray-600" />
       </div>
     );
@@ -271,94 +386,143 @@ export default function AdminProductsPage() {
 
   return (
     <>
-      <div>
-        {/* ... (código do cabeçalho e filtros) ... */}
-        <div className="flex items-center justify-between mb-8">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               Gerenciar Produtos
             </h1>
-            <p className="text-gray-600 mt-1">
-              {filteredProducts.length} de {products.length} produtos
-            </p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => router.push('/admin/produtos/novo')}>
-              <Plus className="w-4 h-4 mr-2" /> Novo Produto
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={importing}
-            >
-              {importing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Upload className="w-4 h-4 mr-2" />
-              )}
-              Importar JSON
-            </Button>
-            <Input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="application/json"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) importProductsFromJson(file);
-              }}
-            />
+
+          {/* Estatísticas */}
+          <div className="flex flex-wrap gap-4">
+            <div className="bg-blue-50 px-3 py-2 rounded-lg">
+              <p className="text-blue-800 font-medium">
+                {productStats.totalProducts}
+              </p>
+              <p className="text-blue-600 text-sm">Total</p>
+            </div>
+            <div className="bg-green-50 px-3 py-2 rounded-lg">
+              <p className="text-green-800 font-medium">
+                {productStats.activeProducts}
+              </p>
+              <p className="text-green-600 text-sm">Ativos</p>
+            </div>
+            <div className="bg-amber-50 px-3 py-2 rounded-lg">
+              <p className="text-amber-800 font-medium">
+                {productStats.featuredProducts}
+              </p>
+              <p className="text-amber-600 text-sm">Destaques</p>
+            </div>
           </div>
         </div>
-        <Card className="mb-6">
+
+        {/* Botões de ação */}
+        <div className="flex gap-2">
+          <Button
+            onClick={() => router.push('/admin/produtos/novo')}
+            className="flex-1 sm:flex-none"
+          >
+            <Plus className="w-4 h-4 mr-2" /> Novo Produto
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="flex-1 sm:flex-none"
+          >
+            {importing ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4 mr-2" />
+            )}
+            Importar JSON
+          </Button>
+          <Input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="application/json"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) importProductsFromJson(file);
+            }}
+          />
+        </div>
+
+        {/* Filtros */}
+        <Card>
           <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 relative">
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+              <div className="flex-1 relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Buscar produtos..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="pl-10"
                 />
               </div>
-              <Select value={selectedLeague} onValueChange={setSelectedLeague}>
-                <SelectTrigger className="w-full lg:w-48">
-                  <SelectValue placeholder="Liga" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as ligas</SelectItem>
-                  {leagues.map((league) => (
-                    <SelectItem key={league} value={league}>
-                      {league}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full lg:w-48">
-                  <SelectValue placeholder="Ordenar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Mais recentes</SelectItem>
-                  <SelectItem value="oldest">Mais antigos</SelectItem>
-                  <SelectItem value="price-high">Maior preço</SelectItem>
-                  <SelectItem value="price-low">Menor preço</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={activeFilter}
-                onValueChange={(v) => setActiveFilter(v as any)}
-              >
-                <SelectTrigger className="w-full lg:w-48">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="active">Ativos</SelectItem>
-                  <SelectItem value="inactive">Inativos</SelectItem>
-                </SelectContent>
-              </Select>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:w-auto">
+                <Select
+                  value={selectedLeague}
+                  onValueChange={(value) => {
+                    setSelectedLeague(value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger>
+                    <div className="flex items-center">
+                      <Filter className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Liga" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as ligas</SelectItem>
+                    {leagues.map((league) => (
+                      <SelectItem key={league} value={league}>
+                        {league}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ordenar por" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Mais recentes</SelectItem>
+                    <SelectItem value="oldest">Mais antigos</SelectItem>
+                    <SelectItem value="price-high">Maior preço</SelectItem>
+                    <SelectItem value="price-low">Menor preço</SelectItem>
+                    <SelectItem value="name">Nome (A-Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={activeFilter}
+                  onValueChange={(v) => {
+                    setActiveFilter(v as any);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="active">Ativos</SelectItem>
+                    <SelectItem value="inactive">Inativos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex border rounded-lg overflow-hidden">
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
@@ -378,10 +542,62 @@ export default function AdminProductsPage() {
                 </Button>
               </div>
             </div>
+
+            {/* Indicador de filtros ativos */}
+            {hasActiveFilters && (
+              <div className="mt-4 flex flex-wrap gap-2 items-center">
+                <span className="text-sm text-gray-600">Filtros ativos:</span>
+                {searchTerm && (
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    Busca: {searchTerm}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => setSearchTerm('')}
+                    />
+                  </Badge>
+                )}
+                {selectedLeague !== 'all' && (
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    Liga: {selectedLeague}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => setSelectedLeague('all')}
+                    />
+                  </Badge>
+                )}
+                {activeFilter !== 'all' && (
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    Status: {activeFilter === 'active' ? 'Ativo' : 'Inativo'}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => setActiveFilter('all')}
+                    />
+                  </Badge>
+                )}
+                <Button
+                  variant="link"
+                  onClick={clearFilters}
+                  className="h-6 px-2 text-sm"
+                >
+                  Limpar todos
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Ações em lote */}
         {viewMode === 'list' && selectedIds.length > 0 && (
-          <div className="mb-4 flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="destructive" onClick={openDeleteMultipleModal}>
               <Trash2 className="w-4 h-4 mr-2" /> Excluir Selecionados (
               {selectedIds.length})
@@ -390,6 +606,7 @@ export default function AdminProductsPage() {
               variant="outline"
               onClick={async () => {
                 try {
+                  setUpdatingProducts((prev) => [...prev, ...selectedIds]);
                   await Promise.all(
                     selectedIds.map((id) =>
                       setDoc(
@@ -403,13 +620,46 @@ export default function AdminProductsPage() {
                   setSelectedIds([]);
                 } catch (error) {
                   toast.error('Erro ao desativar produtos.');
+                } finally {
+                  setUpdatingProducts((prev) =>
+                    prev.filter((id) => !selectedIds.includes(id)),
+                  );
                 }
               }}
             >
               Desativar Selecionados
             </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  setUpdatingProducts((prev) => [...prev, ...selectedIds]);
+                  await Promise.all(
+                    selectedIds.map((id) =>
+                      setDoc(
+                        doc(db, 'products', id),
+                        { isActive: true, updatedAt: serverTimestamp() },
+                        { merge: true },
+                      ),
+                    ),
+                  );
+                  toast.success('Produtos ativados com sucesso!');
+                  setSelectedIds([]);
+                } catch (error) {
+                  toast.error('Erro ao ativar produtos.');
+                } finally {
+                  setUpdatingProducts((prev) =>
+                    prev.filter((id) => !selectedIds.includes(id)),
+                  );
+                }
+              }}
+            >
+              Ativar Selecionados
+            </Button>
           </div>
         )}
+
+        {/* Visualização em lista */}
         {viewMode === 'list' ? (
           <Card>
             <CardContent className="p-0">
@@ -417,7 +667,7 @@ export default function AdminProductsPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="py-4 px-6">
+                      <th className="py-4 px-6 w-12">
                         <Input
                           type="checkbox"
                           className="h-4 w-4"
@@ -452,7 +702,7 @@ export default function AdminProductsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.map((product) => (
+                    {paginatedProducts.map((product) => (
                       <tr
                         key={product.id}
                         className="border-t hover:bg-gray-50"
@@ -463,6 +713,7 @@ export default function AdminProductsPage() {
                             className="h-4 w-4"
                             checked={selectedIds.includes(product.id)}
                             onChange={() => handleSelect(product.id)}
+                            disabled={updatingProducts.includes(product.id)}
                           />
                         </td>
                         <td className="py-4 px-6">
@@ -487,35 +738,67 @@ export default function AdminProductsPage() {
                               <h3 className="font-medium text-gray-900 line-clamp-2 max-w-[300px]">
                                 {product.title}
                               </h3>
+                              <p className="text-sm text-gray-600 line-clamp-1 max-w-[300px]">
+                                {product.brand}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="py-4 px-6">
-                          <Badge
-                            variant="secondary"
-                            className="bg-gray-100 text-gray-700"
-                          >
-                            {product.league}
-                          </Badge>
+                          {product.league && (
+                            <Badge
+                              variant="secondary"
+                              className="bg-gray-100 text-gray-700"
+                            >
+                              {product.league}
+                            </Badge>
+                          )}
                         </td>
                         <td className="py-4 px-6 font-medium text-gray-900">
                           {formatPrice(product.price)}
                         </td>
                         <td className="py-4 px-6 text-center">
-                          {product.featured && (
-                            <Star className="w-5 h-5 text-yellow-500 mx-auto" />
-                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              toggleFeaturedStatus(product.id, product.featured)
+                            }
+                            disabled={updatingProducts.includes(product.id)}
+                          >
+                            {updatingProducts.includes(product.id) ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : product.featured ? (
+                              <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                            ) : (
+                              <Star className="w-5 h-5 text-gray-400" />
+                            )}
+                          </Button>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          {product.isActive !== false ? (
-                            <Badge className="bg-green-100 text-green-700">
-                              Sim
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-red-100 text-red-700">
-                              Não
-                            </Badge>
-                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              toggleProductStatus(
+                                product.id,
+                                product.isActive !== false,
+                              )
+                            }
+                            disabled={updatingProducts.includes(product.id)}
+                          >
+                            {updatingProducts.includes(product.id) ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : product.isActive !== false ? (
+                              <Badge className="bg-green-100 text-green-700">
+                                Sim
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-red-100 text-red-700">
+                                Não
+                              </Badge>
+                            )}
+                          </Button>
                         </td>
                         <td className="py-4 px-6 text-sm text-gray-600">
                           {formatDate(product.createdAt)}
@@ -523,7 +806,10 @@ export default function AdminProductsPage() {
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2 justify-end">
                             <Button size="icon" variant="outline" asChild>
-                              <Link href={`/produto/${product.slug}`}>
+                              <Link
+                                href={`/produto/${product.slug}`}
+                                target="_blank"
+                              >
                                 <Eye className="w-4 h-4" />
                               </Link>
                             </Button>
@@ -541,8 +827,13 @@ export default function AdminProductsPage() {
                                   title: product.title,
                                 })
                               }
+                              disabled={updatingProducts.includes(product.id)}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {updatingProducts.includes(product.id) ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </td>
@@ -554,21 +845,194 @@ export default function AdminProductsPage() {
                   <div className="text-center py-12">
                     <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600">Nenhum produto encontrado</p>
+                    {hasActiveFilters && (
+                      <Button
+                        variant="link"
+                        onClick={clearFilters}
+                        className="mt-2"
+                      >
+                        Limpar filtros
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
         ) : (
-          // ... (código da visualização em grelha) ...
-          <div />
+          // Visualização em grid
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {paginatedProducts.map((product) => (
+              <Card key={product.id} className="overflow-hidden group">
+                <div className="relative aspect-square overflow-hidden">
+                  {product.images?.[0] ? (
+                    <Image
+                      src={product.images[0]}
+                      alt={product.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <Shirt className="w-16 h-16 text-gray-300" />
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    {product.featured && (
+                      <Badge className="bg-yellow-500">
+                        <Star className="w-3 h-3 fill-white" />
+                      </Badge>
+                    )}
+                    {product.isActive === false && (
+                      <Badge variant="destructive">Inativo</Badge>
+                    )}
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-medium text-gray-900 line-clamp-2 mb-1">
+                    {product.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 line-clamp-1 mb-2">
+                    {product.brand}
+                  </p>
+                  {product.league && (
+                    <Badge variant="secondary" className="mb-2">
+                      {product.league}
+                    </Badge>
+                  )}
+                  <p className="font-medium text-gray-900 mb-4">
+                    {formatPrice(product.price)}
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-2">
+                      <Button size="icon" variant="outline" asChild>
+                        <Link href={`/produto/${product.slug}`} target="_blank">
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button size="icon" variant="outline" asChild>
+                        <Link href={`/admin/produtos/${product.id}/edit`}>
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      onClick={() =>
+                        openDeleteSingleModal({
+                          id: product.id,
+                          title: product.title,
+                        })
+                      }
+                      disabled={updatingProducts.includes(product.id)}
+                    >
+                      {updatingProducts.includes(product.id) ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {filteredProducts.length === 0 && (
+              <div className="col-span-full text-center py-12">
+                <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Nenhum produto encontrado</p>
+                {hasActiveFilters && (
+                  <Button
+                    variant="link"
+                    onClick={clearFilters}
+                    className="mt-2"
+                  >
+                    Limpar filtros
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Paginação */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Mostrando {paginatedProducts.length} de {filteredProducts.length}{' '}
+              produtos
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
+              </Button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Lógica para mostrar páginas próximas à atual
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <>
+                    <span className="px-1">...</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(totalPages)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {totalPages}
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Próxima <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 
       {/* Modal de Confirmação de Exclusão */}
       {isConfirmModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <Card className="w-full max-w-md m-4 animate-fade-in">
+          <Card className="w-full max-w-md m-4 animate-in fade-in-90">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
