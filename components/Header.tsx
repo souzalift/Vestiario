@@ -155,11 +155,24 @@ export default function Header() {
             </form>
 
             <div className="flex items-center gap-1 sm:gap-2">
+              {/* Ícone do painel admin para mobile e desktop */}
               {isAuthenticated && userProfile?.role === 'admin' && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-gray-700 hidden sm:flex"
+                  className="text-gray-700 flex sm:hidden" // Mostra no mobile
+                  asChild
+                >
+                  <Link href="/admin/dashboard" title="Painel Admin">
+                    <Shield className="h-5 w-5" />
+                  </Link>
+                </Button>
+              )}
+              {isAuthenticated && userProfile?.role === 'admin' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-700 hidden sm:flex" // Mostra no desktop
                   asChild
                 >
                   <Link href="/admin/dashboard" title="Painel Admin">
