@@ -50,7 +50,7 @@ function SuccessContent() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-600 font-bold">2.</span>
-            <span>Seu pedido será preparado em até 1 dia útil</span>
+            <span>Seu pedido será preparado em até 3 dia úteis</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-600 font-bold">3.</span>
@@ -58,7 +58,7 @@ function SuccessContent() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-600 font-bold">4.</span>
-            <span>Prazo de entrega: 5 a 10 dias úteis</span>
+            <span>Prazo de entrega: 10 a 15 dias úteis</span>
           </li>
         </ul>
       </div>
