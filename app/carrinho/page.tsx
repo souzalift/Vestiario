@@ -23,7 +23,6 @@ import {
   X,
   Loader2,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import type { CartItem } from '@/contexts/CartContext';
