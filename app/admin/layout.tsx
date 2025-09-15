@@ -16,12 +16,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <AdminSidebar
         open={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onToggle={() => setSidebarOpen((prev) => !prev)}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader
           sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
