@@ -1,62 +1,95 @@
-// app/api/coupons/[code]/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/firebaseAdmin";
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getCouponByCode, deleteCouponByCode } from '@/services/coupons';
+type RouteContext = { params: { code: string } };
 
-type RouteContext = {
-  params: {
-    code: string;
-  };
-};
-
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function GET(req: NextRequest, { params }: RouteContext) {
   try {
-    const { code } = context.params;
+    const { code } = params;
+    const ref = db.collection("coupons").doc(code.toUpperCase());
+    const docSnap = await ref.get();
 
-    if (!code) {
-      return NextResponse.json({ error: 'Código do cupom não fornecido.' }, { status: 400 });
+    if (!docSnap.exists) {
+      return NextResponse.json({ error: "Cupom não encontrado" }, { status: 404 });
     }
 
-    const coupon = await getCouponByCode(code);
+    const couponData = docSnap.data();
 
-    if (!coupon) {
-      return NextResponse.json({ error: 'Cupom inválido ou não encontrado.' }, { status: 404 });
+    if (!couponData) {
+      return NextResponse.json({ error: "Cupom não encontrado" }, { status: 404 });
     }
+
+    const coupon = {
+      id: docSnap.id,
+      ...couponData,
+      expiryDate: couponData.expiryDate ? couponData.expiryDate.toDate().toISOString().split('T')[0] : null,
+      isActive: couponData.isActive ?? false
+    };
 
     if (!coupon.isActive) {
-      return NextResponse.json({ error: 'Este cupom não está mais ativo.' }, { status: 400 });
+      return NextResponse.json({ error: "Cupom inativo" }, { status: 400 });
     }
 
-    // Opcional: Verificar a data de validade
-    if (coupon.expiryDate && new Date() > coupon.expiryDate) {
-      return NextResponse.json({ error: 'Este cupom expirou.' }, { status: 400 });
+    if (coupon.expiryDate && new Date() > new Date(coupon.expiryDate)) {
+      return NextResponse.json({ error: "Cupom expirado" }, { status: 400 });
     }
 
     return NextResponse.json({ coupon });
-
   } catch (error: any) {
-    console.error(`Erro ao verificar o cupom ${context.params.code}:`, error);
-    return NextResponse.json({ error: 'Erro interno ao verificar o cupom.' }, { status: 500 });
+    console.error("Erro ao buscar cupom:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext) {
+export async function PUT(req: NextRequest, { params }: RouteContext) {
   try {
-    const { code } = context.params;
+    const { code } = params;
+    const body = await req.json();
+    const { type, value, expiryDate } = body;
 
-    if (!code) {
-      return NextResponse.json({ error: 'Código do cupom não fornecido.' }, { status: 400 });
+    const ref = db.collection("coupons").doc(code.toUpperCase());
+    const docSnap = await ref.get();
+
+    if (!docSnap.exists) {
+      return NextResponse.json({ error: "Cupom não encontrado" }, { status: 404 });
     }
 
-    const deleted = await deleteCouponByCode(code);
+    // Preparar dados para atualizar
+    const updateData: any = {
+      type,
+      value: type === 'free_shipping' ? 0 : Number(value),
+      updatedAt: new Date()
+    };
 
-    if (!deleted) {
-      return NextResponse.json({ error: 'Cupom não encontrado ou já removido.' }, { status: 404 });
+    if (expiryDate) {
+      updateData.expiryDate = new Date(expiryDate);
+    } else {
+      updateData.expiryDate = null;
     }
+
+    await ref.update(updateData);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error(`Erro ao apagar o cupom ${context.params.code}:`, error);
-    return NextResponse.json({ error: 'Erro interno ao apagar o cupom.' }, { status: 500 });
+    console.error("Erro ao atualizar cupom:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: RouteContext) {
+  try {
+    const { code } = params;
+    const ref = db.collection("coupons").doc(code.toUpperCase());
+    const docSnap = await ref.get();
+
+    if (!docSnap.exists) {
+      return NextResponse.json({ error: "Cupom não encontrado" }, { status: 404 });
+    }
+
+    await ref.delete();
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Erro ao apagar cupom:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
