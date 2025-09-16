@@ -51,22 +51,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface Product {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  images: string[];
-  sizes: string[];
-  featured: boolean;
-  tags: string[];
-  brand?: string;
-  league?: string;
-  createdAt: Date;
-  slug: string;
-  isActive?: boolean;
-}
+import { Product } from '@/services/products';
 
 interface DeletionState {
   type: 'single' | 'multiple' | null;
