@@ -45,6 +45,12 @@ export default function ProductPage() {
       try {
         const productData = await getProductBySlug(slug);
         if (productData) {
+          if (productData.isActive === false) {
+            toast.error('Produto não está disponível.');
+            setProduct(null);
+            setLoading(false);
+            return;
+          }
           setProduct(productData);
           setSelectedImage(productData.images?.[0] || '');
           if (productData.sizes && productData.sizes.length > 0) {
@@ -161,25 +167,27 @@ export default function ProductPage() {
                 />
               </div>
               <div className="mt-4 grid grid-cols-5 gap-4">
-                {product.images?.map((img, index) => (
-                  <Button
-                    key={index}
-                    onClick={() => setSelectedImage(img)}
-                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedImage === img
-                        ? 'border-indigo-600 scale-110'
-                        : 'border-transparent hover:border-gray-300'
-                    }`}
-                  >
-                    <Image
-                      src={img}
-                      alt={`${product.title} thumbnail ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      priority
-                    />
-                  </Button>
-                ))}
+                {(Array.isArray(product.images) ? product.images : []).map(
+                  (img, index) => (
+                    <Button
+                      key={index}
+                      onClick={() => setSelectedImage(img)}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                        selectedImage === img
+                          ? 'border-indigo-600 scale-110'
+                          : 'border-transparent hover:border-gray-300'
+                      }`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`${product.title} thumbnail ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        priority
+                      />
+                    </Button>
+                  ),
+                )}
               </div>
             </div>
 
