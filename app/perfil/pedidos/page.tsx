@@ -46,14 +46,12 @@ export default function MeusPedidosPage() {
     if (authLoading) return;
 
     if (userProfile?.uid) {
-      // Configura a query para os pedidos do usuário
       const ordersQuery = query(
         collection(db, 'orders'),
         where('userId', '==', userProfile.uid),
         orderBy('createdAt', 'desc'),
       );
 
-      // Inicia o "ouvinte" em tempo real
       const unsubscribe = onSnapshot(
         ordersQuery,
         (querySnapshot) => {
@@ -62,7 +60,6 @@ export default function MeusPedidosPage() {
             return {
               id: doc.id,
               ...data,
-              // Converte Timestamps para objetos Date
               createdAt: data.createdAt?.toDate
                 ? data.createdAt.toDate()
                 : new Date(),
@@ -81,7 +78,6 @@ export default function MeusPedidosPage() {
         },
       );
 
-      // Função de limpeza: para o "ouvinte" quando o componente é desmontado
       return () => unsubscribe();
     } else {
       setLoading(false);
@@ -115,7 +111,7 @@ export default function MeusPedidosPage() {
         basePrice: item.basePrice,
         image: item.image,
         team: item.team,
-        category: 'default', // Categoria padrão, se necessário
+        category: 'default',
       };
       const options = {
         size: item.size,
@@ -177,14 +173,18 @@ export default function MeusPedidosPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Meus Pedidos</h1>
+    <div className="max-w-4xl mx-auto py-6 px-3 sm:py-10 sm:px-4">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8">
+        Meus Pedidos
+      </h1>
       {orders.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold">Nenhum pedido encontrado</h3>
-            <Button asChild className="mt-6">
+            <h3 className="text-lg sm:text-xl font-semibold">
+              Nenhum pedido encontrado
+            </h3>
+            <Button asChild className="mt-6 w-full sm:w-auto">
               <Link href="/">Ver produtos</Link>
             </Button>
           </CardContent>
@@ -202,12 +202,12 @@ export default function MeusPedidosPage() {
                 key={order.id}
                 className="hover:shadow-md transition-shadow"
               >
-                <CardHeader className="flex flex-row items-start justify-between pb-4">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 pb-4">
                   <div>
-                    <CardTitle className="text-lg font-bold">
+                    <CardTitle className="text-base sm:text-lg font-bold">
                       Pedido #{order.orderNumber}
                     </CardTitle>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-gray-500">
                       Realizado em {formatDate(order.createdAt)}
                     </p>
                   </div>
@@ -218,14 +218,14 @@ export default function MeusPedidosPage() {
                   </span>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex -space-x-4 mb-4">
+                  <div className="flex flex-wrap gap-2 sm:-space-x-4 mb-4">
                     {order.items.slice(0, 5).map((item) => (
                       <div
                         key={item.id}
                         className="relative w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-gray-100"
                       >
                         <Image
-                          src={item.image}
+                          src={item.image || '/placeholder.png'}
                           alt={item.title}
                           fill
                           className="object-cover"
@@ -240,13 +240,14 @@ export default function MeusPedidosPage() {
                   </div>
 
                   {order.status === 'pendente' && (
-                    <div className="border-t border-b py-4 my-4 flex items-center justify-between">
+                    <div className="border-t border-b py-4 my-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <p className="text-sm font-medium text-yellow-800">
                         Seu pagamento está pendente.
                       </p>
                       <Button
                         onClick={() => handleRepay(order.id)}
                         disabled={repayingOrderId === order.id}
+                        className="w-full sm:w-auto"
                       >
                         {repayingOrderId === order.id ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -265,11 +266,11 @@ export default function MeusPedidosPage() {
                       <h4 className="text-sm font-semibold text-gray-800 mb-2">
                         Rastreio
                       </h4>
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <p className="font-mono text-gray-600 bg-gray-100 px-3 py-1 rounded">
                           {order.trackingCode}
                         </p>
-                        <Button asChild size="sm">
+                        <Button asChild size="sm" className="w-full sm:w-auto">
                           <a
                             href={`https://t.17track.net/pt#nums=${order.trackingCode}`}
                             target="_blank"
@@ -282,22 +283,28 @@ export default function MeusPedidosPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4">
                     <div>
                       <span className="text-gray-600">Total:</span>
                       <span className="font-bold text-lg text-gray-900 ml-2">
                         {formatCurrency(order.total)}
                       </span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                       <Button
                         onClick={() => handleReorder(order)}
                         variant="secondary"
                         size="sm"
+                        className="w-full sm:w-auto"
                       >
                         <RefreshCw className="w-4 h-4 mr-2" /> Repetir Compra
                       </Button>
-                      <Button asChild variant="outline" size="sm">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="w-full sm:w-auto"
+                      >
                         <Link href={`/perfil/pedidos/${order.id}`}>
                           Ver Detalhes <ArrowRight className="w-4 h-4 ml-2" />
                         </Link>
