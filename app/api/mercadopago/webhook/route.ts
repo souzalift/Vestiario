@@ -1,16 +1,15 @@
 // app/api/mercadopago/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { Payment, MercadoPagoConfig } from 'mercadopago';
-import admin from 'firebase-admin';
 import crypto from 'crypto';
 import type { Order } from '@/services/orders.admin';
+import { db } from '@/lib/firebaseAdmin'; // ✅ usa o que você acabou de configurar
+import admin from 'firebase-admin'; // se precisar do Timestamp
 
 // Inicializa Admin SDK (somente se ainda não estiver inicializado)
 if (!admin.apps.length) {
   admin.initializeApp();
 }
-
-const db = admin.firestore();
 
 // Chave secreta para validar a assinatura do webhook
 const WEBHOOK_SECRET = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
