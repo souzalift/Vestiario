@@ -9,7 +9,21 @@ import { Button } from './ui/button';
 const categories = [
   {
     name: 'Todos',
-    icon: '🌍', // Mantém emoji para "Todos"
+    icon: '🌍',
+  },
+  {
+    name: 'Seleções',
+    logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2Fnational.png?alt=media&token=c82a2afe-272a-4805-8596-792dbe75bf07',
+    teams: [
+      'Brasil',
+      'Alemanha',
+      'Itália',
+      'França',
+      'Argentina',
+      'Uruguai',
+      'Inglaterra',
+      'Espanha',
+    ],
   },
   {
     name: 'Brasileirão',
@@ -140,7 +154,7 @@ const categories = [
   },
   {
     name: 'Ligue 1',
-    logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2Fleague1.png?alt=media&token=f9830919-5f4e-4710-ac2a-6967bd969fa4', // adicionar URL do logo se desejar
+    logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2Fleague1.png?alt=media&token=f9830919-5f4e-4710-ac2a-6967bd969fa4',
     teams: [
       'Angers',
       'Auxerre',
@@ -160,6 +174,42 @@ const categories = [
       'Saint-Étienne',
       'Strasbourg',
       'Toulouse',
+    ],
+  },
+  {
+    name: 'NBA',
+    logo: 'https://firebasestorage.googleapis.com/v0/b/o-vestiario-67951.firebasestorage.app/o/logo-ligas%2FLogo-NBA.png?alt=media&token=89b4566b-df7e-4ee6-a9d9-1a502ddd7e88',
+    teams: [
+      'Atlanta Hawks',
+      'Boston Celtics',
+      'Brooklyn Nets',
+      'Charlotte Hornets',
+      'Chicago Bulls',
+      'Cleveland Cavaliers',
+      'Dallas Mavericks',
+      'Denver Nuggets',
+      'Detroit Pistons',
+      'Golden State Warriors',
+      'Houston Rockets',
+      'Indiana Pacers',
+      'Los Angeles Clippers',
+      'Los Angeles Lakers',
+      'Memphis Grizzlies',
+      'Miami Heat',
+      'Milwaukee Bucks',
+      'Minnesota Timberwolves',
+      'New Orleans Pelicans',
+      'New York Knicks',
+      'Oklahoma City Thunder',
+      'Orlando Magic',
+      'Philadelphia 76ers',
+      'Phoenix Suns',
+      'Portland Trail Blazers',
+      'Sacramento Kings',
+      'San Antonio Spurs',
+      'Toronto Raptors',
+      'Utah Jazz',
+      'Washington Wizards',
     ],
   },
 ];
