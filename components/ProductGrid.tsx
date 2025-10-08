@@ -14,6 +14,8 @@ const LEAGUES = [
   'Bundesliga',
   'Brasileirão',
   'Ligue 1',
+  'NBA',
+  'Seleções',
 ];
 
 const PER_PAGE = 25;
